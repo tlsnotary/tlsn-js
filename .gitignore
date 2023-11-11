@@ -1,0 +1,7 @@
+wasm/prover/target/
+wasm/prover/pkg/
+wasm/prover/Cargo.lock
+node_modules/
+.idea/
+.DS_Store
+pnpm-lock.yaml

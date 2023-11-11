@@ -1,0 +1,52 @@
+{
+  "name": "tlsn-js",
+  "version": "0.0.1",
+  "description": "JS library for TLS Notary",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "test:coverage": "NODE_ENV=development TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' nyc --reporter=lcov --require ts-node/register tape './src/**/*.test.ts' | tap-spec; nyc report ---reporter=text",
+    "test": "NODE_ENV=development TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' tape -r ts-node/register './src/**/*.test.ts' | tap-spec",
+    "build:wasm": "wasm-pack build --target web wasm/prover",
+    "build:types": "tsc --project tsconfig.compile.json",
+    "build:src": "webpack --config webpack.config.js",
+    "build": "NODE_ENV=production concurrently --kill-others-on-fail npm:build:types npm:build:src",
+    "dev": "NODE_ENV=development webpack-dev-server --config webpack.config.js --hot",
+    "eslint": "eslint . --fix",
+    "tsc": "tsc --noEmit",
+    "lint": "concurrently npm:tsc npm:eslint"
+  },
+  "files": ["build/", "src/", "readme.md"],
+  "author": "0xtsukino",
+  "license": "MIT",
+  "dependencies": {
+    "buffer": "^6.0.3",
+    "comlink": "^4.4.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.12",
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/preset-env": "^7.20.2",
+    "@types/node": "^20.4.10",
+    "babel-eslint": "^10.1.0",
+    "babel-loader": "^9.1.2",
+    "babel-preset-react-app": "^10.0.1",
+    "clean-webpack-plugin": "^4.0.0",
+    "copy-webpack-plugin": "^11.0.0",
+    "css-loader": "^6.7.3",
+    "eslint": "^8.31.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.27.4",
+    "eslint-plugin-prettier": "^5.0.0",
+    "html-loader": "^4.2.0",
+    "html-webpack-plugin": "^5.5.0",
+    "prettier": "^3.0.2",
+    "source-map-loader": "^3.0.1",
+    "terser-webpack-plugin": "^5.3.6",
+    "ts-loader": "^9.4.2",
+    "typescript": "^4.9.4",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.11.1"
+  }
+}
