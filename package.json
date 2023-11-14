@@ -22,9 +22,6 @@
     "lint:tsc": "tsc --noEmit",
     "lint": "concurrently npm:lint:tsc npm:lint:eslint"
   },
-  "dependencies": {
-    "comlink": "^4.4.1"
-  },
   "devDependencies": {
     "browserify": "^17.0.0",
     "concurrently": "^5.1.0",
