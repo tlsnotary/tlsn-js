@@ -6,11 +6,6 @@ const { compilerOptions } = require('./tsconfig.json');
 
 const isProd = process.env.NODE_ENV === 'production';
 
-const devServerEntries = [
-  // 'webpack-dev-server/client?http://localhost:8080',
-  // 'webpack/hot/only-dev-server',
-];
-
 const envPlugin = new webpack.EnvironmentPlugin({
   NODE_ENV: 'development',
 });
@@ -45,7 +40,7 @@ module.exports = [
     },
     output: {
       path: __dirname + '/test-build',
-      publicPath: isProd ? '/' : 'http://localhost:8080/',
+      publicPath: '/',
       filename: `[name].js`,
     },
     devtool: 'source-map',
@@ -93,12 +88,6 @@ module.exports = [
     stats: 'minimal',
     devServer: {
       historyApiFallback: true,
-      proxy: {
-        '/ns': {
-          target: `https://127.0.0.1:7074`,
-          secure: true,
-        },
-      },
     },
     // optimization: {
     //     runtimeChunk: 'single'

@@ -1,6 +1,7 @@
 import { prove, verify, NOTARY_SERVER_PUBKEY } from '../src';
 
 (async function runTest() {
+  console.log('hi1')
   const proof = await prove('https://swapi.dev/api/people/1', {
     method: 'GET',
     headers: {

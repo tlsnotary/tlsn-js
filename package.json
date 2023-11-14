@@ -16,7 +16,7 @@
     "build:wasm": "wasm-pack build --target web wasm/prover",
     "build:test": "webpack --config webpack.test.config.js",
     "watch:test": "webpack --config webpack.test.config.js --watch",
-    "serve:test": "serve ./test-build -l 3000",
+    "serve:test": "serve  --config ../serve.json ./test-build -l 3000",
     "test": "concurrently npm:watch:test npm:serve:test",
     "lint:eslint": "eslint . --fix",
     "lint:tsc": "tsc --noEmit",
