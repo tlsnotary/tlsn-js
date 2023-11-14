@@ -1,11 +1,10 @@
-import * as Comlink from 'comlink';
 import init, {
   initThreadPool,
   prover,
   verify,
 } from '../wasm/prover/pkg/tlsn_extension_rs';
 
-class TLSN {
+export default class TLSN {
   private startPromise: any;
   private resolveStart: any;
 
@@ -85,5 +84,3 @@ class TLSN {
     return JSON.parse(raw);
   }
 }
-
-Comlink.expose(TLSN);

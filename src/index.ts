@@ -1,16 +1,6 @@
-import * as Comlink from 'comlink';
+import TLSN from "./worker";
 
-const TLSN: any = Comlink.wrap(
-  new Worker(new URL('./worker.ts', import.meta.url)),
-);
-
-let tlsn: any | null = null;
-
-async function getTLSN(): Promise<any | null> {
-  if (tlsn) return tlsn;
-  tlsn = await new TLSN();
-  return tlsn;
-}
+const tlsn = new TLSN();
 
 export const NOTARY_SERVER_PUBKEY = `-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEBv36FI4ZFszJa0DQFJ3wWCXvVLFr\ncRzMG5kaTeHGoSzDu6cFqx3uEWYpFGo6C0EOUgf+mEgbktLrXocv5yHzKg==\n-----END PUBLIC KEY-----`;
 
@@ -25,7 +15,7 @@ export const prove = async (
     maxTranscriptSize?: number;
     secretHeaders?: string[];
     secretResps?: string[];
-  }
+  },
 ) => {
   const {
     method,
@@ -38,7 +28,6 @@ export const prove = async (
     secretResps,
   } = options;
 
-  const tlsn = await getTLSN();
   return tlsn.prover(url, {
     method,
     headers,
@@ -49,13 +38,12 @@ export const prove = async (
     secretHeaders,
     secretResps,
   });
-}
+};
 
-export const verify = async (proof: { session: any; substrings: any }, pubkey = NOTARY_SERVER_PUBKEY) => {
-  const tlsn = await getTLSN();
-  const result = await tlsn.verify(
-    proof,
-    pubkey,
-  );
+export const verify = async (
+  proof: { session: any; substrings: any },
+  pubkey = NOTARY_SERVER_PUBKEY,
+) => {
+  const result = await tlsn.verify(proof, pubkey);
   return result;
-}
+};
