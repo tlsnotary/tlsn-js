@@ -1,3 +1,7 @@
+wasm/prover/pkg
+wasm/prover/target
+wasm/prover/Cargo.lock
+wasm-pack.log
 node_modules/
 .idea/
 .DS_Store

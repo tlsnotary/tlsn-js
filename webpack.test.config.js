@@ -41,10 +41,10 @@ module.exports = [
         target: 'web',
         mode: isProd ? 'production' : 'development',
         entry: {
-            app: path.join(__dirname, 'src', 'app.tsx'),
+            test: path.join(__dirname, 'utils', 'test.ts'),
         },
         output: {
-            path: __dirname + '/build',
+            path: __dirname + '/test-build',
             publicPath: isProd ? '/' : 'http://localhost:8080/',
             filename: `[name].js`,
         },
@@ -91,8 +91,8 @@ module.exports = [
         devServer: {
             historyApiFallback: true,
             proxy: {
-                '/rest': {
-                    target: `http://127.0.0.1:8080`,
+                '/ns': {
+                    target: `https://127.0.0.1:7074`,
                     secure: true,
                 },
             },
