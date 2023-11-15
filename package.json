@@ -2,6 +2,7 @@
   "name": "tlsn-js",
   "version": "0.0.1",
   "description": "",
+  "repository": "https://github.com/tlsnotary/tlsn-js",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "files": [
