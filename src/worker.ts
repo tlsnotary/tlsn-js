@@ -1,3 +1,4 @@
+import * as Comlink from 'comlink';
 import init, {
   initThreadPool,
   prover,
@@ -84,3 +85,5 @@ export default class TLSN {
     return JSON.parse(raw);
   }
 }
+
+Comlink.expose(TLSN);

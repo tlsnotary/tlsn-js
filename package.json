@@ -17,11 +17,14 @@
     "build:wasm": "wasm-pack build --target web wasm/prover",
     "build:test": "webpack --config webpack.test.config.js",
     "watch:test": "webpack --config webpack.test.config.js --watch",
-    "serve:test": "serve  --config ../serve.json ./test-build -l 3000",
+    "serve:test": "serve  --config ../serve.json ./test-build -l 3001",
     "test": "concurrently npm:watch:test npm:serve:test",
     "lint:eslint": "eslint . --fix",
     "lint:tsc": "tsc --noEmit",
     "lint": "concurrently npm:lint:tsc npm:lint:eslint"
+  },
+  "dependencies": {
+    "comlink": "^4.4.1"
   },
   "devDependencies": {
     "browserify": "^17.0.0",
@@ -43,7 +46,6 @@
     "stream-browserify": "^3.0.0",
     "ts-loader": "^6.2.1",
     "typescript": "^4.9.3",
-    "wasm-pack": "^0.12.1",
     "webpack": "^5.75.0",
     "webpack-cli": "^5.0.0",
     "webpack-dev-server": "^4.11.1",
