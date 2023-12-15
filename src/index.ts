@@ -12,7 +12,8 @@ async function getTLSN(): Promise<any | null> {
   return _tlsn;
 }
 
-export const NOTARY_SERVER_PUBKEY = `-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEBv36FI4ZFszJa0DQFJ3wWCXvVLFr\ncRzMG5kaTeHGoSzDu6cFqx3uEWYpFGo6C0EOUgf+mEgbktLrXocv5yHzKg==\n-----END PUBLIC KEY-----`;
+export const DEFAULT_LOCAL_SERVER_PUBKEY = `-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEBv36FI4ZFszJa0DQFJ3wWCXvVLFr\ncRzMG5kaTeHGoSzDu6cFqx3uEWYpFGo6C0EOUgf+mEgbktLrXocv5yHzKg==\n-----END PUBLIC KEY-----`;
+export const NOTARY_SERVER_PUBKEY = `-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExpX/4R4z40gI6C/j9zAM39u58LJu\n3Cx5tXTuqhhu/tirnBi5GniMmspOTEsps4ANnPLpMmMSfhJ+IFHbc3qVOA==\n-----END PUBLIC KEY-----\n`;
 
 export const prove = async (
   url: string,
@@ -29,9 +30,9 @@ export const prove = async (
 ) => {
   const {
     method,
-    headers,
-    body,
-    maxTranscriptSize = 32768,
+    headers = {},
+    body = '',
+    maxTranscriptSize = 16384,
     notaryUrl,
     websocketProxyUrl,
     secretHeaders,
@@ -39,6 +40,10 @@ export const prove = async (
   } = options;
 
   const tlsn = await getTLSN();
+
+  headers["Host"] = new URL(url).host;
+  headers["Connection"] = "close";
+
   return tlsn.prover(url, {
     method,
     headers,

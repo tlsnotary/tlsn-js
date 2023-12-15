@@ -1,18 +1,17 @@
 import { prove, verify, NOTARY_SERVER_PUBKEY } from '../src';
 
 (async function runTest() {
-  const proof = await prove('https://api.coindesk.com/v1/bpi/currentprice.json', {
+  console.time('prove');
+  const proof = await prove('https://swapi.dev/api/people/1', {
     method: 'GET',
-    headers: {
-      // Connection: 'close',
-      // Accept: 'application/json',
-      // "accept-encoding": "identity"
-    },
-    body: '',
     maxTranscriptSize: 16384,
-    notaryUrl: 'https://127.0.0.1:7047',
-    websocketProxyUrl: 'ws://127.0.0.1:55688?token=api.coindesk.com',
+    notaryUrl: 'https://notary.efprivacyscaling.org',
+    websocketProxyUrl: 'ws://notary.efprivacyscaling.org:55688?token=swapi.dev',
   });
+  console.timeEnd('prove');
 
+  console.time('verify');
   const result = await verify(proof, NOTARY_SERVER_PUBKEY);
+  console.timeEnd('verify');
+  console.log(result);
 })();
