@@ -1,19 +1,19 @@
 import * as Comlink from 'comlink';
+import type TLSN from './worker';
+import { Proof } from './types';
 
-const TLSN: any = Comlink.wrap(
+const T = Comlink.wrap<TLSN>(
   new Worker(new URL('./worker.ts', import.meta.url)),
 );
 
-let _tlsn: any | null = null;
+let _tlsn: Comlink.Remote<TLSN>;
 
-async function getTLSN(): Promise<any | null> {
+async function getTLSN(): Promise<Comlink.Remote<TLSN>> {
   if (_tlsn) return _tlsn;
-  _tlsn = await new TLSN();
+  // @ts-ignore
+  _tlsn = await new T();
   return _tlsn;
 }
-
-export const DEFAULT_LOCAL_SERVER_PUBKEY = `-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEBv36FI4ZFszJa0DQFJ3wWCXvVLFr\ncRzMG5kaTeHGoSzDu6cFqx3uEWYpFGo6C0EOUgf+mEgbktLrXocv5yHzKg==\n-----END PUBLIC KEY-----`;
-export const NOTARY_SERVER_PUBKEY = `-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExpX/4R4z40gI6C/j9zAM39u58LJu\n3Cx5tXTuqhhu/tirnBi5GniMmspOTEsps4ANnPLpMmMSfhJ+IFHbc3qVOA==\n-----END PUBLIC KEY-----\n`;
 
 export const prove = async (
   url: string,
@@ -27,7 +27,7 @@ export const prove = async (
     secretHeaders?: string[];
     secretResps?: string[];
   },
-) => {
+): Promise<Proof> => {
   const {
     method,
     headers = {},
@@ -41,10 +41,10 @@ export const prove = async (
 
   const tlsn = await getTLSN();
 
-  headers["Host"] = new URL(url).host;
-  headers["Connection"] = "close";
+  headers['Host'] = new URL(url).host;
+  headers['Connection'] = 'close';
 
-  return tlsn.prover(url, {
+  const proof = await tlsn.prove(url, {
     method,
     headers,
     body,
@@ -54,13 +54,28 @@ export const prove = async (
     secretHeaders,
     secretResps,
   });
+
+  return {
+    ...proof,
+    notaryUrl,
+  };
 };
 
 export const verify = async (
-  proof: { session: any; substrings: any },
-  pubkey = NOTARY_SERVER_PUBKEY,
-) => {
+  proof: Proof,
+): Promise<{
+  time: number;
+  sent: string;
+  recv: string;
+  notaryUrl: string;
+}> => {
+  const res = await fetch(proof.notaryUrl + '/info');
+  const json: any = await res.json();
+  const publicKey = json.publicKey as string;
   const tlsn = await getTLSN();
-  const result = await tlsn.verify(proof, pubkey);
-  return result;
+  const result = await tlsn.verify(proof, publicKey);
+  return {
+    ...result,
+    notaryUrl: proof.notaryUrl,
+  };
 };

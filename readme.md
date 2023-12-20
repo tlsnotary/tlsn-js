@@ -1,6 +1,6 @@
 # tlsn-js
 
-NPM Modules for proving and verifying using TLS Notary.
+NPM Modules for proving and verifying using TLS Notary in the browser.
 
 The prover requires a [notary-server](https://github.com/tlsnotary/notary-server) and websockify proxy
 
@@ -43,12 +43,15 @@ npm install tlsn-js
 ## Development
 
 ```
+# make sure you have rust install
+# https://www.rust-lang.org/tools/install
 npm install
-npm run lint
-npm test
+
+# this serve a page that will execute the example code at http://localhost:3001 
+npm run dev
 ```
 
-## Build
+## Build for NPM
 
 ```
 npm install

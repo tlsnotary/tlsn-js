@@ -1,6 +1,6 @@
 {
   "name": "tlsn-js",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "repository": "https://github.com/tlsnotary/tlsn-js",
   "main": "build/index.js",
@@ -8,17 +8,19 @@
   "files": [
     "build/",
     "src/",
+    "wasm/prover/pkg",
     "readme.md"
   ],
   "scripts": {
-    "build:src": "webpack --config webpack.config.js",
+    "build:src": "webpack --config webpack.build.config.js",
     "build:types": "tsc --project tsconfig.compile.json",
     "build": "NODE_ENV=production concurrently npm:build:src npm:build:types",
+    "update:wasm": "sh utils/check-wasm.sh -f",
     "build:wasm": "wasm-pack build --target web wasm/prover",
-    "build:test": "webpack --config webpack.test.config.js",
-    "watch:test": "webpack --config webpack.test.config.js --watch",
-    "serve:test": "serve  --config ../serve.json ./test-build -l 3001",
-    "test": "concurrently npm:watch:test npm:serve:test",
+    "watch:dev": "webpack --config webpack.web.dev.config.js --watch",
+    "serve:dev": "serve  --config ../../serve.json ./dev-build/web -l 3001",
+    "predev": "sh utils/check-wasm.sh",
+    "dev": "concurrently npm:watch:dev npm:serve:dev",
     "lint:eslint": "eslint . --fix",
     "lint:tsc": "tsc --noEmit",
     "lint": "concurrently npm:lint:tsc npm:lint:eslint"
@@ -27,6 +29,7 @@
     "comlink": "^4.4.1"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
     "browserify": "^17.0.0",
     "concurrently": "^5.1.0",
     "constants-browserify": "^1.0.0",
@@ -35,12 +38,12 @@
     "eslint": "^8.47.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
-    "prettier": "^3.0.2",
     "file-loader": "^5.0.2",
     "html-webpack-plugin": "~5.3.2",
     "https-browserify": "^1.0.0",
     "image-webpack-loader": "^6.0.0",
     "node-loader": "^0.6.0",
+    "prettier": "^3.0.2",
     "process": "^0.11.10",
     "serve": "14.2.1",
     "stream-browserify": "^3.0.0",
@@ -52,5 +55,8 @@
     "webpack-node-externals": "^3.0.0"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "engines": {
+    "node": ">= 16.20.2"
+  }
 }

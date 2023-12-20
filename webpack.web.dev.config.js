@@ -1,6 +1,5 @@
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const CopyPlugin = require('copy-webpack-plugin');
 const path = require('path');
 const { compilerOptions } = require('./tsconfig.json');
 
@@ -36,10 +35,10 @@ module.exports = [
     target: 'web',
     mode: isProd ? 'production' : 'development',
     entry: {
-      test: path.join(__dirname, 'utils', 'test.ts'),
+      test: path.join(__dirname, 'utils', 'web.ts'),
     },
     output: {
-      path: __dirname + '/test-build',
+      path: __dirname + '/dev-build/web',
       publicPath: '/',
       filename: `[name].js`,
     },
@@ -80,17 +79,12 @@ module.exports = [
       new HtmlWebpackPlugin({
         template: './static/index.template.ejs',
         filename: `index.html`,
-        title: process.env.APP_TITLE || 'Zkitter',
         inject: true,
       }),
-      new webpack.ContextReplacementPlugin(/gun/),
     ],
     stats: 'minimal',
     devServer: {
       historyApiFallback: true,
     },
-    // optimization: {
-    //     runtimeChunk: 'single'
-    // },
   },
 ];
