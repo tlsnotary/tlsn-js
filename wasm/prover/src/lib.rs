@@ -51,10 +51,12 @@ async fn fetch_as_json_string(url: &str, opts: &RequestInit) -> Result<String, J
     let promise = fetch(&request);
     let future = JsFuture::from(promise);
     let resp_value = future.await?;
-    let resp: Response = resp_value.dyn_into().unwrap();
+    let resp: Response = resp_value.dyn_into()?;
     let json = JsFuture::from(resp.json()?).await?;
-    let stringified = JSON::stringify(&json).unwrap();
-    Ok(stringified.as_string().unwrap())
+    let stringified = JSON::stringify(&json)?;
+    stringified
+        .as_string()
+        .ok_or_else(|| JsValue::from_str("Could not stringify JSON"))
 }
 
 #[wasm_bindgen]
@@ -65,10 +67,17 @@ pub async fn prover(
     secret_body: JsValue,
 ) -> Result<String, JsValue> {
     log!("target_url: {}", target_url_str);
-    let target_url = Url::parse(target_url_str).expect("url must be valid");
+    let target_url = Url::parse(target_url_str)
+        .map_err(|e| JsValue::from_str(&format!("Could not parse target_url: {:?}", e)))?;
 
-    log!("target_url.host: {}", target_url.host().unwrap());
-    let options: RequestOptions = serde_wasm_bindgen::from_value(val).unwrap();
+    log!(
+        "target_url.host: {}",
+        target_url
+            .host()
+            .ok_or(JsValue::from_str("Could not get target host"))?
+    );
+    let options: RequestOptions = serde_wasm_bindgen::from_value(val)
+        .map_err(|e| JsValue::from_str(&format!("Could not deserialize options: {:?}", e)))?;
     log!("done!");
     log!("options.notary_url: {}", options.notary_url.as_str());
     // let fmt_layer = tracing_subscriber::fmt::layer()
@@ -100,13 +109,21 @@ pub async fn prover(
     opts.mode(RequestMode::Cors);
 
     // set headers
-    let headers = Headers::new().unwrap();
-    let notary_url = Url::parse(options.notary_url.as_str()).expect("url must be valid");
+    let headers = Headers::new()
+        .map_err(|e| JsValue::from_str(&format!("Could not create headers: {:?}", e)))?;
+    let notary_url = Url::parse(options.notary_url.as_str())
+        .map_err(|e| JsValue::from_str(&format!("Could not parse notary_url: {:?}", e)))?;
     let notary_ssl = notary_url.scheme() == "https" || notary_url.scheme() == "wss";
     let notary_host = notary_url.authority();
 
-    headers.append("Host", notary_host).unwrap();
-    headers.append("Content-Type", "application/json").unwrap();
+    headers
+        .append("Host", notary_host)
+        .map_err(|e| JsValue::from_str(&format!("Could not append Host header: {:?}", e)))?;
+    headers
+        .append("Content-Type", "application/json")
+        .map_err(|e| {
+            JsValue::from_str(&format!("Could not append Content-Type header: {:?}", e))
+        })?;
     opts.headers(&headers);
 
     log!("notary_host: {}", notary_host);
@@ -115,7 +132,7 @@ pub async fn prover(
         client_type: ClientType::Websocket,
         max_transcript_size: Some(options.max_transcript_size),
     })
-    .unwrap();
+    .map_err(|e| JsValue::from_str(&format!("Could not serialize request: {:?}", e)))?;
     opts.body(Some(&JsValue::from_str(&payload)));
 
     // url
@@ -125,9 +142,12 @@ pub async fn prover(
         notary_host
     );
     log!("Request: {}", url);
-    let rust_string = fetch_as_json_string(&url, &opts).await.unwrap();
+    let rust_string = fetch_as_json_string(&url, &opts)
+        .await
+        .map_err(|e| JsValue::from_str(&format!("Could not fetch session: {:?}", e)))?;
     let notarization_response =
-        serde_json::from_str::<NotarizationSessionResponse>(&rust_string).unwrap();
+        serde_json::from_str::<NotarizationSessionResponse>(&rust_string)
+            .map_err(|e| JsValue::from_str(&format!("Could not deserialize response: {:?}", e)))?;
     log!("Response: {}", rust_string);
 
     log!("Notarization response: {:?}", notarization_response,);
@@ -153,14 +173,16 @@ pub async fn prover(
 
     log!("!@# 0");
 
-    let target_host = target_url.host_str().unwrap();
+    let target_host = target_url
+        .host_str()
+        .ok_or(JsValue::from_str("Could not get target host"))?;
     // Basic default prover config
     let config = ProverConfig::builder()
         .id(notarization_response.session_id)
         .server_dns(target_host)
         .max_transcript_size(options.max_transcript_size)
         .build()
-        .unwrap();
+        .map_err(|e| JsValue::from_str(&format!("Could not build prover config: {:?}", e)))?;
 
     log!("!@# 1");
 
@@ -169,27 +191,23 @@ pub async fn prover(
     let prover = Prover::new(config)
         .setup(notary_ws_stream_into)
         .await
-        .unwrap();
+        .map_err(|e| JsValue::from_str(&format!("Could not set up prover: {:?}", e)))?;
 
     // Bind the Prover to the server connection.
     // The returned `mpc_tls_connection` is an MPC TLS connection to the Server: all data written
     // to/read from it will be encrypted/decrypted using MPC with the Notary.
-    let (mpc_tls_connection, prover_fut) = prover.connect(client_ws_stream_into).await.unwrap();
+    let (mpc_tls_connection, prover_fut) = prover
+        .connect(client_ws_stream_into)
+        .await
+        .map_err(|e| JsValue::from_str(&format!("Could not connect prover: {:?}", e)))?;
 
     log!("!@# 3");
 
     // let prover_task = tokio::spawn(prover_fut);
     let (prover_sender, prover_receiver) = oneshot::channel();
     let handled_prover_fut = async {
-        match prover_fut.await {
-            Ok(prover_result) => {
-                // Send the prover
-                let _ = prover_sender.send(prover_result);
-            }
-            Err(err) => {
-                panic!("An error occurred in prover_fut: {:?}", err);
-            }
-        }
+        let result = prover_fut.await;
+        let _ = prover_sender.send(result);
     };
     spawn_local(handled_prover_fut);
     log!("!@# 7");
@@ -198,7 +216,7 @@ pub async fn prover(
     let (mut request_sender, connection) =
         hyper::client::conn::handshake(mpc_tls_connection.compat())
             .await
-            .unwrap();
+            .map_err(|e| JsValue::from_str(&format!("Could not handshake: {:?}", e)))?;
     log!("!@# 8");
 
     // Spawn the HTTP task to be run concurrently
@@ -206,15 +224,8 @@ pub async fn prover(
     let (connection_sender, connection_receiver) = oneshot::channel();
     let connection_fut = connection.without_shutdown();
     let handled_connection_fut = async {
-        match connection_fut.await {
-            Ok(connection_result) => {
-                // Send the connection
-                let _ = connection_sender.send(connection_result);
-            }
-            Err(err) => {
-                panic!("An error occurred in connection_task: {:?}", err);
-            }
-        }
+        let result = connection_fut.await;
+        let _ = connection_sender.send(result);
     };
     spawn_local(handled_connection_fut);
     log!(
@@ -242,7 +253,8 @@ pub async fn prover(
         req_with_body = req_with_header.body(Body::from(options.body));
     }
 
-    let unwrapped_request = req_with_body.unwrap();
+    let unwrapped_request = req_with_body
+        .map_err(|e| JsValue::from_str(&format!("Could not build request: {:?}", e)))?;
 
     log!("Starting an MPC TLS connection with the server");
 
@@ -250,36 +262,64 @@ pub async fn prover(
     let response = request_sender
         .send_request(unwrapped_request)
         .await
-        .unwrap();
+        .map_err(|e| JsValue::from_str(&format!("Could not send request: {:?}", e)))?;
 
     log!("Got a response from the server");
 
-    assert!(response.status() == StatusCode::OK);
+    if response.status() != StatusCode::OK {
+        return Err(JsValue::from_str(&format!(
+            "Response status is not OK: {:?}",
+            response.status()
+        )));
+    }
 
     log!("Request OK");
 
     // Pretty printing :)
-    let payload = to_bytes(response.into_body()).await.unwrap().to_vec();
-    let parsed =
-        serde_json::from_str::<serde_json::Value>(&String::from_utf8_lossy(&payload)).unwrap();
+    let payload = to_bytes(response.into_body())
+        .await
+        .map_err(|e| JsValue::from_str(&format!("Could not get response body: {:?}", e)))?
+        .to_vec();
+    let parsed = serde_json::from_str::<serde_json::Value>(&String::from_utf8_lossy(&payload))
+        .map_err(|e| JsValue::from_str(&format!("Could not parse response: {:?}", e)))?;
     log!("!@# 10");
-    log!("{}", serde_json::to_string_pretty(&parsed).unwrap());
+    let response_pretty = serde_json::to_string_pretty(&parsed)
+        .map_err(|e| JsValue::from_str(&format!("Could not serialize response: {:?}", e)))?;
+    log!("{}", response_pretty);
     log!("!@# 11");
 
     // Close the connection to the server
     // let mut client_socket = connection_task.await.unwrap().unwrap().io.into_inner();
-    let mut client_socket = connection_receiver.await.unwrap().io.into_inner();
+    let mut client_socket = connection_receiver
+        .await
+        .map_err(|e| {
+            JsValue::from_str(&format!(
+                "Could not receive from connection_receiver: {:?}",
+                e
+            ))
+        })?
+        .map_err(|e| JsValue::from_str(&format!("Could not get TlsConnection: {:?}", e)))?
+        .io
+        .into_inner();
     log!("!@# 12");
-    client_socket.close().await.unwrap();
+    client_socket
+        .close()
+        .await
+        .map_err(|e| JsValue::from_str(&format!("Could not close socket: {:?}", e)))?;
     log!("!@# 13");
 
     // The Prover task should be done now, so we can grab it.
     // let mut prover = prover_task.await.unwrap().unwrap();
-    let prover = prover_receiver.await.unwrap();
+    let prover = prover_receiver
+        .await
+        .map_err(|e| {
+            JsValue::from_str(&format!("Could not receive from prover_receiver: {:?}", e))
+        })?
+        .map_err(|e| JsValue::from_str(&format!("Could not get Prover: {:?}", e)))?;
     let mut prover = prover.start_notarize();
     log!("!@# 14");
 
-    let secret_headers_vecs = string_list_to_bytes_vec(&secret_headers);
+    let secret_headers_vecs = string_list_to_bytes_vec(&secret_headers)?;
     let secret_headers_slices: Vec<&[u8]> = secret_headers_vecs
         .iter()
         .map(|vec| vec.as_slice())
@@ -291,7 +331,7 @@ pub async fn prover(
         secret_headers_slices.as_slice(),
     );
 
-    let secret_body_vecs = string_list_to_bytes_vec(&secret_body);
+    let secret_body_vecs = string_list_to_bytes_vec(&secret_body)?;
     let secret_body_slices: Vec<&[u8]> =
         secret_body_vecs.iter().map(|vec| vec.as_slice()).collect();
 
@@ -309,24 +349,45 @@ pub async fn prover(
     // Commit to the outbound and inbound transcript, isolating the data that contain secrets
     let sent_pub_commitment_ids = sent_public_ranges
         .iter()
-        .map(|range| builder.commit_sent(range.clone()).unwrap())
-        .collect::<Vec<_>>();
+        .map(|range| {
+            builder.commit_sent(range.clone()).map_err(|e| {
+                JsValue::from_str(&format!("Error committing sent pub range: {:?}", e))
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
 
-    sent_private_ranges.iter().for_each(|range| {
-        builder.commit_sent(range.clone()).unwrap();
-    });
+    sent_private_ranges.iter().try_for_each(|range| {
+        builder
+            .commit_sent(range.clone())
+            .map_err(|e| {
+                JsValue::from_str(&format!("Error committing sent private range: {:?}", e))
+            })
+            .map(|_| ())
+    })?;
 
     let recv_pub_commitment_ids = recv_public_ranges
         .iter()
-        .map(|range| builder.commit_recv(range.clone()).unwrap())
-        .collect::<Vec<_>>();
+        .map(|range| {
+            builder.commit_recv(range.clone()).map_err(|e| {
+                JsValue::from_str(&format!("Error committing recv public ranges: {:?}", e))
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
 
-    recv_private_ranges.iter().for_each(|range| {
-        builder.commit_recv(range.clone()).unwrap();
-    });
+    recv_private_ranges.iter().try_for_each(|range| {
+        builder
+            .commit_sent(range.clone())
+            .map_err(|e| {
+                JsValue::from_str(&format!("Error committing recv private range: {:?}", e))
+            })
+            .map(|_| ())
+    })?;
 
     // Finalize, returning the notarized session
-    let notarized_session = prover.finalize().await.unwrap();
+    let notarized_session = prover
+        .finalize()
+        .await
+        .map_err(|e| JsValue::from_str(&format!("Error finalizing prover: {:?}", e)))?;
 
     log!("Notarization complete!");
 
@@ -339,18 +400,24 @@ pub async fn prover(
     sent_pub_commitment_ids
         .iter()
         .chain(recv_pub_commitment_ids.iter())
-        .for_each(|id| {
-            proof_builder.reveal(*id).unwrap();
-        });
+        .try_for_each(|id| {
+            proof_builder
+                .reveal(*id)
+                .map_err(|e| JsValue::from_str(&format!("Could not reveal commitment: {:?}", e)))
+                .map(|_| ())
+        })?;
 
-    let substrings_proof = proof_builder.build().unwrap();
+    let substrings_proof = proof_builder
+        .build()
+        .map_err(|e| JsValue::from_str(&format!("Could not build proof: {:?}", e)))?;
 
     let proof = TlsProof {
         session: session_proof,
         substrings: substrings_proof,
     };
 
-    let res = serde_json::to_string_pretty(&proof).unwrap();
+    let res = serde_json::to_string_pretty(&proof)
+        .map_err(|e| JsValue::from_str(&format!("Could not serialize proof: {:?}", e)))?;
 
     let duration = start_time.elapsed();
     log!("!@# request takes: {} seconds", duration.as_secs());
@@ -361,7 +428,8 @@ pub async fn prover(
 #[wasm_bindgen]
 pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsValue> {
     log!("!@# proof {}", proof);
-    let proof: TlsProof = serde_json::from_str(proof).unwrap();
+    let proof: TlsProof = serde_json::from_str(proof)
+        .map_err(|e| JsValue::from_str(&format!("Could not deserialize proof: {:?}", e)))?;
 
     let TlsProof {
         // The session proof establishes the identity of the server and the commitments
@@ -378,8 +446,8 @@ pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsVa
         notary_pubkey_str.len()
     );
     session
-        .verify_with_default_cert_verifier(get_notary_pubkey(notary_pubkey_str))
-        .unwrap();
+        .verify_with_default_cert_verifier(get_notary_pubkey(notary_pubkey_str)?)
+        .map_err(|e| JsValue::from_str(&format!("Session verification failed: {:?}", e)))?;
 
     let SessionProof {
         // The session header that was signed by the Notary is a succinct commitment to the TLS transcript.
@@ -395,7 +463,9 @@ pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsVa
     // Verify the substrings proof against the session header.
     //
     // This returns the redacted transcripts
-    let (mut sent, mut recv) = substrings.verify(&header).unwrap();
+    let (mut sent, mut recv) = substrings
+        .verify(&header)
+        .map_err(|e| JsValue::from_str(&format!("Could not verify substrings: {:?}", e)))?;
 
     // Replace the bytes which the Prover chose not to disclose with 'X'
     sent.set_redacted(b'X');
@@ -409,18 +479,35 @@ pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsVa
     );
     log!("Note that the bytes which the Prover chose not to disclose are shown as X.");
     log!("Bytes sent:");
-    log!("{}", String::from_utf8(sent.data().to_vec()).unwrap());
+    log!(
+        "{}",
+        String::from_utf8(sent.data().to_vec()).map_err(|e| JsValue::from_str(&format!(
+            "Could not convert sent data to string: {:?}",
+            e
+        )))?
+    );
     log!("Bytes received:");
-    log!("{}", String::from_utf8(recv.data().to_vec()).unwrap());
+    log!(
+        "{}",
+        String::from_utf8(recv.data().to_vec()).map_err(|e| JsValue::from_str(&format!(
+            "Could not convert recv data to string: {:?}",
+            e
+        )))?
+    );
     log!("-------------------------------------------------------------------");
 
     let result = VerifyResult {
         server_name: String::from(server_name.as_str()),
         time: header.time(),
-        sent: String::from_utf8(sent.data().to_vec()).unwrap(),
-        recv: String::from_utf8(recv.data().to_vec()).unwrap(),
+        sent: String::from_utf8(sent.data().to_vec()).map_err(|e| {
+            JsValue::from_str(&format!("Could not convert sent data to string: {:?}", e))
+        })?,
+        recv: String::from_utf8(recv.data().to_vec()).map_err(|e| {
+            JsValue::from_str(&format!("Could not convert recv data to string: {:?}", e))
+        })?,
     };
-    let res = serde_json::to_string_pretty(&result).unwrap();
+    let res = serde_json::to_string_pretty(&result)
+        .map_err(|e| JsValue::from_str(&format!("Could not serialize result: {:?}", e)))?;
 
     Ok(res)
 }
@@ -431,10 +518,11 @@ fn print_type_of<T: ?Sized>(_: &T) {
 }
 
 /// Returns a Notary pubkey trusted by this Verifier
-fn get_notary_pubkey(pubkey: &str) -> p256::PublicKey {
+fn get_notary_pubkey(pubkey: &str) -> Result<p256::PublicKey, JsValue> {
     // from https://github.com/tlsnotary/notary-server/tree/main/src/fixture/notary/notary.key
     // converted with `openssl ec -in notary.key -pubout -outform PEM`
-    p256::PublicKey::from_public_key_pem(pubkey).unwrap()
+    p256::PublicKey::from_public_key_pem(pubkey)
+        .map_err(|e| JsValue::from_str(&format!("Could not get notary pubkey: {:?}", e)))
 }
 
 /// Find the ranges of the public and private parts of a sequence.
@@ -469,16 +557,18 @@ fn find_ranges(seq: &[u8], private_seq: &[&[u8]]) -> (Vec<Range<usize>>, Vec<Ran
     (public_ranges, private_ranges)
 }
 
-fn string_list_to_bytes_vec(secrets: &JsValue) -> Vec<Vec<u8>> {
+fn string_list_to_bytes_vec(secrets: &JsValue) -> Result<Vec<Vec<u8>>, JsValue> {
     let array: Array = Array::from(secrets);
     let length = array.length();
     let mut byte_slices: Vec<Vec<u8>> = Vec::new();
 
     for i in 0..length {
         let secret_js: JsValue = array.get(i);
-        let secret_str: String = secret_js.as_string().unwrap();
+        let secret_str: String = secret_js
+            .as_string()
+            .ok_or(JsValue::from_str("Could not convert secret to string"))?;
         let secret_bytes = secret_str.into_bytes();
         byte_slices.push(secret_bytes);
     }
-    byte_slices
+    Ok(byte_slices)
 }
