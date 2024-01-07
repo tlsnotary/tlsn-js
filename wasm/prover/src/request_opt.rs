@@ -1,12 +1,12 @@
-use std::{collections::HashMap};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Requestion Options of Fetch API
 // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestOptions {
-    pub method: String,  // *GET, POST, PUT, DELETE, etc.
+    pub method: String, // *GET, POST, PUT, DELETE, etc.
     // pub mode: String, // no-cors, *cors, same-origin
     // pub cache: String, // *default, no-cache, reload, force-cache, only-if-cached
     // pub credentials: String, // include, *same-origin, omit
@@ -16,7 +16,7 @@ pub struct RequestOptions {
     pub body: String, // body data type must match "Content-Type" header
     pub max_transcript_size: usize,
     pub notary_url: String,
-	pub websocket_proxy_url: String,
+    pub websocket_proxy_url: String,
 }
 
 #[derive(Serialize, Deserialize)]
