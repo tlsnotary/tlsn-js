@@ -6,7 +6,7 @@ The prover requires a [notary-server](https://github.com/tlsnotary/notary-server
 
 ## Example
 ```ts
-import { prove, verify, NOTARY_SERVER_PUBKEY } from '../src';
+import { prove, verify } from '../src';
 
 // To create a proof
 const proof = await prove('https://swapi.dev/api/people/1', {
@@ -23,7 +23,7 @@ const proof = await prove('https://swapi.dev/api/people/1', {
 });
 
 // To verify a proof
-const result = await verify(proof, NOTARY_SERVER_PUBKEY);
+const result = await verify(proof);
 console.log(result);
 ```
 
