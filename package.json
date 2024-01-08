@@ -1,6 +1,6 @@
 {
   "name": "tlsn-js",
-  "version": "0.0.2",
+  "version": "v0.1.0-alpha.3-rc1",
   "description": "",
   "repository": "https://github.com/tlsnotary/tlsn-js",
   "main": "build/index.js",
