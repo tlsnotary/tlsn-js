@@ -453,7 +453,7 @@ pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsVa
         // The session header that was signed by the Notary is a succinct commitment to the TLS transcript.
         header,
         // This is the server name, checked against the certificate chain shared in the TLS handshake.
-        server_name,
+        session_info,
         ..
     } = session;
 
@@ -474,7 +474,7 @@ pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsVa
     log!("-------------------------------------------------------------------");
     log!(
         "Successfully verified that the bytes below came from a session with {:?} at {}.",
-        server_name,
+        session_info.server_name,
         time
     );
     log!("Note that the bytes which the Prover chose not to disclose are shown as X.");
@@ -497,7 +497,7 @@ pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsVa
     log!("-------------------------------------------------------------------");
 
     let result = VerifyResult {
-        server_name: String::from(server_name.as_str()),
+        server_name: String::from(session_info.server_name.as_str()),
         time: header.time(),
         sent: String::from_utf8(sent.data().to_vec()).map_err(|e| {
             JsValue::from_str(&format!("Could not convert sent data to string: {:?}", e))
