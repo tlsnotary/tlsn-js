@@ -1,12 +1,14 @@
 [package]
 authors = ["The tlsn-extension Developers"]
+description = "tlsn-js library for using TLSNotary in browsers"
 edition = "2018"
+license = "MIT OR Apache-2.0"
 name = "tlsn-extension-rs"
 rust-version = "1.56"
 version = "0.1.0"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 chrono = "0.4"
@@ -82,7 +84,8 @@ strum_macros = "0.26.1"
 wasm-bindgen-test = "0.3.34"
 
 [profile.release]
-# Tell `rustc` to optimize for small code size.
+lto = true # Enable Link Time Optimization
+opt-level = "z" # Optimize for size
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = false
+wasm-opt = true

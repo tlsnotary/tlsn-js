@@ -17,7 +17,7 @@ use wasm_bindgen_futures::spawn_local;
 
 use ws_stream_wasm::*;
 
-use crate::request_opt::{RequestOptions, VerifyResult};
+pub use crate::request_opt::{RequestOptions, VerifyResult};
 use crate::requests::{ClientType, NotarizationSessionRequest, NotarizationSessionResponse};
 
 pub use wasm_bindgen_rayon::init_thread_pool;
@@ -32,7 +32,6 @@ use std::time::Duration;
 use tlsn_core::proof::{SessionProof, TlsProof};
 
 use strum::EnumMessage;
-use strum_macros;
 
 // A macro to provide `println!(..)`-style syntax for `console.log` logging.
 macro_rules! log {
@@ -287,15 +286,13 @@ pub async fn prover(
         req_with_header = req_with_header.header(key.as_str(), value.as_str());
     }
 
-    let req_with_body;
-
-    if options.body.is_empty() {
+    let req_with_body = if options.body.is_empty() {
         log!("empty body");
-        req_with_body = req_with_header.body(Body::empty());
+        req_with_header.body(Body::empty())
     } else {
         log!("added body - {}", options.body.as_str());
-        req_with_body = req_with_header.body(Body::from(options.body));
-    }
+        req_with_header.body(Body::from(options.body))
+    };
 
     let unwrapped_request = req_with_body
         .map_err(|e| JsValue::from_str(&format!("Could not build request: {:?}", e)))?;
@@ -467,7 +464,7 @@ pub async fn prover(
 
 #[wasm_bindgen]
 pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsValue> {
-    log!("!@# proof {}", proof);
+    // log!("!@# proof {}", proof);
     let proof: TlsProof = serde_json::from_str(proof)
         .map_err(|e| JsValue::from_str(&format!("Could not deserialize proof: {:?}", e)))?;
 
