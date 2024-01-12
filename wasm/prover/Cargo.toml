@@ -40,10 +40,10 @@ time = { version = "0.3", features = ["wasm-bindgen"] }
 # Used to calculate elapsed time.
 web-time = "0.2"
 
-tlsn-prover = { git = "https://github.com/tlsnotary/tlsn.git", branch = "dev", package = "tlsn-prover", features = [
+tlsn-prover = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.3", package = "tlsn-prover", features = [
   "tracing",
-] }
-tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", branch = "dev", package = "tlsn-core" }
+]}
+tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.3", package = "tlsn-core"}
 
 web-sys = { version = "0.3.4", features = [
   "BinaryType",
@@ -68,7 +68,7 @@ web-sys = { version = "0.3.4", features = [
 
 
 # Use the patched ws_stream_wasm to fix the issue https://github.com/najamelan/ws_stream_wasm/issues/12#issuecomment-1711902958
-ws_stream_wasm = { version = "0.7.4", git = "https://github.com/tlsnotary/ws_stream_wasm", branch = "dev" }
+ws_stream_wasm = { version = "0.7.4", git = "https://github.com/tlsnotary/ws_stream_wasm", rev = "2ed12aad9f0236e5321f577672f309920b2aef51" }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
