@@ -42,8 +42,11 @@ npm install tlsn-js
 
 ## Development
 
+> [!IMPORTANT]
+> **Note on Rust-to-WASM Compilation**: This project requires compiling Rust into WASM, which needs [`clang`](https://clang.llvm.org/) version 16.0.0 or newer. MacOS users, be aware that Xcode's default `clang` might be older. If you encounter the error `No available targets are compatible with triple "wasm32-unknown-unknown"`, it's likely due to an outdated `clang`. Updating `clang` to a newer version should resolve this issue.
+
 ```
-# make sure you have rust install
+# make sure you have rust installed
 # https://www.rust-lang.org/tools/install
 npm install
 
