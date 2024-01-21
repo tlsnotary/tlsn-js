@@ -1,51 +1,51 @@
 [package]
-name = "tlsn-extension-rs"
-version = "0.1.0"
 authors = ["The tlsn-extension Developers"]
 edition = "2018"
+name = "tlsn-extension-rs"
 rust-version = "1.56"
+version = "0.1.0"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-rayon = "1.5"
-wasm-bindgen-rayon = "1.0"
-wasm-bindgen = "0.2.87"
-js-sys = "0.3.64"
-tracing = "0.1"
-getrandom = { version = "0.2", features = ["js"] }
-wasm-bindgen-futures = "0.4.37"
-tokio-util = "0.7"
-futures = "0.3"
-serde_json = "1.0"
-serde = { version = "1.0.147", features = ["derive"] }
-serde-wasm-bindgen = "0.6.1"
-url = { version = "2.0", features = ["serde"] }
-futures-util = "0.3.28"
 chrono = "0.4"
-elliptic-curve = { version = "0.13.5", features = ["pkcs8"] }
-p256 = { version = "0.13", features = ["pem", "ecdsa"] }
+elliptic-curve = {version = "0.13.5", features = ["pkcs8"]}
+futures = "0.3"
+futures-util = "0.3.28"
+getrandom = {version = "0.2", features = ["js"]}
+js-sys = "0.3.64"
+p256 = {version = "0.13", features = ["pem", "ecdsa"]}
+rayon = "1.5"
+serde = {version = "1.0.147", features = ["derive"]}
+serde-wasm-bindgen = "0.6.1"
+serde_json = "1.0"
+tokio-util = "0.7"
+tracing = "0.1"
+url = {version = "2.0", features = ["serde"]}
+wasm-bindgen = "0.2.87"
+wasm-bindgen-futures = "0.4.37"
+wasm-bindgen-rayon = "1.0"
 
-hyper = { version = "0.14", features = ["client", "http1"] }
+hyper = {version = "0.14", features = ["client", "http1"]}
+tracing-subscriber = {version = "0.3", features = ["time"]}
 tracing-web = "0.1.2"
-tracing-subscriber = { version = "0.3", features = ["time"] }
 
-ring = { version = "0.17", features = ["wasm32_unknown_unknown_js"] }
+ring = {version = "0.17", features = ["wasm32_unknown_unknown_js"]}
 
 # time crate: https://crates.io/crates/time
 # NOTE: It is required, otherwise "time not implemented on this platform" error happens right after "!@# 2".
 # Probably due to tokio's time feature is used in tlsn-prover?
-time = { version = "0.3", features = ["wasm-bindgen"] }
+time = {version = "0.3", features = ["wasm-bindgen"]}
 # Used to calculate elapsed time.
 web-time = "0.2"
 
-tlsn-prover = { git = "https://github.com/tlsnotary/tlsn.git", branch = "dev", package = "tlsn-prover", features = [
+tlsn-core = {git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.3", package = "tlsn-core"}
+tlsn-prover = {git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.3", package = "tlsn-prover", features = [
   "tracing",
-] }
-tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", branch = "dev", package = "tlsn-core" }
+]}
 
-web-sys = { version = "0.3.4", features = [
+web-sys = {version = "0.3.4", features = [
   "BinaryType",
   "Blob",
   "ErrorEvent",
@@ -64,17 +64,16 @@ web-sys = { version = "0.3.4", features = [
   'RequestInit',
   'RequestMode',
   'Response',
-] }
-
+]}
 
 # Use the patched ws_stream_wasm to fix the issue https://github.com/najamelan/ws_stream_wasm/issues/12#issuecomment-1711902958
-ws_stream_wasm = { version = "0.7.4", git = "https://github.com/tlsnotary/ws_stream_wasm", branch = "dev" }
+ws_stream_wasm = {version = "0.7.4", git = "https://github.com/tlsnotary/ws_stream_wasm", rev = "2ed12aad9f0236e5321f577672f309920b2aef51"}
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
 # all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
 # code size when deploying.
-console_error_panic_hook = { version = "0.1.7" }
+console_error_panic_hook = {version = "0.1.7"}
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"
