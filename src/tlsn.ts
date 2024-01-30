@@ -5,7 +5,6 @@ export default class TLSN {
   private resolveStart: any;
 
   constructor() {
-    console.log('worker module initiated.');
     this.startPromise = new Promise((resolve) => {
       this.resolveStart = resolve;
     });
@@ -13,13 +12,13 @@ export default class TLSN {
   }
 
   async start() {
-    console.log('start');
+    // console.log('start');
     const numConcurrency = navigator.hardwareConcurrency;
-    console.log('!@# navigator.hardwareConcurrency=', numConcurrency);
+    // console.log('!@# navigator.hardwareConcurrency=', numConcurrency);
     const res = await init();
-    console.log('!@# res.memory=', res.memory);
+    // console.log('!@# res.memory=', res.memory);
     // 6422528 ~= 6.12 mb
-    console.log('!@# res.memory.buffer.length=', res.memory.buffer.byteLength);
+    // console.log('!@# res.memory.buffer.length=', res.memory.buffer.byteLength);
     await initThreadPool(numConcurrency);
     this.resolveStart();
   }
@@ -41,37 +40,32 @@ export default class TLSN {
       secretResps?: string[];
     },
   ) {
-    try {
-      await this.waitForStart();
-      console.log('worker', url, {
+    await this.waitForStart();
+    // console.log('worker', url, {
+    //   ...options,
+    //   notaryUrl: options?.notaryUrl,
+    //   websocketProxyUrl: options?.websocketProxyUrl,
+    // });
+    const resProver = await prover(
+      url,
+      {
         ...options,
         notaryUrl: options?.notaryUrl,
         websocketProxyUrl: options?.websocketProxyUrl,
-      });
-      const resProver = await prover(
-        url,
-        {
-          ...options,
-          notaryUrl: options?.notaryUrl,
-          websocketProxyUrl: options?.websocketProxyUrl,
-        },
-        options?.secretHeaders || [],
-        options?.secretResps || [],
-      );
-      const resJSON = JSON.parse(resProver);
-      console.log('!@# resProver,resJSON=', { resProver, resJSON });
-      console.log('!@# resAfter.memory=', resJSON.memory);
-      // 1105920000 ~= 1.03 gb
-      console.log(
-        '!@# resAfter.memory.buffer.length=',
-        resJSON.memory?.buffer?.byteLength,
-      );
+      },
+      options?.secretHeaders || [],
+      options?.secretResps || [],
+    );
+    const resJSON = JSON.parse(resProver);
+    // console.log('!@# resProver,resJSON=', { resProver, resJSON });
+    // console.log('!@# resAfter.memory=', resJSON.memory);
+    // 1105920000 ~= 1.03 gb
+    // console.log(
+    //   '!@# resAfter.memory.buffer.length=',
+    //   resJSON.memory?.buffer?.byteLength,
+    // );
 
-      return resJSON;
-    } catch (e: any) {
-      console.log(e);
-      return e;
-    }
+    return resJSON;
   }
 
   async verify(proof: any, pubkey: string) {
