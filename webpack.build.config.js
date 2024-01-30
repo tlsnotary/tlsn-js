@@ -44,6 +44,7 @@ module.exports = [
       rules: [...rules],
     },
     output: {
+      publicPath: '',
       path: __dirname + '/build',
       filename: `[name].js`,
       libraryTarget: 'umd',

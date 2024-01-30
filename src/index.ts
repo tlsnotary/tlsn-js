@@ -1,17 +1,12 @@
-import * as Comlink from 'comlink';
-import type TLSN from './worker';
+import TLSN from './tlsn';
 import { Proof } from './types';
 
-const T = Comlink.wrap<TLSN>(
-  new Worker(new URL('./worker.ts', import.meta.url)),
-);
+let _tlsn: TLSN;
 
-let _tlsn: Comlink.Remote<TLSN>;
-
-async function getTLSN(): Promise<Comlink.Remote<TLSN>> {
+async function getTLSN(): Promise<TLSN> {
   if (_tlsn) return _tlsn;
   // @ts-ignore
-  _tlsn = await new T();
+  _tlsn = await new TLSN();
   return _tlsn;
 }
 

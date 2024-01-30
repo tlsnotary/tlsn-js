@@ -17,6 +17,8 @@ import { prove, verify } from '../src';
     console.timeEnd('verify');
 
     console.log(result);
+    // @ts-ignore
+    document.getElementById('root').textContent = JSON.stringify(result);
   } catch(err) {
     console.log('caught error from wasm');
     console.error(err);
