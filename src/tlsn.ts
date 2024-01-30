@@ -15,7 +15,8 @@ export default class TLSN {
     // console.log('start');
     const numConcurrency = navigator.hardwareConcurrency;
     // console.log('!@# navigator.hardwareConcurrency=', numConcurrency);
-    const res = await init();
+    await init();
+    // const res = await init();
     // console.log('!@# res.memory=', res.memory);
     // 6422528 ~= 6.12 mb
     // console.log('!@# res.memory.buffer.length=', res.memory.buffer.byteLength);
