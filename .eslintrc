@@ -28,6 +28,7 @@
     "node_modules",
     "build",
     "test-build",
+    "dev-build",
     "wasm",
     "utils",
     "webpack.config.js",
