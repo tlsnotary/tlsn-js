@@ -63,15 +63,15 @@ export const prove = async (
 
 export const verify = async (
   proof: Proof,
+  publicKeyOverride?: string,
 ): Promise<{
   time: number;
   sent: string;
   recv: string;
   notaryUrl: string;
 }> => {
-  const res = await fetch(proof.notaryUrl + '/info');
-  const json: any = await res.json();
-  const publicKey = json.publicKey as string;
+  const publicKey =
+    publicKeyOverride || (await fetchPublicKeyFromNotary(proof.notaryUrl));
   const tlsn = await getTLSN();
   const result = await tlsn.verify(proof, publicKey);
   return {
@@ -79,3 +79,10 @@ export const verify = async (
     notaryUrl: proof.notaryUrl,
   };
 };
+
+async function fetchPublicKeyFromNotary(notaryUrl: string) {
+  const res = await fetch(notaryUrl + '/info');
+  const json: any = await res.json();
+  if (!json.publicKey) throw new Error('invalid response');
+  return json.publicKey;
+}
