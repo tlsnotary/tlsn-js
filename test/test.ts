@@ -26,14 +26,19 @@ after(function () {
 describe('tlsn-js test suite', function () {
   it('should prove and verify', async function () {
     const assert = require('assert');
-    const content = await check();
-    const result = JSON.parse(content);
-    assert(result);
-    async function check(): Promise<string> {
-      const content = await page.$eval('#root', (n: any) => n.innerText);
+
+    for (var div of ["root", "simple_verify"]) {
+
+      const content = await check(div);
+      const result = JSON.parse(content);
+      assert(result);
+    }
+
+    async function check(div: string): Promise<string> {
+      const content = await page.$eval(`#${div}`, (n: any) => n.innerText);
       if (content) return content;
       await new Promise((r) => setTimeout(r, 1000));
-      return check();
+      return check(div);
     }
   });
 });
