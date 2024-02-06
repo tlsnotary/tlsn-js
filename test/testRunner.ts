@@ -35,7 +35,7 @@ describe('tlsn-js test suite', function () {
   });
 
   it('should prove and verify', async function () {
-    const content = await check('simple_verify');
+    const content = await check('simple-verify');
     const result = safeParseJson(content);
     assert(result);
   });
