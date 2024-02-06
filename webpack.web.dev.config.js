@@ -7,6 +7,8 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const envPlugin = new webpack.EnvironmentPlugin({
   NODE_ENV: 'development',
+  LOCAL: false,
+  HEADLESS: false,
 });
 
 const rules = [
@@ -35,10 +37,10 @@ module.exports = [
     target: 'web',
     mode: isProd ? 'production' : 'development',
     entry: {
-      test: path.join(__dirname, 'utils', 'web.ts'),
+      test: path.join(__dirname, 'test', 'full-integration-swapi.spec.ts'),
     },
     output: {
-      path: __dirname + '/dev-build/web',
+      path: __dirname + '/test-build',
       publicPath: '/',
       filename: `[name].js`,
     },
@@ -77,7 +79,7 @@ module.exports = [
         process: 'process',
       }),
       new HtmlWebpackPlugin({
-        template: './static/index.template.ejs',
+        template: './test/test.ejs',
         filename: `index.html`,
         inject: true,
       }),
