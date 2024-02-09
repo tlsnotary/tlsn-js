@@ -12,19 +12,21 @@
     "readme.md"
   ],
   "scripts": {
+    "build:test": "webpack --config webpack.web.dev.config.js",
+    "serve:test": "serve  --config ../serve.json ./test-build -l 3001",
     "build:src": "webpack --config webpack.build.config.js",
     "build:types": "tsc --project tsconfig.compile.json",
     "build": "NODE_ENV=production concurrently npm:build:src npm:build:types",
     "update:wasm": "sh utils/check-wasm.sh -f",
     "build:wasm": "wasm-pack build --target web wasm/prover",
     "watch:dev": "webpack --config webpack.web.dev.config.js --watch",
-    "serve:dev": "serve  --config ../../serve.json ./dev-build/web -l 3001",
     "predev": "sh utils/check-wasm.sh",
     "dev": "concurrently npm:watch:dev npm:serve:dev",
     "lint:eslint": "eslint . --fix",
     "lint:tsc": "tsc --noEmit",
     "lint": "concurrently npm:lint:tsc npm:lint:eslint",
-    "test": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'test/test.ts'"
+    "run:test": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\"}' mocha -r ts-node/register 'test/testRunner.ts'",
+    "test": "npm run build:test && npm run run:test"
   },
   "dependencies": {
     "comlink": "^4.4.1"
@@ -32,6 +34,7 @@
   "devDependencies": {
     "@types/expect": "^24.3.0",
     "@types/mocha": "^10.0.6",
+    "@types/serve-handler": "^6.1.4",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "browserify": "^17.0.0",
     "concurrently": "^5.1.0",
@@ -49,7 +52,9 @@
     "node-loader": "^0.6.0",
     "prettier": "^3.0.2",
     "process": "^0.11.10",
+    "puppeteer": "^21.10.0",
     "serve": "14.2.1",
+    "serve-handler": "^6.1.5",
     "stream-browserify": "^3.0.0",
     "ts-loader": "^6.2.1",
     "ts-mocha": "^10.0.0",

@@ -519,8 +519,6 @@ fn print_type_of<T: ?Sized>(_: &T) {
 
 /// Returns a Notary pubkey trusted by this Verifier
 fn get_notary_pubkey(pubkey: &str) -> Result<p256::PublicKey, JsValue> {
-    // from https://github.com/tlsnotary/notary-server/tree/main/src/fixture/notary/notary.key
-    // converted with `openssl ec -in notary.key -pubout -outform PEM`
     p256::PublicKey::from_public_key_pem(pubkey)
         .map_err(|e| JsValue::from_str(&format!("Could not get notary pubkey: {:?}", e)))
 }

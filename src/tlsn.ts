@@ -1,4 +1,8 @@
-import init, { initThreadPool, prover, verify } from '../wasm/prover/pkg';
+import init, {
+  initThreadPool,
+  prover,
+  verify,
+} from '../wasm/prover/pkg/tlsn_extension_rs';
 
 export default class TLSN {
   private startPromise: any;

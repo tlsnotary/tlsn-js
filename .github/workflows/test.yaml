@@ -1,0 +1,70 @@
+name: test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  LOCAL: true
+  HEADLESS: true
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install stable rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          toolchain: nightly
+
+      - name: Use caching
+        uses: Swatinem/rust-cache@v2.7.0
+        with:
+          workspaces: . -> wasm/prover
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        with:
+          version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install wasm-pack
+        run: npm install -g wasm-pack
+
+      - name: Install nightly tool-chain
+        run: rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build WASM
+        run: npm run build:wasm
+
+      - name: Test
+        run: npm run test
