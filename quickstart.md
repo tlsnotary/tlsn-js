@@ -2,27 +2,61 @@
 
 There is a simple react/typescript demo app in `./demo/react-ts-webpack`. The directory contains a webpack configuration file that allows you to quickly bootstrap a webpack app using tlsn-js. 
 
-## Using tlsn-js in a React/Typescript app
+## Run a local notary server and websocket proxy
 
-### 1. Clone the repository
-```
-git clone https://github.com/tlsnotary/tlsn-js
-```
+### Websocket Proxy <a name="proxy"></a>
 
-### 2. Go to the demo folder
-```
-cd ./tlsn-js/demo/react-ts-webpack
-```
+Since a web browser doesn't have the ability to make TCP connection, we need to use a websocket proxy server.
 
-### 3. Install dependency
-```
-npm i
+To run your own websockify proxy **locally**, run:
+```sh
+git clone https://github.com/novnc/websockify && cd websockify
+./docker/build.sh
+docker run -it --rm -p 55688:80 novnc/websockify 80 swapi.dev:443
 ```
 
-### 4. Start Webpack Dev Server
-```
-npm run dev
-```
+Note the `swapi.dev:443` argument on the last line, this is the server we will use in this quick start.
 
-### 5. Navigate to `http://localhost:8080`
+### Run a Local Notary Server <a name="local-notary"></a>
 
+For this demo, we also need to run a local notary server.
+
+1. Clone the TLSNotary repository:
+   ```shell
+   git clone https://github.com/tlsnotary/tlsn.git --branch "v0.1.0-alpha.4"
+   ```
+2. Edit the notary server config file (`notary-server/config/config.yaml`) to turn off TLS so that the browser extension can connect to the local notary server without requiring extra steps to accept self-signed certificates in the browser.
+   ```yaml
+   tls:
+      enabled: false
+   ```
+3. Run the notary server:
+   ```shell
+   cd notary-server
+   cargo run --release
+   ```
+
+The notary server will now be running in the background waiting for connections.
+
+## `tlsn-js` in a React/Typescript app
+
+### Run the
+1. Clone the repository
+    ```sh
+    git clone https://github.com/tlsnotary/tlsn-js
+    ```
+2. Go to the demo folder
+    ```sh
+    cd ./tlsn-js/demo/react-ts-webpack
+    ```
+3. Install dependencies
+    ```sh
+    npm i
+    ```
+4. Start Webpack Dev Server:
+    ```
+    npm run dev
+    ```
+5. Open `http://localhost:8080` in your browser
+6. Click the **start demo** button
+7. Open developer tools and monitor the console logs

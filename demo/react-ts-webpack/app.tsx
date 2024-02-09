@@ -2,6 +2,7 @@ import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { prove, verify } from '../../src';
 import { Proof } from 'tlsn-js/build/types';
+import { Watch } from 'react-loader-spinner'
 
 const container = document.getElementById('root');
 const root = createRoot(container!);
@@ -42,27 +43,44 @@ function App(): ReactElement {
   return (
     <div>
       <button onClick={!processing ? onClick : undefined} disabled={processing}>
-        Start
+        Start demo
       </button>
       <div>
         <b>Proof: </b>
-        <i>
-          {!processing && !proof
-            ? 'not started'
-            : !proof
-              ? 'proving'
-              : JSON.stringify(proof, null, 2)}
-        </i>
+        {!processing && !proof
+          ? <i>not started</i>
+          : !proof
+            ? <>
+              Proving data from swapi...
+              <Watch
+                visible={true}
+                height="40"
+                width="40"
+                radius="48"
+                color="#000000"
+                ariaLabel="watch-loading"
+                wrapperStyle={{}}
+                wrapperClass=""
+              />
+              Open <i>Developer tools</i> to follow progress
+            </>
+            : <>
+              <details>
+                <summary>View Proof</summary>
+                <pre>{JSON.stringify(proof, null, 2)}</pre>
+              </details>
+            </>
+        }
+
       </div>
       <div>
-        <b>Verify: </b>
-        <i>
-          {!proof
-            ? 'not started'
-            : !result
-              ? 'verifying'
-              : JSON.stringify(result, null, 2)}
-        </i>
+        <b>Verification: </b>
+        {!proof
+          ? <i>not started</i>
+          : !result
+            ? <i>verifying</i>
+            : <pre>{JSON.stringify(result, null, 2)}</pre>
+        }
       </div>
     </div>
   );

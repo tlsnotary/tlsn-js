@@ -11,7 +11,8 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tlsn-js": "0.1.0-alpha.3"
+    "react-loader-spinner": "^6.1.6",
+    "tlsn-js": "../../../tlsn-js"
   },
   "devDependencies": {
     "@types/react": "^18.0.26",
