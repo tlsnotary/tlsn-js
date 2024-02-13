@@ -36,13 +36,12 @@ ring = {version = "0.17", features = ["wasm32_unknown_unknown_js"]}
 # time crate: https://crates.io/crates/time
 # NOTE: It is required, otherwise "time not implemented on this platform" error happens right after "!@# 2".
 # Probably due to tokio's time feature is used in tlsn-prover?
-# Temporarily fixed to 0.3.31 as a workaround for https://github.com/time-rs/time/issues/652
-time = {version = "=0.3.31", features = ["wasm-bindgen"]}
+time = {version = "0.3.34", features = ["wasm-bindgen"]}
 # Used to calculate elapsed time.
-web-time = "0.2"
+web-time = "1.0"
 
-tlsn-core = {git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.3", package = "tlsn-core"}
-tlsn-prover = {git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.3", package = "tlsn-prover", features = [
+tlsn-core = {git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.4", package = "tlsn-core"}
+tlsn-prover = {git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.4", package = "tlsn-prover", features = [
   "tracing",
 ]}
 
