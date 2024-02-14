@@ -22,6 +22,7 @@
     "watch:dev": "webpack --config webpack.web.dev.config.js --watch",
     "predev": "sh utils/check-wasm.sh",
     "dev": "concurrently npm:watch:dev npm:serve:dev",
+    "lint:wasm": "cd wasm/prover; cargo clippy --target wasm32-unknown-unknown",
     "lint:eslint": "eslint . --fix",
     "lint:tsc": "tsc --noEmit",
     "lint": "concurrently npm:lint:tsc npm:lint:eslint",
