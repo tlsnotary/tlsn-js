@@ -9,3 +9,5 @@ pnpm-lock.yaml
 build/
 dev-build/
 test-build/
+./demo/node_modules
+./demo/package-lock.json
