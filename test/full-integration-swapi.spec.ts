@@ -1,5 +1,4 @@
 import { prove, verify } from '../src';
-import simple_proof_redacted from './assets/simple_proof_redacted.json';
 
 (async function () {
   try {

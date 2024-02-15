@@ -193,6 +193,8 @@ pub async fn prover(
         .await
         .map_err(|e| JsValue::from_str(&format!("Could not set up prover: {:?}", e)))?;
 
+    log!("!@# 2");
+
     // Bind the Prover to the server connection.
     // The returned `mpc_tls_connection` is an MPC TLS connection to the Server: all data written
     // to/read from it will be encrypted/decrypted using MPC with the Notary.
@@ -350,7 +352,7 @@ pub async fn prover(
     let sent_pub_commitment_ids = sent_public_ranges
         .iter()
         .map(|range| {
-            builder.commit_sent(range.clone()).map_err(|e| {
+            builder.commit_sent(range).map_err(|e| {
                 JsValue::from_str(&format!("Error committing sent pub range: {:?}", e))
             })
         })
@@ -358,7 +360,7 @@ pub async fn prover(
 
     sent_private_ranges.iter().try_for_each(|range| {
         builder
-            .commit_sent(range.clone())
+            .commit_sent(range)
             .map_err(|e| {
                 JsValue::from_str(&format!("Error committing sent private range: {:?}", e))
             })
@@ -368,7 +370,7 @@ pub async fn prover(
     let recv_pub_commitment_ids = recv_public_ranges
         .iter()
         .map(|range| {
-            builder.commit_recv(range.clone()).map_err(|e| {
+            builder.commit_recv(range).map_err(|e| {
                 JsValue::from_str(&format!("Error committing recv public ranges: {:?}", e))
             })
         })
@@ -376,7 +378,7 @@ pub async fn prover(
 
     recv_private_ranges.iter().try_for_each(|range| {
         builder
-            .commit_sent(range.clone())
+            .commit_sent(range)
             .map_err(|e| {
                 JsValue::from_str(&format!("Error committing recv private range: {:?}", e))
             })
@@ -402,7 +404,7 @@ pub async fn prover(
         .chain(recv_pub_commitment_ids.iter())
         .try_for_each(|id| {
             proof_builder
-                .reveal(*id)
+                .reveal_by_id(*id)
                 .map_err(|e| JsValue::from_str(&format!("Could not reveal commitment: {:?}", e)))
                 .map(|_| ())
         })?;
@@ -453,7 +455,7 @@ pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsVa
         // The session header that was signed by the Notary is a succinct commitment to the TLS transcript.
         header,
         // This is the server name, checked against the certificate chain shared in the TLS handshake.
-        server_name,
+        session_info,
         ..
     } = session;
 
@@ -474,7 +476,7 @@ pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsVa
     log!("-------------------------------------------------------------------");
     log!(
         "Successfully verified that the bytes below came from a session with {:?} at {}.",
-        server_name,
+        session_info.server_name,
         time
     );
     log!("Note that the bytes which the Prover chose not to disclose are shown as X.");
@@ -497,7 +499,7 @@ pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsVa
     log!("-------------------------------------------------------------------");
 
     let result = VerifyResult {
-        server_name: String::from(server_name.as_str()),
+        server_name: String::from(session_info.server_name.as_str()),
         time: header.time(),
         sent: String::from_utf8(sent.data().to_vec()).map_err(|e| {
             JsValue::from_str(&format!("Could not convert sent data to string: {:?}", e))

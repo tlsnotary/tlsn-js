@@ -1,6 +1,6 @@
 {
   "name": "tlsn-js",
-  "version": "v0.1.0-alpha.3",
+  "version": "v0.1.0-alpha.4",
   "description": "",
   "repository": "https://github.com/tlsnotary/tlsn-js",
   "main": "build/index.js",
@@ -22,6 +22,7 @@
     "watch:dev": "webpack --config webpack.web.dev.config.js --watch",
     "predev": "sh utils/check-wasm.sh",
     "dev": "concurrently npm:watch:dev npm:serve:dev",
+    "lint:wasm": "cd wasm/prover; cargo clippy --target wasm32-unknown-unknown",
     "lint:eslint": "eslint . --fix",
     "lint:tsc": "tsc --noEmit",
     "lint": "concurrently npm:lint:tsc npm:lint:eslint",
