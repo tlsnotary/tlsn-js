@@ -28,13 +28,13 @@ after(async function () {
 });
 
 describe('tlsn-js test suite', function () {
-  it('should prove and verify', async function () {
+  it('should prove and verify swapi.dev', async function () {
     const content = await check('full-integration-swapi');
     const result = safeParseJson(content);
     assert(result);
   });
 
-  it('should prove and verify', async function () {
+  it('should verify', async function () {
     const content = await check('simple-verify');
     const result = safeParseJson(content);
     assert(result);
