@@ -162,15 +162,6 @@ pub async fn prover(
         .expect_throw("assume the notary ws connection succeeds");
     let notary_ws_stream_into = notary_ws_stream.into_io();
 
-    /*
-       Connect Application Server with websocket proxy
-    */
-
-    let (_, client_ws_stream) = WsMeta::connect(options.websocket_proxy_url, None)
-        .await
-        .expect_throw("assume the client ws connection succeeds");
-    let client_ws_stream_into = client_ws_stream.into_io();
-
     log!("!@# 0");
 
     let target_host = target_url
@@ -194,6 +185,16 @@ pub async fn prover(
         .map_err(|e| JsValue::from_str(&format!("Could not set up prover: {:?}", e)))?;
 
     log!("!@# 2");
+    /*
+       Connect Application Server with websocket proxy
+    */
+
+    let (_, client_ws_stream) = WsMeta::connect(options.websocket_proxy_url, None)
+        .await
+        .expect_throw("assume the client ws connection succeeds");
+    let client_ws_stream_into = client_ws_stream.into_io();
+
+    log!("!@# 3");
 
     // Bind the Prover to the server connection.
     // The returned `mpc_tls_connection` is an MPC TLS connection to the Server: all data written
@@ -203,7 +204,7 @@ pub async fn prover(
         .await
         .map_err(|e| JsValue::from_str(&format!("Could not connect prover: {:?}", e)))?;
 
-    log!("!@# 3");
+    log!("!@# 4");
 
     // let prover_task = tokio::spawn(prover_fut);
     let (prover_sender, prover_receiver) = oneshot::channel();
