@@ -1,6 +1,6 @@
 import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { prove, verify } from '../../src';
+import { prove, verify } from 'tlsn-js';
 import { Proof } from 'tlsn-js/build/types';
 import { Watch } from 'react-loader-spinner'
 

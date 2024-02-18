@@ -1,5 +1,6 @@
 var webpack = require('webpack'),
-  path = require('path'),
+  path = require("path"),
+  CopyWebpackPlugin = require("copy-webpack-plugin"),
   HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const ASSET_PATH = process.env.ASSET_PATH || '/';
@@ -76,6 +77,15 @@ var options = {
       .concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
   },
   plugins: [
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "node_modules/tlsn-js/build",
+          to: path.join(__dirname, "build"),
+          force: true,
+        },
+      ],
+    }),
     new HtmlWebpackPlugin({
       template: path.join(__dirname, 'index.ejs'),
       filename: 'index.html',
