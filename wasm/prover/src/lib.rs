@@ -379,7 +379,7 @@ pub async fn prover(
 
     recv_private_ranges.iter().try_for_each(|range| {
         builder
-            .commit_sent(range)
+            .commit_recv(range)
             .map_err(|e| {
                 JsValue::from_str(&format!("Error committing recv private range: {:?}", e))
             })
