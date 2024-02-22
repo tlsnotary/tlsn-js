@@ -1,6 +1,6 @@
 var webpack = require('webpack'),
-  path = require("path"),
-  CopyWebpackPlugin = require("copy-webpack-plugin"),
+  path = require('path'),
+  CopyWebpackPlugin = require('copy-webpack-plugin'),
   HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const ASSET_PATH = process.env.ASSET_PATH || '/';
@@ -80,8 +80,8 @@ var options = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: "node_modules/tlsn-js/build",
-          to: path.join(__dirname, "build"),
+          from: 'node_modules/tlsn-js/build',
+          to: path.join(__dirname, 'build'),
           force: true,
         },
       ],

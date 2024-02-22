@@ -6,12 +6,16 @@ export interface Proof {
 
 export interface Session {
   header: Header;
-  server_name: ServerName;
   signature: Signature;
-  handshake_data_decommitment: HandshakeDataDecommitment;
+  session_info: SessionInfo;
 }
 
-export interface HandshakeDataDecommitment {
+export interface SessionInfo {
+  server_name: ServerName;
+  handshake_decommitment: HandshakeDecommitment;
+}
+
+export interface HandshakeDecommitment {
   nonce: number[];
   data: Data;
 }
@@ -25,7 +29,7 @@ export interface Data {
 
 export interface ServerCERTDetails {
   cert_chain: Array<number[]>;
-  ocsp_response: any[];
+  ocsp_response: number[];
   scts: null;
 }
 
