@@ -75,6 +75,9 @@ ws_stream_wasm = {version = "0.7.4", git = "https://github.com/tlsnotary/ws_stre
 # code size when deploying.
 console_error_panic_hook = {version = "0.1.7"}
 
+strum = {version = "0.26.1"}
+strum_macros = "0.26.1"
+
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"
 
