@@ -31,9 +31,11 @@ describe('tlsn-js test suite', function () {
   it('should prove and verify swapi.dev', async function () {
     const content = await check('full-integration-swapi');
     const result = safeParseJson(content);
-    console.log(result);
     assert(result.sent.includes("host: swapi.dev"));
+    assert(result.sent.includes("secret: XXXXXXXXXXX"));
     assert(result.recv.includes("Luke Skywalker"));
+    assert(result.recv.includes('"hair_color":"XXXXX"'));
+    assert(result.recv.includes('"skin_color":"XXXX"'));
   });
 
   it('should verify', async function () {
