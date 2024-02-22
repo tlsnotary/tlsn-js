@@ -2,6 +2,7 @@ import { prove, verify } from '../src';
 
 (async function () {
   try {
+    // @ts-ignore
     console.log('test start');
     console.time('prove');
     const proof = await prove('https://swapi.dev/api/people/1', {
