@@ -9,10 +9,10 @@ import { prove, verify } from '../src';
       method: 'GET',
       headers: { secret: 'test_secret' },
       maxTranscriptSize: 16384,
-      notaryUrl: process.env.LOCAL
+      notaryUrl: process.env.LOCAL_NOTARY
         ? 'http://localhost:7047'
         : 'https://notary.pse.dev',
-      websocketProxyUrl: process.env.LOCAL
+      websocketProxyUrl: process.env.LOCAL_WS
         ? 'ws://localhost:55688'
         : 'wss://notary.pse.dev/proxy?token=swapi.dev',
       secretHeaders: ['test_secret'],
