@@ -9,6 +9,7 @@ on:
 env:
   LOCAL: true
   HEADLESS: true
+  PUPPETEER_SKIP_DOWNLOAD: true
 
 jobs:
   build:

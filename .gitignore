@@ -5,7 +5,6 @@ wasm-pack.log
 node_modules/
 .idea/
 .DS_Store
-pnpm-lock.yaml
 build/
 dev-build/
 test-build/
