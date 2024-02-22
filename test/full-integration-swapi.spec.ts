@@ -7,7 +7,7 @@ import { prove, verify } from '../src';
     console.time('prove');
     const proof = await prove('https://swapi.dev/api/people/1', {
       method: 'GET',
-      headers: { secret: "test_secret" },
+      headers: { secret: 'test_secret' },
       maxTranscriptSize: 16384,
       notaryUrl: process.env.LOCAL
         ? 'http://localhost:7047'
@@ -15,9 +15,8 @@ import { prove, verify } from '../src';
       websocketProxyUrl: process.env.LOCAL
         ? 'ws://localhost:55688'
         : 'wss://notary.pse.dev/proxy?token=swapi.dev',
-      secretHeaders: ["test_secret"],
-      secretResps: ["blond", "fair"]
-
+      secretHeaders: ['test_secret'],
+      secretResps: ['blond', 'fair'],
     });
     console.timeEnd('prove');
 

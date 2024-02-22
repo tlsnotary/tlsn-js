@@ -1,6 +1,5 @@
 import { verify } from '../src';
 import simple_proof_redacted from './assets/simple_proof_redacted.json';
-const assert = require('assert');
 
 (async function verify_simple() {
   try {
@@ -15,7 +14,8 @@ const assert = require('assert');
     console.timeEnd('verify');
 
     // @ts-ignore
-    document.getElementById('simple-verify').textContent = JSON.stringify(result);
+    document.getElementById('simple-verify').textContent =
+      JSON.stringify(result);
   } catch (err) {
     console.log('caught error from wasm');
     console.error(err);
