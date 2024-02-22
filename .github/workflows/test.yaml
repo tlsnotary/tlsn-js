@@ -33,6 +33,8 @@ jobs:
 
       - name: Install Chrome
         uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: 121.0.6167.85
 
       - name: Install Node.js
         uses: actions/setup-node@v3
