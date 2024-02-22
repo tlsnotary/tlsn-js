@@ -31,6 +31,9 @@ jobs:
         with:
           workspaces: . -> wasm/prover
 
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
