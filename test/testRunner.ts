@@ -5,7 +5,7 @@ const { exec } = require('node:child_process');
 
 // puppeteer options
 let opts: PuppeteerLaunchOptions = {
-  headless: !!process.env.HEADLESS,
+  headless: !!process.env.HEADLESS ? "new" : false,
   slowMo: 100,
   timeout: 60000,
 };
@@ -19,7 +19,6 @@ if (process.env.CHROME_PATH) {
 
 
 console.log("puppeteer options", opts)
-
 
 let browser: any, page: any, server: any;
 
