@@ -1,14 +1,25 @@
-import puppeteer from 'puppeteer';
+import puppeteer, { PuppeteerLaunchOptions } from 'puppeteer';
 import { describe, it, before, after } from 'mocha';
 const assert = require('assert');
 const { exec } = require('node:child_process');
 
 // puppeteer options
-const opts = {
+let opts: PuppeteerLaunchOptions = {
   headless: !!process.env.HEADLESS,
   slowMo: 100,
   timeout: 60000,
 };
+
+if (process.env.CHROME_PATH) {
+  opts = {
+    ...opts,
+    executablePath: process.env.CHROME_PATH
+  }
+};
+
+
+console.log("puppeteer options", opts)
+
 
 let browser: any, page: any, server: any;
 
