@@ -251,6 +251,8 @@ pub async fn prover(
         .await
         .map_err(|e| JsValue::from_str(&format!("Could not connect prover: {:?}", e)))?;
 
+    let prover_ctrl = prover_fut.control();
+
     log_phase(ProverPhases::SpawnProverThread);
     let (prover_sender, prover_receiver) = oneshot::channel();
     let handled_prover_fut = async {
@@ -258,6 +260,11 @@ pub async fn prover(
         let _ = prover_sender.send(result);
     };
     spawn_local(handled_prover_fut);
+
+    prover_ctrl
+        .defer_decryption()
+        .await
+        .map_err(|e| JsValue::from_str(&format!("failed to enable deferred decryption: {}", e)))?;
 
     // Attach the hyper HTTP client to the TLS connection
     log_phase(ProverPhases::AttachHttpClient);
