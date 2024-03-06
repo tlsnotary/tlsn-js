@@ -262,11 +262,6 @@ pub async fn prover(
     };
     spawn_local(handled_prover_fut);
 
-    prover_ctrl
-        .defer_decryption()
-        .await
-        .map_err(|e| JsValue::from_str(&format!("failed to enable deferred decryption: {}", e)))?;
-
     // Attach the hyper HTTP client to the TLS connection
     log_phase(ProverPhases::AttachHttpClient);
     let (mut request_sender, connection) =
@@ -308,6 +303,12 @@ pub async fn prover(
         .map_err(|e| JsValue::from_str(&format!("Could not build request: {:?}", e)))?;
 
     log_phase(ProverPhases::StartMpcConnection);
+
+    // Defer decryption of the response.
+    prover_ctrl
+        .defer_decryption()
+        .await
+        .map_err(|e| JsValue::from_str(&format!("failed to enable deferred decryption: {}", e)))?;
 
     // Send the request to the Server and get a response via the MPC TLS connection
     let response = request_sender
