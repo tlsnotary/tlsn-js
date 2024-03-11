@@ -1,6 +1,6 @@
 # tlsn-js
 
-NPM Modules for proving and verifying using TLS Notary in the browser.
+NPM Modules for proving and verifying using TLSNotary in the browser.
 
 The prover requires a [notary-server](https://github.com/tlsnotary/notary-server) and websockify proxy
 
