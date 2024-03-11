@@ -1,5 +1,4 @@
 use futures::channel::oneshot;
-use hyper::body::Body;
 use std::ops::Range;
 use std::panic;
 use tlsn_prover::tls::{Prover, ProverConfig};
@@ -8,6 +7,7 @@ use web_time::Instant;
 
 use ws_stream_wasm::*;
 
+use crate::hyper_io::FuturesIo;
 use crate::request_opt::RequestOptions;
 use crate::requests::{ClientType, NotarizationSessionRequest, NotarizationSessionResponse};
 
@@ -16,13 +16,12 @@ pub use wasm_bindgen_rayon::init_thread_pool;
 pub use crate::request_opt::VerifyResult;
 use crate::{fetch_as_json_string, log};
 use futures::AsyncWriteExt;
-use http_body_util::Empty;
+use http_body_util::{BodyExt, Full};
 use hyper::{body::Bytes, Request, StatusCode};
 
 use js_sys::Array;
 use strum::EnumMessage;
 use tlsn_core::proof::TlsProof;
-use tokio_util::compat::FuturesAsyncReadCompatExt;
 use url::Url;
 use wasm_bindgen::prelude::*;
 use web_sys::{Headers, RequestInit, RequestMode};
@@ -206,14 +205,14 @@ pub async fn prover(
     let (_, client_ws_stream) = WsMeta::connect(options.websocket_proxy_url, None)
         .await
         .expect_throw("assume the client ws connection succeeds");
-    let client_ws_stream_into = client_ws_stream.into_io();
 
     // Bind the Prover to the server connection.
     // The returned `mpc_tls_connection` is an MPC TLS connection to the Server: all data written
     // to/read from it will be encrypted/decrypted using MPC with the Notary.
     log_phase(ProverPhases::BindProverToConnection);
-    let (mpc_tls_connection, prover_fut) = prover.connect(client_socket.compat()).await.unwrap();
-    let mpc_tls_connection = TokioIo::new(mpc_tls_connection.compat());
+    let (mpc_tls_connection, prover_fut) =
+        prover.connect(client_ws_stream.into_io()).await.unwrap();
+    let mpc_tls_connection = unsafe { FuturesIo::new(mpc_tls_connection) };
 
     let prover_ctrl = prover_fut.control();
 
@@ -254,10 +253,10 @@ pub async fn prover(
 
     let req_with_body = if options.body.is_empty() {
         log!("empty body");
-        req_with_header.body(Empty::<Bytes>::new())
+        req_with_header.body(Full::new(Bytes::default()))
     } else {
         log!("added body - {}", options.body.as_str());
-        req_with_header.body(Body::from(options.body))
+        req_with_header.body(Full::from(options.body))
     };
 
     let unwrapped_request = req_with_body
