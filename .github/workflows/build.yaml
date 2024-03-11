@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install stable rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -25,16 +25,16 @@ jobs:
           toolchain: nightly
 
       - name: Use caching
-        uses: Swatinem/rust-cache@v2.7.0
+        uses: Swatinem/rust-cache@v2
         with:
-          workspaces: . -> wasm/prover
+          workspaces: wasm/prover
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 18
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v3
         name: Install pnpm
         with:
           version: 8
@@ -45,7 +45,7 @@ jobs:
         run: |
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Setup pnpm cache
         with:
           path: ${{ env.STORE_PATH }}
