@@ -5,7 +5,9 @@
 extern crate wasm_bindgen_test;
 use serde_json::Value;
 use std::{collections::HashMap, str};
+use wasm_bindgen::JsValue;
 use wasm_bindgen_test::*;
+use web_sys::RequestInit;
 
 extern crate tlsn_extension_rs;
 use tlsn_extension_rs::*;
@@ -17,6 +19,19 @@ macro_rules! log {
 }
 
 wasm_bindgen_test_configure!(run_in_browser);
+
+#[wasm_bindgen_test]
+async fn test_fetch() {
+    let url = "https://swapi.info/api/";
+    let mut opts = RequestInit::new();
+    opts.method("GET");
+
+    let rust_string: String = tlsn_extension_rs::fetch_as_json_string(&url, &opts)
+        .await
+        .unwrap();
+
+    assert!(rust_string.contains("starships"));
+}
 
 #[wasm_bindgen_test]
 async fn verify() {
