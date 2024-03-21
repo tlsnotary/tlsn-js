@@ -4,6 +4,9 @@ NPM Modules for proving and verifying using TLSNotary in the browser.
 
 The prover requires a [notary-server](https://github.com/tlsnotary/notary-server) and websockify proxy
 
+> [!IMPORTANT]
+> `tlsn-js` is developped for the usage of TLSNotary **in the Browser**. This module does not work in `nodejs`.
+
 ## Example
 ```ts
 import { prove, verify } from '../src';
