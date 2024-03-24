@@ -1,16 +1,29 @@
-import puppeteer from 'puppeteer';
+import puppeteer, { Browser, Page, PuppeteerLaunchOptions } from 'puppeteer';
 import { describe, it, before, after } from 'mocha';
 const assert = require('assert');
-const { exec } = require('node:child_process');
+import { exec, ChildProcess } from 'node:child_process';
+
+const timeout = 60000;
 
 // puppeteer options
-const opts = {
-  headless: !!process.env.HEADLESS,
+let opts: PuppeteerLaunchOptions = {
+  headless: !!process.env.HEADLESS ? 'new' : false,
   slowMo: 100,
-  timeout: 60000,
+  timeout: timeout,
 };
 
-let browser: any, page: any, server: any;
+if (process.env.CHROME_PATH) {
+  opts = {
+    ...opts,
+    executablePath: process.env.CHROME_PATH,
+  };
+}
+
+console.log('puppeteer options', opts);
+
+let browser: Browser;
+let page: Page;
+let server: ChildProcess;
 
 // expose variables
 before(async function () {
@@ -52,10 +65,23 @@ describe('tlsn-js test suite', function () {
 });
 
 async function check(testId: string): Promise<string> {
-  const content = await page.$eval('#' + testId, (n: any) => n.innerText);
-  if (content) return content;
-  await new Promise((r) => setTimeout(r, 1000));
-  return check(testId);
+  const startTime = Date.now();
+  const attemptFetchContent = async (): Promise<string> => {
+    const content = await page.$eval(
+      `#${testId}`,
+      (el: Element) => el.textContent || '',
+    );
+    if (content) return content;
+    const elapsedTime = Date.now() - startTime;
+    if (elapsedTime >= timeout) {
+      throw new Error(
+        `Timeout: Failed to retrieve content for '#${testId}' within ${timeout} ms.`,
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    return attemptFetchContent();
+  };
+  return attemptFetchContent();
 }
 
 function safeParseJson(data: string): any | null {
