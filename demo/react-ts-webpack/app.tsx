@@ -24,8 +24,8 @@ function App(): ReactElement {
     const p = await prove('https://swapi.dev/api/people/1', {
       method: 'GET',
       maxTranscriptSize: 16384,
-      notaryUrl: 'http://localhost:7047',
-      websocketProxyUrl: 'ws://localhost:55688',
+      notaryUrl: 'https://notary.pse.dev',
+      websocketProxyUrl: 'wss://notary.pse.dev/proxy?token=swapi.dev',
     });
     setProof(p);
   }, [setProof, setProcessing]);
