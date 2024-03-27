@@ -7,7 +7,8 @@ on:
     branches: [ main ]
 
 env:
-  LOCAL: true
+  LOCAL-NOTARY: true
+  LOCAL-WS: false
   HEADLESS: true
   PUPPETEER_SKIP_DOWNLOAD: true
 
@@ -31,6 +32,15 @@ jobs:
         with:
           workspaces: wasm/prover
 
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+        with:
+          chrome-version: 121.0.6167.85
+
+      - name: Set CHROME_PATH environment variable
+        run: echo "CHROME_PATH=${{ steps.setup-chrome.outputs['chrome-path'] }}" >> $GITHUB_ENV
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -50,7 +60,7 @@ jobs:
       - uses: actions/cache@v4
         name: Setup pnpm cache
         with:
-          path: ${{ env.STORE_PATH }}
+          path: ${STORE_PATH}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
@@ -67,9 +77,8 @@ jobs:
       - name: Build WASM
         run: npm run build:wasm
 
-      - name: Test WASM
-        run: npm run test:wasm
+      - name: Build Test dependencies
+        run: npm run build:tlsn-binaries
 
       - name: Test
-        if: false
         run: npm run test

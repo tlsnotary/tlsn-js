@@ -7,7 +7,8 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const envPlugin = new webpack.EnvironmentPlugin({
   NODE_ENV: 'development',
-  LOCAL: false,
+  LOCAL_NOTARY: true,
+  LOCAL_WS: false,
   HEADLESS: false,
 });
 
