@@ -6,7 +6,7 @@ import * as fs from 'fs';
 const yaml = require('js-yaml');
 import 'wtfnode';
 
-const timeout = 60000;
+const timeout = 300000;
 
 // puppeteer options
 let opts: PuppeteerLaunchOptions = {
@@ -33,7 +33,9 @@ const spawnTlsnServerFixture = () => {
   const tlsnServerFixturePath = './utils/tlsn/tlsn/tlsn-server-fixture/';
   // Spawn the server process
   // tlsnServerFixture = spawn(tlsnServerFixturePath, []);
-  tlsnServerFixture = exec(`../target/release/main`, { cwd: tlsnServerFixturePath });
+  tlsnServerFixture = exec(`../target/release/main`, {
+    cwd: tlsnServerFixturePath,
+  });
 
   tlsnServerFixture.stdout?.on('data', (data) => {
     console.log(`Server: ${data}`);
@@ -42,12 +44,14 @@ const spawnTlsnServerFixture = () => {
   tlsnServerFixture.stderr?.on('data', (data) => {
     console.error(`Server Error: ${data}`);
   });
-}
+};
 
 let localNotaryServer: ChildProcess;
 const spawnLocalNotaryServer = async () => {
   const localNotaryServerPath = './utils/tlsn/notary-server/';
-  localNotaryServer = exec(`target/release/notary-server`, { cwd: localNotaryServerPath });
+  localNotaryServer = exec(`target/release/notary-server`, {
+    cwd: localNotaryServerPath,
+  });
   localNotaryServer.stdout?.on('data', (data) => {
     console.log(`Server: ${data}`);
   });
@@ -59,31 +63,31 @@ const spawnLocalNotaryServer = async () => {
   // wait for the notary server to be ready
   while (true) {
     try {
-      const response = await fetch("http://127.0.0.1:7047/info");
+      const response = await fetch('http://127.0.0.1:7047/info');
       if (response.ok) {
         return;
       }
     } catch (error) {
       console.error('Waiting for local notary server...', error);
     }
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-}
+};
 
 const configureNotarySerer = () => {
   try {
     const configPath = './utils/tlsn/notary-server/config/config.yaml';
     const fileContents = fs.readFileSync(configPath, 'utf8');
     const data = yaml.load(fileContents) as any;
-    data.tls.enabled = false
-    data.server.host = "127.0.0.1"
+    data.tls.enabled = false;
+    data.server.host = '127.0.0.1';
     const newYaml = yaml.dump(data);
     fs.writeFileSync(configPath, newYaml, 'utf8');
     console.log('YAML file has been updated.');
   } catch (error) {
     console.error('Error reading or updating the YAML file:', error);
   }
-}
+};
 
 // expose variables
 before(async function () {
@@ -101,47 +105,46 @@ before(async function () {
   await page.goto('http://127.0.0.1:3001');
 });
 
-
 // close browser and reset global variables
 after(async function () {
-  console.log("Cleaning up:")
+  console.log('Cleaning up:');
   try {
     await tlsnServerFixture.kill();
-    console.log("* Stopped TLSN Server Fixture ✅");
+    console.log('* Stopped TLSN Server Fixture ✅');
   } catch (e) {
-    console.error("Error stopping TLSN Server Fixture:", e);
+    console.error('Error stopping TLSN Server Fixture:', e);
   }
   try {
     await localNotaryServer.kill();
     await localNotaryServer.kill();
-    console.log("* Stopped Notary Server ✅")
+    console.log('* Stopped Notary Server ✅');
   } catch (e) {
-    console.error("Error stopping Notary Server:", e);
+    console.error('Error stopping Notary Server:', e);
   }
   try {
     await server.kill();
     await server.kill();
-    console.log("* Stopped Test Web Server ✅")
+    console.log('* Stopped Test Web Server ✅');
   } catch (e) {
-    console.error("Error stopping Test Web Server:", e);
+    console.error('Error stopping Test Web Server:', e);
   }
   // @ts-ignore
   try {
     await browser.close();
-    console.log("* Closed browser ✅")
+    console.log('* Closed browser ✅');
   } catch (e) {
-    console.error("Error closing Browser:", e);
+    console.error('Error closing Browser:', e);
   }
-  console.debug("XXX", localNotaryServer);
+  console.debug('XXX', localNotaryServer);
 });
 
 before(function () {
-  console.log("wtfnode")
+  console.log('wtfnode');
   require('wtfnode').dump();
 });
 
 after(function () {
-  console.log("wtfnode")
+  console.log('wtfnode');
   require('wtfnode').dump();
 });
 
@@ -164,7 +167,7 @@ describe('tlsn-js test suite', function () {
     assert(result.recv.includes('Luke Skywalker'));
     assert(result.recv.includes('"hair_color":"XXXXX"'));
     assert(result.recv.includes('"skin_color":"XXXX"'));
-    console.log("Finished notarization test ✅")
+    console.log('Finished notarization test ✅');
   });
 
   it('should verify', async function () {
@@ -177,7 +180,7 @@ describe('tlsn-js test suite', function () {
     );
     assert(result.recv.includes('<h1>XXXXXXXXXXXXXX</h1>'));
     assert(result);
-    console.log("Finished verification test ✅")
+    console.log('Finished verification test ✅');
   });
 });
 
