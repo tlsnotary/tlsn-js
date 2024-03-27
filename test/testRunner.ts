@@ -130,6 +130,7 @@ after(async function () {
   }
   // @ts-ignore
   try {
+    await page.close();
     await browser.close();
     console.log('* Closed browser ✅');
   } catch (e) {
