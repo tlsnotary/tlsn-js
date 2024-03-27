@@ -1,5 +1,6 @@
 import puppeteer from 'puppeteer';
 import { describe, it, before, after } from 'mocha';
+import { check, safeParseJson } from './utils';
 const assert = require('assert');
 const { exec } = require('node:child_process');
 
@@ -29,39 +30,12 @@ after(async function () {
 
 describe('tlsn-js test suite', function () {
   it('should prove and verify swapi.dev', async function () {
-    const content = await check('full-integration-swapi');
-    const result = safeParseJson(content);
-    assert(result.sent.includes('host: swapi.dev'));
-    assert(result.sent.includes('secret: XXXXXXXXXXX'));
-    assert(result.recv.includes('Luke Skywalker'));
-    assert(result.recv.includes('"hair_color":"XXXXX"'));
-    assert(result.recv.includes('"skin_color":"XXXX"'));
+    const content = await check(page, 'full-integration-swapi');
+    assert(content === 'OK');
   });
 
   it('should verify', async function () {
-    const content = await check('simple-verify');
-    const result = safeParseJson(content);
-    assert(
-      result.sent.includes(
-        'user-agent: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-      ),
-    );
-    assert(result.recv.includes('<h1>XXXXXXXXXXXXXX</h1>'));
-    assert(result);
+    const content = await check(page, 'simple-verify');
+    assert(content === 'OK');
   });
 });
-
-async function check(testId: string): Promise<string> {
-  const content = await page.$eval('#' + testId, (n: any) => n.innerText);
-  if (content) return content;
-  await new Promise((r) => setTimeout(r, 1000));
-  return check(testId);
-}
-
-function safeParseJson(data: string): any | null {
-  try {
-    return JSON.parse(data);
-  } catch (e) {
-    return null;
-  }
-}

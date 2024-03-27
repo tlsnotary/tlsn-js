@@ -1,5 +1,6 @@
-import { verify } from '../src';
-import simple_proof_redacted from './assets/simple_proof_redacted.json';
+import { verify } from '../../src';
+import simple_proof_redacted from '../assets/simple_proof_redacted.json';
+import { assert } from '../utils';
 
 (async function verify_simple() {
   try {
@@ -13,11 +14,20 @@ import simple_proof_redacted from './assets/simple_proof_redacted.json';
     const result = await verify(proof, pem);
     console.timeEnd('verify');
 
+    assert(
+      result.sent.includes(
+        'user-agent: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      ),
+    );
+    assert(result.recv.includes('<h1>XXXXXXXXXXXXXX</h1>'));
+    assert(result);
+
     // @ts-ignore
-    document.getElementById('simple-verify').textContent =
-      JSON.stringify(result);
+    document.getElementById('simple-verify').textContent = 'OK';
   } catch (err) {
     console.log('caught error from wasm');
     console.error(err);
+    // @ts-ignore
+    document.getElementById('simple-verify').textContent = err.message;
   }
 })();
