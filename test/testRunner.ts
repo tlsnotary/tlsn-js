@@ -132,6 +132,10 @@ after(async function () {
   try {
     await page.close();
     await browser.close();
+    const childProcess = browser.process();
+    if (childProcess) {
+      childProcess.kill(9);
+    }
     console.log('* Closed browser ✅');
   } catch (e) {
     console.error('Error closing Browser:', e);
