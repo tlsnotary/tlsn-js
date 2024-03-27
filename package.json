@@ -1,6 +1,6 @@
 {
   "name": "tlsn-js",
-  "version": "v0.1.0-alpha.4.1",
+  "version": "v0.1.0-alpha.4.3",
   "description": "",
   "repository": "https://github.com/tlsnotary/tlsn-js",
   "main": "build/index.js",
@@ -8,7 +8,7 @@
   "files": [
     "build/",
     "src/",
-    "wasm/prover/pkg",
+    "wasm/prover/pkg/*",
     "readme.md"
   ],
   "scripts": {
