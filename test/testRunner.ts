@@ -141,6 +141,7 @@ after(async function () {
     console.error('Error closing Browser:', e);
   }
   console.debug('XXX', localNotaryServer);
+  process.exit(0);
 });
 
 before(function () {
