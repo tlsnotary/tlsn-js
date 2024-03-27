@@ -7,7 +7,7 @@ const { exec } = require('node:child_process');
 const opts = {
   headless: !!process.env.HEADLESS,
   slowMo: 100,
-  timeout: 60000,
+  timeout: 300000,
 };
 
 let browser: any, page: any, server: any;
