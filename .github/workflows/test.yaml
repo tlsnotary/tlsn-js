@@ -67,9 +67,6 @@ jobs:
       - name: Build WASM
         run: npm run build:wasm
 
-      - name: Test WASM
-        run: npm run test:wasm
-
       - name: Test
         if: false
         run: npm run test

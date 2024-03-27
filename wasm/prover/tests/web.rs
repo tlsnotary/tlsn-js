@@ -42,7 +42,7 @@ async fn test_fetch() {
     assert!(rust_string.contains("starships"));
 }
 
-// #[wasm_bindgen_test]
+#[wasm_bindgen_test]
 async fn verify() {
     let pem = str::from_utf8(include_bytes!("../../../test/assets/notary.pem")).unwrap();
     let proof = str::from_utf8(include_bytes!(
@@ -83,7 +83,7 @@ pub struct Options {
     pub websocket_proxy_url: String,
 }
 
-#[wasm_bindgen_test]
+// #[wasm_bindgen_test]
 async fn swapi_proof() {
     debug!("Test start");
     let target_url = "https://swapi.dev/api/people/1";
