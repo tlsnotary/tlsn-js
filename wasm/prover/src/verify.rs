@@ -1,16 +1,14 @@
+use tracing::info;
 use wasm_bindgen::prelude::*;
 
-use crate::request_opt::VerifyResult;
+use crate::{request_opt::VerifyResult, setup_tracing_web};
 
 use elliptic_curve::pkcs8::DecodePublicKey;
 use std::time::Duration;
 use tlsn_core::proof::{SessionProof, TlsProof};
 
-use crate::log;
-
 #[wasm_bindgen]
 pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsValue> {
-    // log!("!@# proof {}", proof);
     let proof: TlsProof = serde_json::from_str(proof)
         .map_err(|e| JsValue::from_str(&format!("Could not deserialize proof: {:?}", e)))?;
 
@@ -23,7 +21,7 @@ pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsVa
         substrings,
     } = proof;
 
-    log!(
+    info!(
         "!@# notary_pubkey {}, {}",
         notary_pubkey_str,
         notary_pubkey_str.len()
@@ -54,30 +52,29 @@ pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsVa
     sent.set_redacted(b'X');
     recv.set_redacted(b'X');
 
-    log!("-------------------------------------------------------------------");
-    log!(
+    info!("-------------------------------------------------------------------");
+    info!(
         "Successfully verified that the bytes below came from a session with {:?} at {}.",
-        session_info.server_name,
-        time
+        session_info.server_name, time
     );
-    log!("Note that the bytes which the Prover chose not to disclose are shown as X.");
-    log!("Bytes sent:");
-    log!(
+    info!("Note that the bytes which the Prover chose not to disclose are shown as X.");
+    info!("Bytes sent:");
+    info!(
         "{}",
         String::from_utf8(sent.data().to_vec()).map_err(|e| JsValue::from_str(&format!(
             "Could not convert sent data to string: {:?}",
             e
         )))?
     );
-    log!("Bytes received:");
-    log!(
+    info!("Bytes received:");
+    info!(
         "{}",
         String::from_utf8(recv.data().to_vec()).map_err(|e| JsValue::from_str(&format!(
             "Could not convert recv data to string: {:?}",
             e
         )))?
     );
-    log!("-------------------------------------------------------------------");
+    info!("-------------------------------------------------------------------");
 
     let result = VerifyResult {
         server_name: String::from(session_info.server_name.as_str()),
@@ -97,7 +94,7 @@ pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsVa
 
 #[allow(unused)]
 fn print_type_of<T: ?Sized>(_: &T) {
-    log!("{}", std::any::type_name::<T>());
+    info!("{}", std::any::type_name::<T>());
 }
 
 /// Returns a Notary pubkey trusted by this Verifier

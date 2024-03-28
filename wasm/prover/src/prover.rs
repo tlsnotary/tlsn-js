@@ -1,6 +1,5 @@
 use futures::channel::oneshot;
 use std::ops::Range;
-use std::panic;
 use tlsn_prover::tls::{Prover, ProverConfig};
 use wasm_bindgen_futures::spawn_local;
 use web_time::Instant;
@@ -13,8 +12,8 @@ use crate::requests::{ClientType, NotarizationSessionRequest, NotarizationSessio
 
 pub use wasm_bindgen_rayon::init_thread_pool;
 
-use crate::fetch_as_json_string;
 pub use crate::request_opt::VerifyResult;
+use crate::{fetch_as_json_string, setup_tracing_web};
 use futures::AsyncWriteExt;
 use http_body_util::{BodyExt, Full};
 use hyper::{body::Bytes, Request, StatusCode};
@@ -27,10 +26,6 @@ use wasm_bindgen::prelude::*;
 use web_sys::{Headers, RequestInit, RequestMode};
 
 use tracing::{debug, info};
-use tracing_subscriber::fmt::format::Pretty;
-use tracing_subscriber::fmt::time::UtcTime;
-use tracing_subscriber::prelude::*;
-use tracing_web::{performance_layer, MakeWebConsoleWriter};
 
 #[derive(strum_macros::EnumMessage, Debug, Clone, Copy)]
 #[allow(dead_code)]
@@ -95,21 +90,6 @@ pub async fn prover(
     let options: RequestOptions = serde_wasm_bindgen::from_value(val)
         .map_err(|e| JsValue::from_str(&format!("Could not deserialize options: {:?}", e)))?;
     info!("options.notary_url: {}", options.notary_url.as_str());
-
-    let fmt_layer = tracing_subscriber::fmt::layer()
-        .with_ansi(false) // Only partially supported across browsers
-        .with_timer(UtcTime::rfc_3339()) // std::time is not available in browsers
-        .with_writer(MakeWebConsoleWriter::new()); // write events to the console
-    let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
-
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::filter::LevelFilter::DEBUG)
-        .with(fmt_layer)
-        .with(perf_layer)
-        .init(); // Install these as subscribers to tracing events
-
-    // https://github.com/rustwasm/console_error_panic_hook
-    panic::set_hook(Box::new(console_error_panic_hook::hook));
 
     let start_time = Instant::now();
 
