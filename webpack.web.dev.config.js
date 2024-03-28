@@ -7,7 +7,8 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const envPlugin = new webpack.EnvironmentPlugin({
   NODE_ENV: 'development',
-  LOCAL: false,
+  LOCAL_NOTARY: true,
+  LOCAL_WS: false,
   HEADLESS: false,
 });
 
@@ -37,8 +38,8 @@ module.exports = [
     target: 'web',
     mode: isProd ? 'production' : 'development',
     entry: {
-      'full-integration-swapi.spec': path.join(__dirname, 'test', 'full-integration-swapi.spec.ts'),
-      'simple-verify': path.join(__dirname, 'test', 'simple-verify.spec.ts'),
+      'full-integration-swapi.spec': path.join(__dirname, 'test', 'specs', 'full-integration-swapi.spec.ts'),
+      'simple-verify': path.join(__dirname, 'test', 'specs', 'simple-verify.spec.ts'),
     },
     output: {
       path: __dirname + '/test-build',

@@ -63,3 +63,10 @@ npm run dev
 npm install
 npm run build
 ```
+
+## Adding a new test
+1. Create a new `new-test.spec.ts` file in the `test/` directory
+2. Add your spec file to the entry object fin `webpack.web.dev.config.js`
+3. Add a new `div` block to `test/test.ejs` like this: `<div>Testing "new-test":<div id="new-test"></div></div>`. The div id must be the same as the filename.
+
+
