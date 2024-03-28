@@ -1,6 +1,6 @@
-import { verify } from '../src';
-import simple_proof_redacted from './assets/simple_proof_redacted.json';
-import { assert } from './utils';
+import { verify } from '../../src';
+import simple_proof_redacted from '../assets/simple_proof_redacted.json';
+import { assert } from '../utils';
 
 (async function verify_simple() {
   try {

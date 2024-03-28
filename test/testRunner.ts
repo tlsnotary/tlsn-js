@@ -3,6 +3,7 @@ import { describe, it, before, after } from 'mocha';
 const assert = require('assert');
 import { exec, ChildProcess } from 'node:child_process';
 import * as fs from 'fs';
+import path from 'path';
 const yaml = require('js-yaml');
 
 const timeout = 300000;
@@ -20,8 +21,6 @@ if (process.env.CHROME_PATH) {
     executablePath: process.env.CHROME_PATH,
   };
 }
-
-console.log('puppeteer options', opts);
 
 let browser: Browser;
 let page: Page;
@@ -129,15 +128,22 @@ after(async function () {
 });
 
 describe('tlsn-js test suite', function () {
-  it('should prove and verify data from the local tlsn-server-fixture', async function () {
-    const content = await check('full-integration-swapi');
-    assert(content === 'OK');
+  fs.readdirSync(path.join(__dirname, 'specs')).forEach((file) => {
+    const [id] = file.split('.');
+    it(`Test ID: ${id}`, async function () {
+      const content = await check(id);
+      assert(content === 'OK');
+    });
   });
-
-  it('should verify', async function () {
-    const content = await check('simple-verify');
-    assert(content === 'OK');
-  });
+  // it('should prove and verify data from the local tlsn-server-fixture', async function () {
+  //   const content = await check('full-integration-swapi');
+  //   assert(content === 'OK');
+  // });
+  //
+  // it('should verify', async function () {
+  //   const content = await check('simple-verify');
+  //   assert(content === 'OK');
+  // });
 });
 
 async function check(testId: string): Promise<string> {

@@ -1,5 +1,5 @@
-import { prove, verify } from '../src';
-import { assert } from './utils';
+import { prove, verify } from '../../src';
+import { assert } from '../utils';
 
 (async function () {
   try {
