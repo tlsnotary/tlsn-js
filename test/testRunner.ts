@@ -4,7 +4,6 @@ const assert = require('assert');
 import { exec, ChildProcess } from 'node:child_process';
 import * as fs from 'fs';
 const yaml = require('js-yaml');
-import 'wtfnode';
 
 const timeout = 300000;
 
@@ -91,45 +90,30 @@ const configureNotarySerer = () => {
 
 // expose variables
 before(async function () {
-  require('wtfnode').dump();
   server = exec('serve  --config ../serve.json ./test-build -l 3001');
 
   spawnTlsnServerFixture();
-  require('wtfnode').dump();
   configureNotarySerer();
   await spawnLocalNotaryServer();
-  require('wtfnode').dump();
   browser = await puppeteer.launch(opts);
   page = await browser.newPage();
-  require('wtfnode').dump();
   await page.goto('http://127.0.0.1:3001');
 });
 
 // close browser and reset global variables
 after(async function () {
   console.log('Cleaning up:');
+
   try {
-    await tlsnServerFixture.kill();
+    tlsnServerFixture.kill();
     console.log('* Stopped TLSN Server Fixture ✅');
-  } catch (e) {
-    console.error('Error stopping TLSN Server Fixture:', e);
-  }
-  try {
-    await localNotaryServer.kill();
-    await localNotaryServer.kill();
+
+    localNotaryServer.kill();
     console.log('* Stopped Notary Server ✅');
-  } catch (e) {
-    console.error('Error stopping Notary Server:', e);
-  }
-  try {
-    await server.kill();
-    await server.kill();
+
+    server.kill();
     console.log('* Stopped Test Web Server ✅');
-  } catch (e) {
-    console.error('Error stopping Test Web Server:', e);
-  }
-  // @ts-ignore
-  try {
+
     await page.close();
     await browser.close();
     const childProcess = browser.process();
@@ -137,56 +121,22 @@ after(async function () {
       childProcess.kill(9);
     }
     console.log('* Closed browser ✅');
+    process.exit(0);
   } catch (e) {
-    console.error('Error closing Browser:', e);
+    console.error(e);
+    process.exit(0);
   }
-  console.debug('XXX', localNotaryServer);
-  process.exit(0);
-});
-
-before(function () {
-  console.log('wtfnode');
-  require('wtfnode').dump();
-});
-
-after(function () {
-  console.log('wtfnode');
-  require('wtfnode').dump();
 });
 
 describe('tlsn-js test suite', function () {
-  // it('should prove and verify swapi.dev', async function () {
-  //   const content = await check('full-integration-swapi');
-  //   const result = safeParseJson(content);
-  //   assert(result.sent.includes('host: swapi.dev'));
-  //   assert(result.sent.includes('secret: XXXXXXXXXXX'));
-  //   assert(result.recv.includes('Luke Skywalker'));
-  //   assert(result.recv.includes('"hair_color":"XXXXX"'));
-  //   assert(result.recv.includes('"skin_color":"XXXX"'));
-  // });
-
   it('should prove and verify data from the local tlsn-server-fixture', async function () {
     const content = await check('full-integration-swapi');
-    const result = safeParseJson(content);
-    assert(result.sent.includes('host: swapi.dev'));
-    assert(result.sent.includes('secret: XXXXXXXXXXX'));
-    assert(result.recv.includes('Luke Skywalker'));
-    assert(result.recv.includes('"hair_color":"XXXXX"'));
-    assert(result.recv.includes('"skin_color":"XXXX"'));
-    console.log('Finished notarization test ✅');
+    assert(content === 'OK');
   });
 
   it('should verify', async function () {
     const content = await check('simple-verify');
-    const result = safeParseJson(content);
-    assert(
-      result.sent.includes(
-        'user-agent: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-      ),
-    );
-    assert(result.recv.includes('<h1>XXXXXXXXXXXXXX</h1>'));
-    assert(result);
-    console.log('Finished verification test ✅');
+    assert(content === 'OK');
   });
 });
 
@@ -195,7 +145,7 @@ async function check(testId: string): Promise<string> {
   const attemptFetchContent = async (): Promise<string> => {
     const content = await page.$eval(
       `#${testId}`,
-      (el: Element) => el.textContent || '',
+      (el: any) => el.textContent || '',
     );
     if (content) return content;
     const elapsedTime = Date.now() - startTime;
@@ -208,12 +158,4 @@ async function check(testId: string): Promise<string> {
     return attemptFetchContent();
   };
   return attemptFetchContent();
-}
-
-function safeParseJson(data: string): any | null {
-  try {
-    return JSON.parse(data);
-  } catch (e) {
-    return null;
-  }
 }
