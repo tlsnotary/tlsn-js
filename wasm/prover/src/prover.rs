@@ -1,6 +1,5 @@
 use futures::channel::oneshot;
 use std::ops::Range;
-use std::panic;
 use tlsn_prover::tls::{Prover, ProverConfig};
 use wasm_bindgen_futures::spawn_local;
 use web_time::Instant;
@@ -14,7 +13,7 @@ use crate::requests::{ClientType, NotarizationSessionRequest, NotarizationSessio
 pub use wasm_bindgen_rayon::init_thread_pool;
 
 pub use crate::request_opt::VerifyResult;
-use crate::{fetch_as_json_string, log};
+use crate::{fetch_as_json_string, setup_tracing_web};
 use futures::AsyncWriteExt;
 use http_body_util::{BodyExt, Full};
 use hyper::{body::Bytes, Request, StatusCode};
@@ -25,6 +24,8 @@ use tlsn_core::proof::TlsProof;
 use url::Url;
 use wasm_bindgen::prelude::*;
 use web_sys::{Headers, RequestInit, RequestMode};
+
+use tracing::{debug, info};
 
 #[derive(strum_macros::EnumMessage, Debug, Clone, Copy)]
 #[allow(dead_code)]
@@ -66,11 +67,7 @@ enum ProverPhases {
 }
 
 fn log_phase(phase: ProverPhases) {
-    log!(
-        "!@# tlsn-js {}: {}",
-        phase as u8,
-        phase.get_message().unwrap()
-    );
+    info!("tlsn-js {}: {}", phase as u8, phase.get_message().unwrap());
 }
 
 #[wasm_bindgen]
@@ -80,11 +77,11 @@ pub async fn prover(
     secret_headers: JsValue,
     secret_body: JsValue,
 ) -> Result<String, JsValue> {
-    log!("target_url: {}", target_url_str);
+    info!("target_url: {}", target_url_str);
     let target_url = Url::parse(target_url_str)
         .map_err(|e| JsValue::from_str(&format!("Could not parse target_url: {:?}", e)))?;
 
-    log!(
+    info!(
         "target_url.host: {}",
         target_url
             .host()
@@ -92,23 +89,7 @@ pub async fn prover(
     );
     let options: RequestOptions = serde_wasm_bindgen::from_value(val)
         .map_err(|e| JsValue::from_str(&format!("Could not deserialize options: {:?}", e)))?;
-    log!("options.notary_url: {}", options.notary_url.as_str());
-
-    // let fmt_layer = tracing_subscriber::fmt::layer()
-    // .with_ansi(false) // Only partially supported across browsers
-    // .with_timer(UtcTime::rfc_3339()) // std::time is not available in browsers
-    // .with_writer(MakeConsoleWriter); // write events to the console
-    // let perf_layer = performance_layer()
-    //     .with_details_from_fields(Pretty::default());
-
-    // tracing_subscriber::registry()
-    //     .with(tracing_subscriber::filter::LevelFilter::DEBUG)
-    //     .with(fmt_layer)
-    //     .with(perf_layer)
-    //     .init(); // Install these as subscribers to tracing events
-
-    // https://github.com/rustwasm/console_error_panic_hook
-    panic::set_hook(Box::new(console_error_panic_hook::hook));
+    info!("options.notary_url: {}", options.notary_url.as_str());
 
     let start_time = Instant::now();
 
@@ -117,7 +98,6 @@ pub async fn prover(
      */
 
     let mut opts = RequestInit::new();
-    log!("method: {}", "POST");
     opts.method("POST");
     // opts.method("GET");
     opts.mode(RequestMode::Cors);
@@ -140,7 +120,7 @@ pub async fn prover(
         })?;
     opts.headers(&headers);
 
-    log!("notary_host: {}", notary_host);
+    info!("notary_host: {}", notary_host);
     // set body
     let payload = serde_json::to_string(&NotarizationSessionRequest {
         client_type: ClientType::Websocket,
@@ -155,16 +135,16 @@ pub async fn prover(
         if notary_ssl { "https" } else { "http" },
         notary_host
     );
-    log!("Request: {}", url);
+    debug!("Request: {}", url);
     let rust_string = fetch_as_json_string(&url, &opts)
         .await
         .map_err(|e| JsValue::from_str(&format!("Could not fetch session: {:?}", e)))?;
     let notarization_response =
         serde_json::from_str::<NotarizationSessionResponse>(&rust_string)
             .map_err(|e| JsValue::from_str(&format!("Could not deserialize response: {:?}", e)))?;
-    log!("Response: {}", rust_string);
+    debug!("Response: {}", rust_string);
 
-    log!("Notarization response: {:?}", notarization_response,);
+    info!("Notarization response: {:?}", notarization_response,);
     let notary_wss_url = format!(
         "{}://{}/notarize?sessionId={}",
         if notary_ssl { "wss" } else { "ws" },
@@ -247,15 +227,15 @@ pub async fn prover(
         .method(options.method.as_str());
 
     for (key, value) in options.headers {
-        log!("adding header: {} - {}", key.as_str(), value.as_str());
+        info!("adding header: {} - {}", key.as_str(), value.as_str());
         req_with_header = req_with_header.header(key.as_str(), value.as_str());
     }
 
     let req_with_body = if options.body.is_empty() {
-        log!("empty body");
+        info!("empty body");
         req_with_header.body(Full::new(Bytes::default()))
     } else {
-        log!("added body - {}", options.body.as_str());
+        info!("added body - {}", options.body.as_str());
         req_with_header.body(Full::from(options.body))
     };
 
@@ -296,7 +276,7 @@ pub async fn prover(
         .map_err(|e| JsValue::from_str(&format!("Could not parse response: {:?}", e)))?;
     let response_pretty = serde_json::to_string_pretty(&parsed)
         .map_err(|e| JsValue::from_str(&format!("Could not serialize response: {:?}", e)))?;
-    log!("Response: {}", response_pretty);
+    info!("Response: {}", response_pretty);
 
     // Close the connection to the server
     log_phase(ProverPhases::CloseConnection);
@@ -430,7 +410,7 @@ pub async fn prover(
         .map_err(|e| JsValue::from_str(&format!("Could not serialize proof: {:?}", e)))?;
 
     let duration = start_time.elapsed();
-    log!("!@# request took {} seconds", duration.as_secs());
+    info!("!@# request took {} seconds", duration.as_secs());
 
     Ok(res)
 }

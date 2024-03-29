@@ -6,6 +6,7 @@ pub mod prover;
 pub use prover::prover;
 
 pub mod verify;
+use tracing::error;
 pub use verify::verify;
 
 use wasm_bindgen::prelude::*;
@@ -19,15 +20,34 @@ use js_sys::JSON;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Request, RequestInit, Response};
 
-// A macro to provide `println!(..)`-style syntax for `console.log` logging.
-macro_rules! log {
-    ( $( $t:tt )* ) => {
-        web_sys::console::log_1(&format!( $( $t )* ).into());
-    }
-}
-pub(crate) use log;
+use std::panic;
+use tracing_subscriber::fmt::format::Pretty;
+use tracing_subscriber::fmt::time::UtcTime;
+use tracing_subscriber::prelude::*;
+use tracing_web::{performance_layer, MakeWebConsoleWriter};
 
 extern crate console_error_panic_hook;
+
+#[wasm_bindgen(start)]
+pub fn setup_tracing_web() {
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_ansi(false) // Only partially supported across browsers
+        .with_timer(UtcTime::rfc_3339()) // std::time is not available in browsers
+        .with_writer(MakeWebConsoleWriter::new()); // write events to the console
+    let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
+
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::filter::LevelFilter::DEBUG)
+        .with(fmt_layer)
+        .with(perf_layer)
+        .init(); // Install these as subscribers to tracing events
+
+    // https://github.com/rustwasm/console_error_panic_hook
+    panic::set_hook(Box::new(|info| {
+        error!("panic occurred: {:?}", info);
+        console_error_panic_hook::hook(info);
+    }));
+}
 
 pub async fn fetch_as_json_string(url: &str, opts: &RequestInit) -> Result<String, JsValue> {
     let request = Request::new_with_str_and_init(url, opts)?;
