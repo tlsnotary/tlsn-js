@@ -1,0 +1,31 @@
+[package]
+name = "prover"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tracing = "0.1.40"
+tracing-subscriber = { version ="0.3.18", features = ["env-filter"] }
+tokio = {version = "1", features = [
+  "rt",
+  "rt-multi-thread",
+  "macros",
+  "net",
+  "io-std",
+  "fs",
+]}
+tokio-util = { version = "0.7", features = ["compat"] }
+http = "0.2.9"
+hyper-util = {version = "0.1", features = ["full"]}
+http-body-util = "0.1"
+hyper = {version = "1.1", features = ["client", "http1"]}
+uuid = { version = "1.4.1", features = ["v4", "fast-rng"] }
+regex = "1.10.3"
+futures = "0.3"
+async-tungstenite = { version = "0.22.2", features = ["tokio-runtime"] }
+ws_stream_tungstenite = { version = "0.10.0", features = ["tokio_io"] }
+
+tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.4", package = "tlsn-core" }
+tlsn-prover = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.4", package = "tlsn-prover", features = [
+  "tracing",
+] }

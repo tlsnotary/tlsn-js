@@ -8,9 +8,10 @@ An implementation of the interactive verifier server in Rust.
 ```bash
 cargo run --release
 ```
+
 ## WebSocket APIs
 ### /verify
-To perform verification via websocket
+To perform verification via websocket, i.e. `ws://localhost:9816/verify`
 
 ## Design Choices
 ### WebSocket

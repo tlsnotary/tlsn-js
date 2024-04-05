@@ -14,11 +14,6 @@ tokio = {version = "1", features = [
 ]}
 tokio-util = { version = "0.7", features = ["compat"] }
 tracing = "0.1.40"
-
-tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.4", package = "tlsn-core" }
-tlsn-verifier = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.4", package = "tlsn-verifier", features = [
-  "tracing",
-] }
 eyre = "0.6.12"
 tracing-subscriber = { version ="0.3.18", features = ["env-filter"] }
 hyper = { version = "0.14", features = ["client", "http1", "server", "tcp"] }
@@ -33,3 +28,8 @@ axum-core = "0.3.4"
 base64 = "0.21.0"
 tower = { version = "0.4.12", features = ["make"] }
 ws_stream_tungstenite = { version = "0.10.0", features = ["tokio_io"] }
+
+tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.4", package = "tlsn-core" }
+tlsn-verifier = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.4", package = "tlsn-verifier", features = [
+  "tracing",
+] }

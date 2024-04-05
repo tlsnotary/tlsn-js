@@ -1,7 +1,8 @@
 {
     "rust-analyzer.linkedProjects": [
         "wasm/prover/Cargo.toml",
-        "interactive-demo/verifier/Cargo.toml"
+        "interactive-demo/verifier/Cargo.toml",
+        "interactive-demo/prover/prover-rs/Cargo.toml"
     ],
     "rust-analyzer.cargo.target": "wasm32-unknown-unknown"
 }
