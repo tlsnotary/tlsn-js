@@ -56,6 +56,25 @@ export const prove = async (
   };
 };
 
+
+export const interactive_prove = async (
+  websocket_proxy_url: string,
+  verifier_proxy_url: string,
+  uri: string,
+  id: string
+): Promise<string> => {
+  const tlsn = await getTLSN();
+
+
+  const proof = await tlsn.interactive_prove(
+    websocket_proxy_url,
+    verifier_proxy_url,
+    uri,
+    id);
+
+  return proof
+};
+
 export const verify = async (
   proof: Proof,
   publicKeyOverride?: string,

@@ -5,6 +5,9 @@ mod requests;
 pub mod prover;
 pub use prover::prover;
 
+pub mod interactive_prover;
+pub use interactive_prover::interactive_prover;
+
 pub mod verify;
 use tracing::error;
 pub use verify::verify;

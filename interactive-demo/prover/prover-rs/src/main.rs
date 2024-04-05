@@ -149,12 +149,12 @@ fn redact_and_reveal_received_data(prover: &mut Prover<Prove>) {
     // Get the homeworld from the received data.
     let received_string = String::from_utf8(prover.recv_transcript().data().to_vec()).unwrap();
     let re = Regex::new(r#""homeworld"\s?:\s?"(.*?)""#).unwrap();
-    let commit_hash_match = re.captures(&received_string).unwrap().get(1).unwrap();
+    let homeworld_match = re.captures(&received_string).unwrap().get(1).unwrap();
 
     // Reveal everything except for the homeworld.
-    _ = prover.reveal(0..commit_hash_match.start(), Direction::Received);
+    _ = prover.reveal(0..homeworld_match.start(), Direction::Received);
     _ = prover.reveal(
-        commit_hash_match.end()..recv_transcript_len,
+        homeworld_match.end()..recv_transcript_len,
         Direction::Received,
     );
 }

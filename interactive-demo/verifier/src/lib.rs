@@ -124,12 +124,14 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     let verifier = Verifier::new(verifier_config);
 
     // Verify MPC-TLS and wait for (redacted) data.
+    debug!("Starting MPC-TLS verification...");
     let (sent, received, session_info) = verifier
         .verify(socket.compat())
         .await
         .map_err(|err| eyre!("Verification failed: {err}"))?;
 
-    // Check send data: check host.
+    // Check sent data: check host.
+    debug!("Starting sent data verification...");
     let sent_data = String::from_utf8(sent.data().to_vec())
         .map_err(|err| eyre!("Failed to parse sent data: {err}"))?;
     sent_data
@@ -137,6 +139,7 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
         .ok_or_else(|| eyre!("Verification failed: Expected host {}", server_domain))?;
 
     // Check received data: check json and version number.
+    debug!("Starting received data verification...");
     let response = String::from_utf8(received.data().to_vec())
         .map_err(|err| eyre!("Failed to parse received data: {err}"))?;
     debug!("Received data: {:?}", response);

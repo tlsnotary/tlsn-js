@@ -1,6 +1,7 @@
 import init, {
   initThreadPool,
   prover,
+  interactive_prover,
   verify,
 } from '../wasm/prover/pkg/tlsn_extension_rs';
 
@@ -60,6 +61,31 @@ export default class TLSN {
       },
       options?.secretHeaders || [],
       options?.secretResps || [],
+    );
+    const resJSON = JSON.parse(resProver);
+    // console.log('!@# resProver,resJSON=', { resProver, resJSON });
+    // console.log('!@# resAfter.memory=', resJSON.memory);
+    // 1105920000 ~= 1.03 gb
+    // console.log(
+    //   '!@# resAfter.memory.buffer.length=',
+    //   resJSON.memory?.buffer?.byteLength,
+    // );
+
+    return resJSON;
+  }
+
+  async interactive_prove(
+    websocket_proxy_url: string,
+    verifier_proxy_url: string,
+    uri: string,
+    id: string,
+  ) {
+    await this.waitForStart();
+    const resProver = await interactive_prover(
+      websocket_proxy_url,
+      verifier_proxy_url,
+      uri,
+      id
     );
     const resJSON = JSON.parse(resProver);
     // console.log('!@# resProver,resJSON=', { resProver, resJSON });
