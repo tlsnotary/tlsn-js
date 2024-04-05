@@ -139,9 +139,10 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     // Check received data: check json and version number.
     let response = String::from_utf8(received.data().to_vec())
         .map_err(|err| eyre!("Failed to parse received data: {err}"))?;
+    debug!("Received data: {:?}", response);
     response
-        .find("BEGIN PUBLIC KEY")
-        .ok_or_else(|| eyre!("Verification failed: invalid public key in JSON response"))?;
+        .find("eye_color")
+        .ok_or_else(|| eyre!("Verification failed: missing eye_color in received data"))?;
     // Check Session info: server name.
     if session_info.server_name.as_str() != server_domain {
         return Err(eyre!("Verification failed: server name mismatches"));
