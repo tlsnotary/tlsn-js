@@ -14,7 +14,8 @@ pub struct RequestOptions {
     // pub redirect: String, // manual, *follow, error
     // pub referrer_policy: String, // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
     pub body: String, // body data type must match "Content-Type" header
-    pub max_transcript_size: usize,
+    pub max_sent_data: usize,
+    pub max_recv_data: usize,
     pub notary_url: String,
     pub websocket_proxy_url: String,
 }
