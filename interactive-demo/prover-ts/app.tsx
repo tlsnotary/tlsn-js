@@ -11,47 +11,36 @@ root.render(<App />);
 
 function App(): ReactElement {
   const [processing, setProcessing] = useState(false);
-  const [result, setResult] = useState<{
-    time: number;
-    sent: string;
-    recv: string;
-    notaryUrl: string;
-  } | null>(null);
-  const [proof, setProof] = useState<Proof | null>(null);
-
-  const uri = "https://swapi.dev/api/people/1";
-  const id = "interactive-verifier-demo";
+  const [result, setResult] = useState<String | null>(null);
 
   const onClick = useCallback(async () => {
     setProcessing(true);
-    const p = await interactive_prove(
-      'ws://localhost:55688',
+    const result = await interactive_prove(
+      'wss://notary.pse.dev/proxy?token=swapi.dev', //'ws://localhost:55688',
       'ws://localhost:9816',
-      uri,
-      id);
-    // setProof(p);
-  }, [setProof, setProcessing]);
+      "https://swapi.dev/api/people/1",
+      "interactive-verifier-demo");
+    setResult(result);
+    setProcessing(false);
 
-  useEffect(() => {
-    (async () => {
-      if (proof) {
-        const r = await verify(proof);
-        setResult(r);
-        setProcessing(false);
-      }
-    })();
-  }, [proof, setResult]);
+  }, [setResult, setProcessing]);
 
   return (
     <div>
+      <h1>TLSNotary interactive prover demo</h1>
+      <div>
+        Before clicking the start button, make sure the <i>interactive verifier</i> is running: <pre>cd interactive-demo/verifier; cargo run --release</pre>
+      </div>
+      <br />
       <button onClick={!processing ? onClick : undefined} disabled={processing}>
-        Start demo
+        Start Prover
       </button>
+      <br />
       <div>
         <b>Proof: </b>
-        {!processing && !proof ? (
-          <i>not started</i>
-        ) : !proof ? (
+        {!processing && !result ? (
+          <i>not started yet</i>
+        ) : !result ? (
           <>
             Proving data from swapi...
             <Watch
@@ -68,21 +57,8 @@ function App(): ReactElement {
           </>
         ) : (
           <>
-            <details>
-              <summary>View Proof</summary>
-              <pre>{JSON.stringify(proof, null, 2)}</pre>
-            </details>
+            <pre>{JSON.stringify(result, null, 2)}</pre>
           </>
-        )}
-      </div>
-      <div>
-        <b>Verification: </b>
-        {!proof ? (
-          <i>not started</i>
-        ) : !result ? (
-          <i>verifying</i>
-        ) : (
-          <pre>{JSON.stringify(result, null, 2)}</pre>
         )}
       </div>
     </div>
