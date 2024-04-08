@@ -13,7 +13,7 @@ use crate::requests::{ClientType, NotarizationSessionRequest, NotarizationSessio
 pub use wasm_bindgen_rayon::init_thread_pool;
 
 pub use crate::request_opt::VerifyResult;
-use crate::{fetch_as_json_string, setup_tracing_web};
+use crate::fetch_as_json_string;
 use futures::AsyncWriteExt;
 use http_body_util::{BodyExt, Full};
 use hyper::{body::Bytes, Request, StatusCode};
