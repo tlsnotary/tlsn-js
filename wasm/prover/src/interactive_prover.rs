@@ -130,8 +130,8 @@ pub async fn interactive_prover(
         })?
         .map_err(|e| JsValue::from_str(&format!("Could not get Prover: {:?}", e)))?;
     let mut prover = prover.start_prove();
-    redact_and_reveal_received_data(&mut prover);
     redact_and_reveal_sent_data(&mut prover);
+    redact_and_reveal_received_data(&mut prover);
     prover.prove().await.unwrap();
 
     // Finalize.
@@ -146,6 +146,7 @@ fn redact_and_reveal_received_data(prover: &mut Prover<Prove>) {
 
     // Get the homeworld from the received data.
     let received_string = String::from_utf8(prover.recv_transcript().data().to_vec()).unwrap();
+    debug!("Received data: {}", received_string);
     let re = Regex::new(r#""homeworld"\s?:\s?"(.*?)""#).unwrap();
     let commit_hash_match = re.captures(&received_string).unwrap().get(1).unwrap();
 
@@ -163,6 +164,7 @@ fn redact_and_reveal_sent_data(prover: &mut Prover<Prove>) {
 
     let sent_string = String::from_utf8(prover.sent_transcript().data().to_vec()).unwrap();
     let secret_start = sent_string.find(SECRET).unwrap();
+    debug!("Send data: {}", sent_string);
 
     // Reveal everything except for the SECRET.
     _ = prover.reveal(0..secret_start, Direction::Sent);
