@@ -124,8 +124,8 @@ pub async fn prover(
     // set body
     let payload = serde_json::to_string(&NotarizationSessionRequest {
         client_type: ClientType::Websocket,
-        max_sent_data: Some(options.max_sent_data),
-        max_recv_data: Some(options.max_recv_data),
+        max_sent_data: Some(options.max_sent_data.unwrap_or_default()),
+        max_recv_data: Some(options.max_recv_data.unwrap_or_default()),
     })
     .map_err(|e| JsValue::from_str(&format!("Could not serialize request: {:?}", e)))?;
     opts.body(Some(&JsValue::from_str(&payload)));
@@ -166,8 +166,8 @@ pub async fn prover(
     let config = ProverConfig::builder()
         .id(notarization_response.session_id)
         .server_dns(target_host)
-        .max_recv_data(options.max_recv_data)
-        .max_sent_data(options.max_sent_data)
+        .max_sent_data(options.max_sent_data.unwrap_or_default())
+        .max_recv_data(options.max_recv_data.unwrap_or_default())
         .build()
         .map_err(|e| JsValue::from_str(&format!("Could not build prover config: {:?}", e)))?;
 
