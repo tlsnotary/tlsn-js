@@ -111,6 +111,8 @@ pub async fn prover(
         .map_err(|e| JsValue::from_str(&format!("Could not parse notary_url: {:?}", e)))?;
     let notary_ssl = notary_url.scheme() == "https" || notary_url.scheme() == "wss";
     let notary_host = notary_url.authority();
+    let notary_path = notary_url.path();
+    let notary_version = if notary_path == "/" { "" } else { notary_path };
 
     headers
         .append("Host", notary_host)
@@ -134,9 +136,10 @@ pub async fn prover(
 
     // url
     let url = format!(
-        "{}://{}/v0.1.0-alpha.5/session",
+        "{}://{}{}/session",
         if notary_ssl { "https" } else { "http" },
-        notary_host
+        notary_host,
+        notary_version
     );
     debug!("Request: {}", url);
     let rust_string = fetch_as_json_string(&url, &opts)
@@ -149,9 +152,10 @@ pub async fn prover(
 
     info!("Notarization response: {:?}", notarization_response,);
     let notary_wss_url = format!(
-        "{}://{}/v0.1.0-alpha.5/notarize?sessionId={}",
+        "{}://{}{}/notarize?sessionId={}",
         if notary_ssl { "wss" } else { "ws" },
         notary_host,
+        notary_version,
         notarization_response.session_id
     );
     let (_, notary_ws_stream) = WsMeta::connect(notary_wss_url, None)
