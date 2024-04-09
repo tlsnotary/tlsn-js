@@ -134,7 +134,7 @@ pub async fn prover(
 
     // url
     let url = format!(
-        "{}://{}/session",
+        "{}://{}/v0.1.0-alpha.5/session",
         if notary_ssl { "https" } else { "http" },
         notary_host
     );
@@ -149,7 +149,7 @@ pub async fn prover(
 
     info!("Notarization response: {:?}", notarization_response,);
     let notary_wss_url = format!(
-        "{}://{}/notarize?sessionId={}",
+        "{}://{}/v0.1.0-alpha.5/notarize?sessionId={}",
         if notary_ssl { "wss" } else { "ws" },
         notary_host,
         notarization_response.session_id
