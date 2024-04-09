@@ -18,6 +18,8 @@ export const prove = async (
     method?: string;
     headers?: { [key: string]: string };
     body?: string;
+    maxSentData?: number;
+    maxRecvData?: number;
     maxTranscriptSize?: number;
     secretHeaders?: string[];
     secretResps?: string[];
@@ -27,6 +29,8 @@ export const prove = async (
     method,
     headers = {},
     body = '',
+    maxSentData,
+    maxRecvData,
     maxTranscriptSize = 16384,
     notaryUrl,
     websocketProxyUrl,
@@ -43,6 +47,8 @@ export const prove = async (
     method,
     headers,
     body,
+    maxSentData,
+    maxRecvData,
     maxTranscriptSize,
     notaryUrl,
     websocketProxyUrl,

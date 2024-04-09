@@ -13,8 +13,10 @@ pub struct NotarizationSessionResponse {
 #[serde(rename_all = "camelCase")]
 pub struct NotarizationSessionRequest {
     pub client_type: ClientType,
-    /// Maximum transcript size in bytes
-    pub max_transcript_size: Option<usize>,
+    /// Maximum number of bytes that can be sent in bytes.
+    pub max_sent_data: Option<usize>,
+    /// Maximum number of bytes that can be received in bytes.
+    pub max_recv_data: Option<usize>,
 }
 
 /// Types of client that the prover is using

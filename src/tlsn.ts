@@ -38,6 +38,8 @@ export default class TLSN {
       method?: string;
       headers?: { [key: string]: string };
       body?: string;
+      maxSentData?: number;
+      maxRecvData?: number;
       maxTranscriptSize?: number;
       notaryUrl?: string;
       websocketProxyUrl?: string;
