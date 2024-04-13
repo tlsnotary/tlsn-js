@@ -52,11 +52,13 @@ export default class TLSN {
     //   notaryUrl: options?.notaryUrl,
     //   websocketProxyUrl: options?.websocketProxyUrl,
     // });
+
+    const sessionId = await getSessionId(options!.notaryUrl!);
     const resProver = await prover(
       url,
       {
         ...options,
-        notaryUrl: options?.notaryUrl,
+        notaryUrl: options?.notaryUrl + `/notarize?sessionId=${sessionId}`,
         websocketProxyUrl: options?.websocketProxyUrl,
       },
       options?.secretHeaders || [],
@@ -85,7 +87,7 @@ export default class TLSN {
       websocket_proxy_url,
       verifier_proxy_url,
       uri,
-      id
+      id,
     );
     const resJSON = JSON.parse(resProver);
     // console.log('!@# resProver,resJSON=', { resProver, resJSON });
@@ -104,4 +106,10 @@ export default class TLSN {
     const raw = await verify(JSON.stringify(proof), pubkey);
     return JSON.parse(raw);
   }
+}
+
+async function getSessionId(notaryUrl: string) {
+  const resp = await fetch(notaryUrl + '/session');
+  const json = await resp.json();
+  return json.session_id;
 }
