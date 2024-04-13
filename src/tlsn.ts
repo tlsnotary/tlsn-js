@@ -109,7 +109,15 @@ export default class TLSN {
 }
 
 async function getSessionId(notaryUrl: string) {
-  const resp = await fetch(notaryUrl + '/session');
+  const resp = await fetch(notaryUrl + '/session', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      clientType: 'Websocket',
+    }),
+  });
   const json = await resp.json();
   return json.session_id;
 }
