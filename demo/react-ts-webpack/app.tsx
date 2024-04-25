@@ -74,7 +74,7 @@ function App(): ReactElement {
           <i>not started</i>
         ) : !proof ? (
           <>
-            Proving data from swapi...
+            Proving data from {domain}..
             <Watch
               visible={true}
               height="40"
