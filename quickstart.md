@@ -8,14 +8,22 @@ There is a simple react/typescript demo app in `./demo/react-ts-webpack`. The di
 
 Since a web browser doesn't have the ability to make TCP connection, we need to use a websocket proxy server.
 
-To run your own websockify proxy **locally**, run:
+To run your own websocket proxy for `https://swapi.dev` **locally**:
+
+1. Install [websocat](https://github.com/vi/websocat):
+
+    | tool   | command                       |
+    |--------|-------------------------------|
+    | cargo  | `cargo install websocat`      |
+    | brew   | `brew install websocat`       |
+    | source | https://github.com/vi/websocat|
+
+2. Run a websocket proxy for `https://swapi.dev`:
 ```sh
-git clone https://github.com/novnc/websockify && cd websockify
-./docker/build.sh
-docker run -it --rm -p 55688:80 novnc/websockify 80 swapi.dev:443
+websocat --binary ws-l:0.0.0.0:55688 tcp:swapi.dev:443
 ```
 
-Note the `swapi.dev:443` argument on the last line, this is the server we will use in this quick start.
+Note the `tcp:swapi.dev:443` argument on the last line, this is the server we will use in this quick start.
 
 ### Run a Local Notary Server <a name="local-notary"></a>
 
