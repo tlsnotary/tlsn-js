@@ -26,8 +26,8 @@ function App(): ReactElement {
   // dummyjson.com /products/1
   // moncompte.ants.gouv.fr /backend/api/user/saitsiali717
 
-  https: const domain = 'moncompte.ants.gouv.fr';
-  const path = '/backend/api/user/saitsiali717';
+  https: const domain = 'dummyjson.com';
+  const path = '/products/1';
 
   const webUrl = 'https://' + domain + path;
 
@@ -36,6 +36,9 @@ function App(): ReactElement {
 
   const notaryUrl = 'http://localhost:7047';
   const websocketProxyUrl = 'ws://localhost:55688';
+
+  // const notaryUrl = '  http://165.232.91.223:7047';
+  // const websocketProxyUrl = 'wss://165.232.91.223';
 
   const onClick = useCallback(async () => {
     setProcessing(true);
@@ -49,8 +52,6 @@ function App(): ReactElement {
       headers: {
         Cookie: antsCookieStr.slice(0, 4000),
         'Content-Type': 'application/json',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'same-origin',
       },
       secretHeaders: [],
       secretResps: [],
