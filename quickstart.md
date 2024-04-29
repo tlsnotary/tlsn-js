@@ -20,7 +20,7 @@ To run your own websocket proxy for `https://swapi.dev` **locally**:
 
 2. Run a websocket proxy for `https://swapi.dev`:
 ```sh
-websocat --binary ws-l:0.0.0.0:55688 tcp:swapi.dev:443
+websocat --binary -v ws-l:0.0.0.0:55688 tcp:swapi.dev:443
 ```
 
 Note the `tcp:swapi.dev:443` argument on the last line, this is the server we will use in this quick start.
