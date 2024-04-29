@@ -42,7 +42,7 @@ console.log(result);
 
 2. Run a websocket proxy for `https://swapi.dev`:
 ```sh
-websocat --binary ws-l:0.0.0.0:55688 tcp:swapi.dev:443
+websocat --binary -v ws-l:0.0.0.0:55688 tcp:swapi.dev:443
 ```
 
 ## Install as NPM Package
