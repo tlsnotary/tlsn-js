@@ -1,3 +1,9 @@
+![MIT licensed][mit-badge]
+![Apache licensed][apache-badge]
+
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[apache-badge]: https://img.shields.io/github/license/saltstack/salt
+
 # tlsn-js
 
 NPM Modules for proving and verifying using TLSNotary in the browser.
@@ -6,6 +12,14 @@ The prover requires a [notary-server](https://github.com/tlsnotary/notary-server
 
 > [!IMPORTANT]
 > `tlsn-js` is developped for the usage of TLSNotary **in the Browser**. This module does not work in `nodejs`.
+
+## License
+This repository is licensed under either of
+
+- [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+- [MIT license](http://opensource.org/licenses/MIT)
+
+at your option.
 
 ## Example
 ```ts
