@@ -2,6 +2,7 @@ import init, {
   initThreadPool,
   prover,
   verify,
+  set_log_level_filter
 } from '../wasm/prover/pkg/tlsn_extension_rs';
 
 export default class TLSN {
@@ -26,10 +27,16 @@ export default class TLSN {
     // console.log('!@# res.memory.buffer.length=', res.memory.buffer.byteLength);
     await initThreadPool(numConcurrency);
     this.resolveStart();
+
+    await set_log_level_filter("trace");
   }
 
   async waitForStart() {
     return this.startPromise;
+  }
+
+  async set_log_level_filter(level: string) {
+    await set_log_level_filter(level);
   }
 
   async prove(

@@ -81,6 +81,11 @@ export const verify = async (
   };
 };
 
+export const set_log_level_filter = async (level: string): Promise<void> => {
+  const tlsn = await getTLSN();
+  await tlsn.set_log_level_filter(level);
+};
+
 async function fetchPublicKeyFromNotary(notaryUrl: string) {
   const res = await fetch(notaryUrl + '/info');
   const json: any = await res.json();

@@ -1,6 +1,6 @@
 import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { prove, verify } from 'tlsn-js';
+import { prove, verify, set_log_level_filter } from 'tlsn-js';
 import { Proof } from 'tlsn-js/build/types';
 import { Watch } from 'react-loader-spinner';
 
@@ -21,11 +21,12 @@ function App(): ReactElement {
 
   const onClick = useCallback(async () => {
     setProcessing(true);
+    // set_log_level_filter("debug");
     const p = await prove('https://swapi.dev/api/people/1', {
       method: 'GET',
       maxTranscriptSize: 16384,
-      notaryUrl: 'http://localhost:7047',
-      websocketProxyUrl: 'ws://localhost:55688',
+      notaryUrl: 'https://notary.pse.dev/v0.1.0-alpha.5',
+      websocketProxyUrl: 'wss://notary.pse.dev/proxy?token=swapi.dev',
     });
     setProof(p);
   }, [setProof, setProcessing]);

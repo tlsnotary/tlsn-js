@@ -7,6 +7,8 @@ pub use prover::prover;
 
 pub mod verify;
 use tracing::error;
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::reload::Handle;
 pub use verify::verify;
 
 use wasm_bindgen::prelude::*;
@@ -21,12 +23,32 @@ use wasm_bindgen_futures::JsFuture;
 use web_sys::{Request, RequestInit, Response};
 
 use std::panic;
+use std::sync::OnceLock;
 use tracing_subscriber::fmt::format::Pretty;
 use tracing_subscriber::fmt::time::UtcTime;
-use tracing_subscriber::prelude::*;
+use tracing_subscriber::{filter, reload};
+use tracing_subscriber::{prelude::*, Registry};
 use tracing_web::{performance_layer, MakeWebConsoleWriter};
 
 extern crate console_error_panic_hook;
+
+struct LogReloadHandle {
+    filter: LevelFilter,
+    reload_handle: Handle<LevelFilter, Registry>,
+}
+
+fn reload_handle() -> &'static LogReloadHandle {
+    static HANDLE: OnceLock<LogReloadHandle> = OnceLock::new();
+    HANDLE.get_or_init(|| {
+        //default level
+        let filter = filter::LevelFilter::TRACE;
+        let (_, reload_handle) = reload::Layer::new(filter);
+        LogReloadHandle {
+            filter,
+            reload_handle,
+        }
+    })
+}
 
 #[wasm_bindgen(start)]
 pub fn setup_tracing_web() {
@@ -36,8 +58,10 @@ pub fn setup_tracing_web() {
         .with_writer(MakeWebConsoleWriter::new()); // write events to the console
     let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
 
+    let filter = reload_handle().filter;
+
     tracing_subscriber::registry()
-        .with(tracing_subscriber::filter::LevelFilter::DEBUG)
+        .with(filter)
         .with(fmt_layer)
         .with(perf_layer)
         .init(); // Install these as subscribers to tracing events
@@ -47,6 +71,35 @@ pub fn setup_tracing_web() {
         error!("panic occurred: {:?}", info);
         console_error_panic_hook::hook(info);
     }));
+}
+
+#[wasm_bindgen]
+pub async fn set_log_level_filter(level: &str) -> Result<(), JsValue> {
+    fn level_from_str(level: &str) -> Result<LevelFilter, JsValue> {
+        match level.to_lowercase().as_str() {
+            "trace" => Ok(LevelFilter::TRACE),
+            "debug" => Ok(LevelFilter::DEBUG),
+            "info" => Ok(LevelFilter::INFO),
+            "warn" => Ok(LevelFilter::WARN),
+            "error" => Ok(LevelFilter::ERROR),
+            "off" => Ok(LevelFilter::OFF),
+            _ => Err(JsValue::from_str(&format!(
+                "Invalid log level: '{}'",
+                level
+            ))),
+        }
+    }
+
+    let filter = level_from_str(level)?;
+    println!("{:?}", filter);
+
+    // Assume reload_handle() is a function or struct that provides access to modify the log level
+    reload_handle()
+        .reload_handle
+        .modify(|f: &mut LevelFilter| *f = filter)
+        .map_err(|e| JsValue::from_str(&format!("Failed to modify log level filter: {}", e)))?;
+
+    Ok(())
 }
 
 pub async fn fetch_as_json_string(url: &str, opts: &RequestInit) -> Result<String, JsValue> {
