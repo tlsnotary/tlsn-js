@@ -28,7 +28,7 @@ export default class TLSN {
     await initThreadPool(numConcurrency);
     this.resolveStart();
 
-    await set_log_level_filter("trace");
+    await set_log_level_filter("info");
   }
 
   async waitForStart() {

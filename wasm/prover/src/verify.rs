@@ -1,4 +1,4 @@
-use tracing::info;
+use tracing::{info, trace};
 use wasm_bindgen::prelude::*;
 
 use crate::{request_opt::VerifyResult, setup_tracing_web};
