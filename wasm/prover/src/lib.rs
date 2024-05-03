@@ -61,6 +61,8 @@ pub fn setup_tracing_web() {
     SUBSCRIBER
         .set(Mutex::new(handle))
         .expect("Failed to set subscriber handle");
+
+    info!("🪵 Initialized logging 🪵");
 }
 
 #[wasm_bindgen]

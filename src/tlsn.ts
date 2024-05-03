@@ -26,9 +26,8 @@ export default class TLSN {
     // 6422528 ~= 6.12 mb
     // console.log('!@# res.memory.buffer.length=', res.memory.buffer.byteLength);
     await initThreadPool(numConcurrency);
+    await set_log_level_filter("trace");
     this.resolveStart();
-
-    await set_log_level_filter("info");
   }
 
   async waitForStart() {
@@ -36,7 +35,8 @@ export default class TLSN {
   }
 
   async set_log_level_filter(level: string) {
-    await set_log_level_filter(level);
+    // await this.waitForStart();
+
   }
 
   async prove(

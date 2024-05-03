@@ -9,6 +9,7 @@ use tlsn_core::proof::{SessionProof, TlsProof};
 
 #[wasm_bindgen]
 pub async fn verify(proof: &str, notary_pubkey_str: &str) -> Result<String, JsValue> {
+    trace!("test test test");
     let proof: TlsProof = serde_json::from_str(proof)
         .map_err(|e| JsValue::from_str(&format!("Could not deserialize proof: {:?}", e)))?;
 

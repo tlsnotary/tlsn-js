@@ -21,11 +21,11 @@ function App(): ReactElement {
 
   const onClick = useCallback(async () => {
     setProcessing(true);
-    // set_log_level_filter("debug");
+    await set_log_level_filter("info");
     const p = await prove('https://swapi.dev/api/people/1', {
       method: 'GET',
       maxTranscriptSize: 16384,
-      notaryUrl: 'https://notary.pse.dev/v0.1.0-alpha.5',
+      notaryUrl: 'http://localhost:7047',
       websocketProxyUrl: 'wss://notary.pse.dev/proxy?token=swapi.dev',
     });
     setProof(p);
@@ -34,6 +34,7 @@ function App(): ReactElement {
   useEffect(() => {
     (async () => {
       if (proof) {
+        await set_log_level_filter("trace");
         const r = await verify(proof);
         setResult(r);
         setProcessing(false);
