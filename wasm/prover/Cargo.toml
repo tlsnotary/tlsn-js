@@ -34,6 +34,7 @@ hyper = { version = "1.1", features = ["client", "http1"] }
 hyper-util = { version = "0.1", features = ["http1"] }
 tracing-subscriber = { version = "0.3", features = ["time"] }
 tracing-web = "0.1.2"
+hex = "0.4"
 
 ring = { version = "0.17", features = ["wasm32_unknown_unknown_js"] }
 
@@ -44,15 +45,15 @@ time = { version = "0.3.34", features = ["wasm-bindgen"] }
 # Used to calculate elapsed time.
 web-time = "1.0"
 
-# tlsn-core = { path = "../../../tlsn/tlsn/tlsn-core" }
-# tlsn-prover = { path = "../../../tlsn/tlsn/tlsn-prover", features = [
-#   "tracing",
-# ] }
-
-tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.5", package = "tlsn-core" }
-tlsn-prover = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.5", package = "tlsn-prover", features = [
+tlsn-core = { path = "../../../tlsn/tlsn/tlsn-core" }
+tlsn-prover = { path = "../../../tlsn/tlsn/tlsn-prover", features = [
   "tracing",
 ] }
+
+# tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.5", package = "tlsn-core" }
+# tlsn-prover = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.5", package = "tlsn-prover", features = [
+#   "tracing",
+# ] }
 
 web-sys = { version = "0.3.4", features = [
   "BinaryType",

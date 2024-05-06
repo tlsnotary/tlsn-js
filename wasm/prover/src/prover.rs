@@ -27,6 +27,8 @@ use web_sys::{Headers, RequestInit, RequestMode};
 
 use tracing::{debug, info};
 
+use hex::encode;
+
 #[derive(strum_macros::EnumMessage, Debug, Clone, Copy)]
 #[allow(dead_code)]
 enum ProverPhases {
@@ -92,8 +94,6 @@ pub async fn prover(
     info!("options.notary_url: {}", options.notary_url.as_str());
 
     let start_time = Instant::now();
-
-
 
     /*
      * Connect Notary with websocket
@@ -165,22 +165,20 @@ pub async fn prover(
         .host_str()
         .ok_or(JsValue::from_str("Could not get target host"))?;
 
-        // Basic default prover config
-        let mut builder = ProverConfig::builder();
+    // Basic default prover config
+    let mut builder = ProverConfig::builder();
 
-        if let Some(max_sent_data) = options.max_sent_data {
-            builder.max_sent_data(max_sent_data);
-        }
-        if let Some(max_recv_data) = options.max_recv_data {
-            builder.max_recv_data(max_recv_data);
-        }
-        let config = builder
-            .id(notarization_response.session_id)
-            .server_dns(target_host)
-            .build()
-            .map_err(|e| JsValue::from_str(&format!("Could not build prover config: {:?}", e)))?;
-
-
+    if let Some(max_sent_data) = options.max_sent_data {
+        builder.max_sent_data(max_sent_data);
+    }
+    if let Some(max_recv_data) = options.max_recv_data {
+        builder.max_recv_data(max_recv_data);
+    }
+    let config = builder
+        .id(notarization_response.session_id)
+        .server_dns(target_host)
+        .build()
+        .map_err(|e| JsValue::from_str(&format!("Could not build prover config: {:?}", e)))?;
 
     // Create a Prover and set it up with the Notary
     // This will set up the MPC backend prior to connecting to the server.
@@ -386,12 +384,16 @@ pub async fn prover(
 
     // Finalize, returning the notarized session
     log_phase(ProverPhases::Finalize);
+
     let notarized_session = prover
         .finalize()
         .await
         .map_err(|e| JsValue::from_str(&format!("Error finalizing prover: {:?}", e)))?;
 
     log_phase(ProverPhases::NotarizationComplete);
+
+    let notary_signature = notarized_session.signature2();
+    info!("Notary signature 0x{}", notary_signature);
 
     // Create a proof for all committed data in this session
     log_phase(ProverPhases::CreateProof);

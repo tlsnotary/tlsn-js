@@ -37,20 +37,20 @@ function App(): ReactElement {
   const notaryUrl = 'http://localhost:7047';
   const websocketProxyUrl = 'ws://localhost:55688';
 
-  // const notaryUrl = '  http://165.232.91.223:7047';
-  // const websocketProxyUrl = 'wss://165.232.91.223';
+  // const notaryUrl = 'https://notary.eternis.ai';
+  // const websocketProxyUrl = 'wss://notary.eternis.ai:55688';
 
   const onClick = useCallback(async () => {
     setProcessing(true);
     const p = await prove(webUrl, {
       method: 'GET',
-      maxTranscriptSize: 65664, //16384 to 20480,
-      maxRecvData: 16384,
-      maxSentData: 16384,
+      maxTranscriptSize: 16384, //16384 to 20480,
+      // maxRecvData: 16384,
+      // maxSentData: 16384,
       notaryUrl,
       websocketProxyUrl,
       headers: {
-        Cookie: antsCookieStr.slice(0, 4000),
+        // Cookie: antsCookieStr.slice(0, 4000),
         'Content-Type': 'application/json',
       },
       secretHeaders: [],
@@ -69,8 +69,6 @@ function App(): ReactElement {
     })();
   }, [proof, setResult]);
 
-  console.log('processed\n', processCookie(antsCookieStr));
-  console.log('sliced:\n', antsCookieStr.slice(0, 4000));
   return (
     <div>
       <button onClick={!processing ? onClick : undefined} disabled={processing}>
@@ -123,7 +121,6 @@ function processCookie(cookieStr: string) {
 
   let cookieStr_ = '';
   for (let i in cookies) {
-    console.log('cookie', i, cookies[i]);
     if (i !== '8') cookieStr_ += cookies[i];
   }
 
