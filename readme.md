@@ -2,10 +2,10 @@
 
 NPM Modules for proving and verifying using TLSNotary in the browser.
 
-The prover requires a [notary-server](https://github.com/tlsnotary/notary-server) and websockify proxy
+The prover requires a [notary-server](https://github.com/tlsnotary/notary-server) and a websocket proxy
 
 > [!IMPORTANT]
-> `tlsn-js` is developped for the usage of TLSNotary **in the Browser**. This module does not work in `nodejs`.
+> `tlsn-js` is developed for the usage of TLSNotary **in the Browser**. This module does not work in `nodejs`.
 
 ## Example
 ```ts
@@ -30,11 +30,19 @@ const result = await verify(proof);
 console.log(result);
 ```
 
-## Running a local websockify proxy for `https://swapi.dev`
-```
-git clone https://github.com/novnc/websockify && cd websockify
-./docker/build.sh
-docker run -it --rm -p 55688:80 novnc/websockify 80 swapi.dev:443
+## Running a local websocket proxy for `https://swapi.dev`
+
+1. Install [websocat](https://github.com/vi/websocat):
+
+    | tool   | command                       |
+    |--------|-------------------------------|
+    | cargo  | `cargo install websocat`      |
+    | brew   | `brew install websocat`       |
+    | source | https://github.com/vi/websocat|
+
+2. Run a websocket proxy for `https://swapi.dev`:
+```sh
+websocat --binary -v ws-l:0.0.0.0:55688 tcp:swapi.dev:443
 ```
 
 ## Install as NPM Package
