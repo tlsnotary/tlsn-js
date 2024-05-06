@@ -5,7 +5,7 @@ import init, {
   setup_tracing_web,
 } from '../wasm/prover/pkg/tlsn_extension_rs';
 
-const DEFAULT_LOGGING_FILTER = "info,tlsn_extension_rs=debug,tls_mpc=debug,yamux:info";
+export const DEFAULT_LOGGING_FILTER: string = "info,tlsn_extension_rs=debug";
 
 export default class TLSN {
   private startPromise: Promise<void>;
