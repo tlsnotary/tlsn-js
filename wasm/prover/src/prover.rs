@@ -346,6 +346,7 @@ pub async fn prover(
     let builder = prover.commitment_builder();
 
     // Commit to the outbound and inbound transcript, isolating the data that contain secrets
+    //commitments
     let sent_pub_commitment_ids = sent_public_ranges
         .iter()
         .map(|range| {
@@ -393,7 +394,10 @@ pub async fn prover(
     log_phase(ProverPhases::NotarizationComplete);
 
     let notary_signature = notarized_session.signature2();
-    info!("Notary signature 0x{}", notary_signature);
+    info!("Notary signature 0x{:?}", notary_signature);
+
+    let message = notarized_session.message();
+    info!("Notary message {}", message);
 
     // Create a proof for all committed data in this session
     log_phase(ProverPhases::CreateProof);
@@ -415,6 +419,8 @@ pub async fn prover(
     let substrings_proof = proof_builder
         .build()
         .map_err(|e| JsValue::from_str(&format!("Could not build proof: {:?}", e)))?;
+
+    info!("substrings_proof {:?}", substrings_proof);
 
     let proof = TlsProof {
         session: session_proof,
