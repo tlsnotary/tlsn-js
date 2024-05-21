@@ -5,7 +5,7 @@ import init, {
   setup_tracing_web,
 } from '../wasm/prover/pkg/tlsn_extension_rs';
 
-export const DEFAULT_LOGGING_FILTER: string = "info,tlsn_extension_rs=debug";
+export const DEFAULT_LOGGING_FILTER: string = 'info,tlsn_extension_rs=debug';
 
 export default class TLSN {
   private startPromise: Promise<void>;
@@ -13,11 +13,11 @@ export default class TLSN {
   private logging_filter: string;
 
   /**
-  * Initializes a new instance of the TLSN class.
-  *
-  * @param logging_filter - Optional logging filter string.
-  *                         Defaults to DEFAULT_LOGGING_FILTER
-  */
+   * Initializes a new instance of the TLSN class.
+   *
+   * @param logging_filter - Optional logging filter string.
+   *                         Defaults to DEFAULT_LOGGING_FILTER
+   */
   constructor(logging_filter: string = DEFAULT_LOGGING_FILTER) {
     this.logging_filter = logging_filter;
 

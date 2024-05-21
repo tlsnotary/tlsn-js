@@ -21,7 +21,7 @@ function App(): ReactElement {
 
   const onClick = useCallback(async () => {
     setProcessing(true);
-    await set_logging_filter("info,tlsn_extension_rs=debug");
+    await set_logging_filter('info,tlsn_extension_rs=debug');
     const p = await prove('https://swapi.dev/api/people/1', {
       method: 'GET',
       maxTranscriptSize: 16384,

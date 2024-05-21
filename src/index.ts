@@ -3,17 +3,16 @@ import { DEFAULT_LOGGING_FILTER } from './tlsn';
 import { Proof } from './types';
 
 let _tlsn: TLSN;
-let current_logging_filter = DEFAULT_LOGGING_FILTER;
+const current_logging_filter = DEFAULT_LOGGING_FILTER;
 
 async function getTLSN(logging_filter?: string): Promise<TLSN> {
-  const logging_filter_changed = (logging_filter && logging_filter == current_logging_filter);
+  const logging_filter_changed =
+    logging_filter && logging_filter == current_logging_filter;
 
   if (!logging_filter_changed && _tlsn) return _tlsn;
   // @ts-ignore
-  if (logging_filter)
-    _tlsn = await new TLSN(logging_filter);
-  else
-    _tlsn = await new TLSN();
+  if (logging_filter) _tlsn = await new TLSN(logging_filter);
+  else _tlsn = await new TLSN();
   return _tlsn;
 }
 
@@ -24,7 +23,7 @@ async function getTLSN(logging_filter?: string): Promise<TLSN> {
  */
 export const set_logging_filter = async (logging_filter: string) => {
   getTLSN(logging_filter);
-}
+};
 
 export const prove = async (
   url: string,
