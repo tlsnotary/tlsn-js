@@ -1,7 +1,7 @@
 use tracing::info;
 use wasm_bindgen::prelude::*;
 
-use crate::{request_opt::VerifyResult, setup_tracing_web};
+use crate::request_opt::VerifyResult;
 
 use elliptic_curve::pkcs8::DecodePublicKey;
 use std::time::Duration;

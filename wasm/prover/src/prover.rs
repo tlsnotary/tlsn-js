@@ -12,8 +12,8 @@ use crate::requests::{ClientType, NotarizationSessionRequest, NotarizationSessio
 
 pub use wasm_bindgen_rayon::init_thread_pool;
 
+use crate::fetch_as_json_string;
 pub use crate::request_opt::VerifyResult;
-use crate::{fetch_as_json_string, setup_tracing_web};
 use futures::AsyncWriteExt;
 use http_body_util::{BodyExt, Full};
 use hyper::{body::Bytes, Request, StatusCode};
@@ -25,7 +25,7 @@ use url::Url;
 use wasm_bindgen::prelude::*;
 use web_sys::{Headers, RequestInit, RequestMode};
 
-use tracing::{debug, info};
+use tracing::{debug, info, trace};
 
 #[derive(strum_macros::EnumMessage, Debug, Clone, Copy)]
 #[allow(dead_code)]
@@ -77,11 +77,11 @@ pub async fn prover(
     secret_headers: JsValue,
     secret_body: JsValue,
 ) -> Result<String, JsValue> {
-    info!("target_url: {}", target_url_str);
+    debug!("target_url: {}", target_url_str);
     let target_url = Url::parse(target_url_str)
         .map_err(|e| JsValue::from_str(&format!("Could not parse target_url: {:?}", e)))?;
 
-    info!(
+    debug!(
         "target_url.host: {}",
         target_url
             .host()
@@ -89,11 +89,9 @@ pub async fn prover(
     );
     let options: RequestOptions = serde_wasm_bindgen::from_value(val)
         .map_err(|e| JsValue::from_str(&format!("Could not deserialize options: {:?}", e)))?;
-    info!("options.notary_url: {}", options.notary_url.as_str());
+    debug!("options.notary_url: {}", options.notary_url.as_str());
 
     let start_time = Instant::now();
-
-
 
     /*
      * Connect Notary with websocket
@@ -150,7 +148,7 @@ pub async fn prover(
             .map_err(|e| JsValue::from_str(&format!("Could not deserialize response: {:?}", e)))?;
     debug!("Response: {}", rust_string);
 
-    info!("Notarization response: {:?}", notarization_response,);
+    debug!("Notarization response: {:?}", notarization_response,);
     let notary_wss_url = format!(
         "{}://{}{}/notarize?sessionId={}",
         if notary_ssl { "wss" } else { "ws" },

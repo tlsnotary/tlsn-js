@@ -2,13 +2,25 @@ import init, {
   initThreadPool,
   prover,
   verify,
+  setup_tracing_web,
 } from '../wasm/prover/pkg/tlsn_extension_rs';
 
-export default class TLSN {
-  private startPromise: any;
-  private resolveStart: any;
+export const DEFAULT_LOGGING_FILTER: string = 'info,tlsn_extension_rs=debug';
 
-  constructor() {
+export default class TLSN {
+  private startPromise: Promise<void>;
+  private resolveStart!: () => void;
+  private logging_filter: string;
+
+  /**
+   * Initializes a new instance of the TLSN class.
+   *
+   * @param logging_filter - Optional logging filter string.
+   *                         Defaults to DEFAULT_LOGGING_FILTER
+   */
+  constructor(logging_filter: string = DEFAULT_LOGGING_FILTER) {
+    this.logging_filter = logging_filter;
+
     this.startPromise = new Promise((resolve) => {
       this.resolveStart = resolve;
     });
@@ -20,6 +32,7 @@ export default class TLSN {
     const numConcurrency = navigator.hardwareConcurrency;
     // console.log('!@# navigator.hardwareConcurrency=', numConcurrency);
     await init();
+    setup_tracing_web(this.logging_filter);
     // const res = await init();
     // console.log('!@# res.memory=', res.memory);
     // 6422528 ~= 6.12 mb

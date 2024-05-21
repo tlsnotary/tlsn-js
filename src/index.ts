@@ -1,14 +1,29 @@
 import TLSN from './tlsn';
+import { DEFAULT_LOGGING_FILTER } from './tlsn';
 import { Proof } from './types';
 
 let _tlsn: TLSN;
+const current_logging_filter = DEFAULT_LOGGING_FILTER;
 
-async function getTLSN(): Promise<TLSN> {
-  if (_tlsn) return _tlsn;
+async function getTLSN(logging_filter?: string): Promise<TLSN> {
+  const logging_filter_changed =
+    logging_filter && logging_filter == current_logging_filter;
+
+  if (!logging_filter_changed && _tlsn) return _tlsn;
   // @ts-ignore
-  _tlsn = await new TLSN();
+  if (logging_filter) _tlsn = await new TLSN(logging_filter);
+  else _tlsn = await new TLSN();
   return _tlsn;
 }
+
+/**
+ * If you want to change the default logging filter, call this method before calling prove or verify
+ * For the filter syntax consult: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax
+ * @param logging_filter
+ */
+export const set_logging_filter = async (logging_filter: string) => {
+  getTLSN(logging_filter);
+};
 
 export const prove = async (
   url: string,
