@@ -58,19 +58,30 @@ export const prove = async (
 
 
 export const interactive_prove = async (
-  websocket_proxy_url: string,
-  verifier_proxy_url: string,
-  uri: string,
-  id: string
+  url: string,
+  options: {
+    headers?: { [key: string]: string };
+    id: string;
+    verifierProxyUrl: string;
+    websocketProxyUrl: string;
+  },
 ): Promise<string> => {
+
+  const {
+    headers,
+    id,
+    verifierProxyUrl,
+    websocketProxyUrl,
+  } = options;
+
   const tlsn = await getTLSN();
 
-
-  const proof = await tlsn.interactive_prove(
-    websocket_proxy_url,
-    verifier_proxy_url,
-    uri,
-    id);
+  const proof = await tlsn.interactive_prove(url, {
+    headers,
+    websocketProxyUrl,
+    verifierProxyUrl,
+    id,
+  });
 
   return proof
 };

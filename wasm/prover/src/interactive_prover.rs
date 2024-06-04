@@ -1,5 +1,5 @@
 use crate::hyper_io::FuturesIo;
-use crate::request_opt::RequestOptions;
+use crate::request_opt::InteractiveRequestOptions;
 pub use crate::request_opt::VerifyResult;
 use crate::requests::{ClientType, NotarizationSessionRequest, NotarizationSessionResponse};
 use crate::{fetch_as_json_string, setup_tracing_web};
@@ -30,21 +30,22 @@ const SECRET: &str = "TLSNotary's private key 🤡";
 #[tracing::instrument]
 #[wasm_bindgen]
 pub async fn interactive_prover(
-    websocket_proxy_url: String,
-    verifier_proxy_url: String,
-    uri: String,
-    id: String,
+    url: String,
+    val: JsValue,
 ) -> Result<String, JsValue> {
-    let uri = uri.parse::<Uri>().unwrap();
-    assert_eq!(uri.scheme().unwrap().as_str(), "https");
-    let server_domain = uri.authority().unwrap().host();
+    let url = url.parse::<Uri>().unwrap();
+    assert_eq!(url.scheme().unwrap().as_str(), "https");
+    let server_domain = url.authority().unwrap().host();
+
+    let options: InteractiveRequestOptions = serde_wasm_bindgen::from_value(val)
+        .map_err(|e| JsValue::from_str(&format!("Could not deserialize options: {:?}", e)))?;
 
     info!(
         "Interactive proof: {}, {}, {} ,{} ",
-        websocket_proxy_url, verifier_proxy_url, uri, id
+        options.websocket_proxy_url, options.verifier_proxy_url, url, options.id
     );
 
-    let test = format!("{}/verify", verifier_proxy_url);
+    let test = format!("{}/verify", options.verifier_proxy_url);
     let (_, verifier_ws_stream) = WsMeta::connect(test, None)
         .await
         .expect_throw("assume the verifier ws connection succeeds");
@@ -53,7 +54,7 @@ pub async fn interactive_prover(
     // Create prover and connect to verifier.
     let prover = Prover::new(
         ProverConfig::builder()
-            .id(id)
+            .id(options.id)
             .server_dns(server_domain)
             .build()
             .unwrap(),
@@ -63,8 +64,8 @@ pub async fn interactive_prover(
     .unwrap();
 
     // Connect to TLS Server.
-    debug!("Connect to websocket proxy {}", websocket_proxy_url);
-    let (_, client_ws_stream) = WsMeta::connect(websocket_proxy_url, None)
+    debug!("Connect to websocket proxy {}", options.websocket_proxy_url);
+    let (_, client_ws_stream) = WsMeta::connect(options.websocket_proxy_url, None)
         .await
         .expect_throw("assume the client ws connection succeeds");
     let (mpc_tls_connection, prover_fut) =
@@ -93,15 +94,24 @@ pub async fn interactive_prover(
     spawn_local(handled_connection_fut);
 
     // MPC-TLS: Send Request and wait for Response.
-    let request = Request::builder()
-        .uri(uri.clone())
+    let mut req = Request::builder()
+        .uri(url.clone())
+        .method("GET")
         .header("Host", server_domain)
         .header("Connection", "close")
-        .header("Secret", SECRET)
-        .method("GET")
-        .body(Empty::<Bytes>::new())
-        .unwrap();
-    let response = request_sender.send_request(request).await.unwrap();
+        .header("Secret", SECRET);
+
+    for (key, value) in options.headers {
+        info!("adding header: {} - {}", key.as_str(), value.as_str());
+        req = req.header(key.as_str(), value.as_str());
+    }
+
+    let req_with_body = req.body(Full::new(Bytes::default()));
+
+    let unwrapped_request = req_with_body
+        .map_err(|e| JsValue::from_str(&format!("Could not build request: {:?}", e)))?;
+
+    let response = request_sender.send_request(unwrapped_request).await.unwrap();
 
     assert!(response.status() == StatusCode::OK);
 

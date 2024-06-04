@@ -15,11 +15,15 @@ function App(): ReactElement {
 
   const onClick = useCallback(async () => {
     setProcessing(true);
-    const result = await interactive_prove(
-      'wss://notary.pse.dev/proxy?token=swapi.dev', //'ws://localhost:55688',
-      'ws://localhost:9816',
-      "https://swapi.dev/api/people/1",
-      "interactive-verifier-demo");
+    const result = await interactive_prove('https://swapi.dev/api/people/1', {
+      headers: {
+        RTT: '125',
+        'Sec-GPC': '1',
+      },
+      id: "interactive-verifier-demo",
+      verifierProxyUrl: 'ws://localhost:9816',
+      websocketProxyUrl: 'wss://notary.pse.dev/proxy?token=swapi.dev', //'ws://localhost:55688',
+    });
     setResult(result);
     setProcessing(false);
 
