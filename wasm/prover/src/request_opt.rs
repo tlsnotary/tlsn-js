@@ -27,3 +27,12 @@ pub struct VerifyResult {
     pub sent: String,
     pub recv: String,
 }
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InteractiveRequestOptions {
+    pub headers: HashMap<String, String>,
+    pub id: String,
+    pub verifier_proxy_url: String,
+    pub websocket_proxy_url: String,
+}

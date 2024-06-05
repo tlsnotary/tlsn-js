@@ -75,17 +75,23 @@ export default class TLSN {
   }
 
   async interactive_prove(
-    websocket_proxy_url: string,
-    verifier_proxy_url: string,
-    uri: string,
-    id: string,
+    url: string,
+    options?: {
+      headers?: { [key: string]: string };
+      id?: string;
+      verifierProxyUrl?: string;
+      websocketProxyUrl?: string;
+    },
   ) {
     await this.waitForStart();
     const resProver = await interactive_prover(
-      websocket_proxy_url,
-      verifier_proxy_url,
-      uri,
-      id
+      url,
+      {
+        ...options,
+        id: options?.id,
+        verifierProxyUrl: options?.verifierProxyUrl,
+        websocketProxyUrl: options?.websocketProxyUrl,
+      }
     );
     const resJSON = JSON.parse(resProver);
     // console.log('!@# resProver,resJSON=', { resProver, resJSON });
