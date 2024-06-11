@@ -11,6 +11,10 @@ NPM Modules for proving and verifying using TLSNotary in the browser.
 The prover requires a [notary-server](https://github.com/tlsnotary/notary-server) and a websocket proxy
 
 > [!IMPORTANT]
+> The primary purpose of `tlsn-js` is to support the development of the [TLSNotary browser extension](https://github.com/tlsnotary/tlsn-extension/).  
+> **Please do not treat this as a public API (yet).**
+
+> [!IMPORTANT]
 > `tlsn-js` is developed for the usage of TLSNotary **in the Browser**. This module does not work in `nodejs`.
 
 ## License
