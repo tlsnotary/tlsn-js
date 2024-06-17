@@ -57,7 +57,8 @@ export const prove = async (
 
   headers['Host'] = new URL(url).host;
   headers['Connection'] = 'close';
-
+  if (body) headers['Content-Length'] = body.length.toString();
+  
   const proof = await tlsn.prove(url, {
     method,
     headers,
