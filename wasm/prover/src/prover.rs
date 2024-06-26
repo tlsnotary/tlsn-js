@@ -24,7 +24,7 @@ use url::Url;
 use wasm_bindgen::prelude::*;
 use web_sys::RequestMode;
 
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 type Result<T, Error = JsError> = std::result::Result<T, Error>;
 
@@ -81,6 +81,8 @@ pub async fn prover(
     secret_headers: JsValue,
     secret_body: JsValue,
 ) -> Result<String, JsError> {
+    info!("new version");
+
     debug!("target_url: {}", target_url_str);
     let target_url = Url::parse(target_url_str)?;
     let target_host = target_url
@@ -98,32 +100,41 @@ pub async fn prover(
 
     let start_time = Instant::now();
 
-    let proof = spawn_rayon_with_handle(move || async move {
-        let (session_id, notary_io) = connect_notary(
-            &options.notary_url,
-            options.max_sent_data,
-            options.max_recv_data,
-        )
-        .await?;
+    let (session_id, notary_io) = connect_notary(
+        &options.notary_url,
+        options.max_sent_data,
+        options.max_recv_data,
+    )
+    .await
+    .map_err(|e| JsError::new(&e.to_string()))?;
 
-        // Basic default prover config
-        let mut builder = ProverConfig::builder();
+    // Basic default prover config
+    let mut builder = ProverConfig::builder();
 
-        builder.id(session_id).server_dns(target_host);
+    builder.id(session_id).server_dns(target_host);
 
-        if let Some(max_sent_data) = options.max_sent_data {
-            builder.max_sent_data(max_sent_data);
-        }
-        if let Some(max_recv_data) = options.max_recv_data {
-            builder.max_recv_data(max_recv_data);
-        }
+    if let Some(max_sent_data) = options.max_sent_data {
+        builder.max_sent_data(max_sent_data);
+    }
+    if let Some(max_recv_data) = options.max_recv_data {
+        builder.max_recv_data(max_recv_data);
+    }
 
+    let prover = spawn_rayon_with_handle(move || async move {
         let prover = Prover::new(builder.build()?).setup(notary_io).await?;
 
-        let (_, server_io) = WsMeta::connect(&options.websocket_proxy_url, None)
-            .await
-            .expect_throw("assume the client ws connection succeeds");
+        Ok::<_, anyhow::Error>(prover)
+    })
+    .await
+    .map_err(|e| JsError::new(&e.to_string()))?;
 
+    debug!("connecting to server");
+    let (_, server_io) = WsMeta::connect(&options.websocket_proxy_url, None)
+        .await
+        .expect_throw("assume the client ws connection succeeds");
+    debug!("connected to server");
+
+    let proof = spawn_rayon_with_handle(move || async move {
         let (tls_connection, prover_fut) = prover.connect(server_io.into_io()).await?;
         let tls_connection = unsafe { FuturesIo::new(tls_connection) };
 
@@ -291,7 +302,16 @@ async fn connect_notary(
     headers.append("Host", notary_host);
     headers.append("Content-Type", "application/json");
 
-    let response = BrowserRequest::post(url)
+    debug!("sending notarization request");
+
+    let url = format!(
+        "{}://{}{}/session",
+        if notary_ssl { "https" } else { "http" },
+        notary_host,
+        notary_path_str
+    );
+
+    let response = BrowserRequest::post(&url)
         .mode(RequestMode::Cors)
         .headers(headers)
         .body(serde_json::to_string(&NotarizationSessionRequest {
@@ -301,6 +321,13 @@ async fn connect_notary(
         })?)?
         .send()
         .await?;
+
+    if response.ok() {
+        debug!("Notarization request succeeded");
+    } else {
+        error!("Notarization request failed: {:?}", response.status());
+        bail!("Notarization request failed: {:?}", response.status());
+    }
 
     let payload: NotarizationSessionResponse = response.json().await?;
     debug!("Notarization response: {:?}", &payload);

@@ -5,6 +5,7 @@ mod requests;
 pub mod prover;
 use futures::channel::oneshot;
 use futures::Future;
+use js_sys::JSON;
 pub use prover::prover;
 
 pub mod verify;
@@ -13,6 +14,10 @@ pub use verify::verify;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::Request;
+use web_sys::RequestInit;
+use web_sys::Response;
 
 pub use crate::request_opt::{RequestOptions, VerifyResult};
 
@@ -98,4 +103,17 @@ fn spawn_rayon_with_handle<
         })
     });
     async move { receiver.await.unwrap() }
+}
+
+pub async fn fetch_as_json_string(url: &str, opts: &RequestInit) -> Result<String, JsValue> {
+    let request = Request::new_with_str_and_init(url, opts)?;
+    let window = web_sys::window().expect("Window object");
+    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
+    assert!(resp_value.is_instance_of::<Response>());
+    let resp: Response = resp_value.dyn_into()?;
+    let json = JsFuture::from(resp.json()?).await?;
+    let stringified = JSON::stringify(&json)?;
+    stringified
+        .as_string()
+        .ok_or_else(|| JsValue::from_str("Could not stringify JSON"))
 }
