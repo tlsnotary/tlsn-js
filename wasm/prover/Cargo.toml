@@ -8,7 +8,7 @@ rust-version = "1.56"
 version = "0.1.0"
 
 [patch.crates-io]
-yamux = { git = "https://github.com/tlsnotary/rust-yamux", rev = "8bd5d40" }
+yamux = { git = "https://github.com/tlsnotary/rust-yamux", rev = "d8bd97c" }
 
 [lib]
 crate-type = ["cdylib", "rlib"]
