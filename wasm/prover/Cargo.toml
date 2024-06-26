@@ -7,9 +7,6 @@ name = "tlsn-extension-rs"
 rust-version = "1.56"
 version = "0.1.0"
 
-[patch.crates-io]
-yamux = { git = "https://github.com/tlsnotary/rust-yamux", rev = "d8bd97c" }
-
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -31,6 +28,10 @@ wasm-bindgen = "0.2.87"
 wasm-bindgen-futures = "0.4.37"
 wasm-bindgen-rayon = "1.0"
 pin-project-lite = "0.2.4"
+anyhow = "1.0"
+gloo-net = "0.5"
+
+parking_lot = { version = "0.12", features = ["nightly"] }
 
 http-body-util = "0.1"
 hyper = { version = "1.1", features = ["client", "http1"] }

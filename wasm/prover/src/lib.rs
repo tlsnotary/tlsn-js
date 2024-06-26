@@ -3,6 +3,8 @@ mod request_opt;
 mod requests;
 
 pub mod prover;
+use futures::channel::oneshot;
+use futures::Future;
 pub use prover::prover;
 
 pub mod verify;
@@ -10,15 +12,11 @@ use tracing::error;
 pub use verify::verify;
 
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
 pub use crate::request_opt::{RequestOptions, VerifyResult};
 
 pub use wasm_bindgen_rayon::init_thread_pool;
-
-use js_sys::JSON;
-
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, Response};
 
 use std::panic;
 use tracing::debug;
@@ -30,6 +28,22 @@ use tracing_subscriber::EnvFilter;
 use tracing_web::{performance_layer, MakeWebConsoleWriter};
 
 extern crate console_error_panic_hook;
+
+#[derive(Debug)]
+pub struct Error(Box<dyn std::error::Error + Send + Sync + 'static>);
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+impl std::error::Error for Error {}
+
+impl Error {
+    pub fn new<E: Into<Box<dyn std::error::Error + Send + Sync + 'static>>>(error: E) -> Self {
+        Self(error.into())
+    }
+}
 
 #[wasm_bindgen]
 pub fn setup_tracing_web(logging_filter: &str) {
@@ -60,15 +74,28 @@ pub fn setup_tracing_web(logging_filter: &str) {
     debug!("🪵 Logging set up 🪵")
 }
 
-pub async fn fetch_as_json_string(url: &str, opts: &RequestInit) -> Result<String, JsValue> {
-    let request = Request::new_with_str_and_init(url, opts)?;
-    let window = web_sys::window().expect("Window object");
-    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
-    assert!(resp_value.is_instance_of::<Response>());
-    let resp: Response = resp_value.dyn_into()?;
-    let json = JsFuture::from(resp.json()?).await?;
-    let stringified = JSON::stringify(&json)?;
-    stringified
-        .as_string()
-        .ok_or_else(|| JsValue::from_str("Could not stringify JSON"))
+fn spawn_with_handle<F: Future<Output = R> + Send + 'static, R: Send + 'static>(
+    f: F,
+) -> impl Future<Output = R> + Send + 'static {
+    let (sender, receiver) = oneshot::channel();
+    spawn_local(async move {
+        _ = sender.send(f.await);
+    });
+    async move { receiver.await.unwrap() }
+}
+
+fn spawn_rayon_with_handle<
+    F: FnOnce() -> Fut + Send + 'static,
+    Fut: Future<Output = R> + 'static,
+    R: Send + 'static,
+>(
+    f: F,
+) -> impl Future<Output = R> + Send + 'static {
+    let (sender, receiver) = oneshot::channel();
+    rayon::spawn(move || {
+        futures::executor::block_on(async move {
+            _ = sender.send(f().await);
+        })
+    });
+    async move { receiver.await.unwrap() }
 }
