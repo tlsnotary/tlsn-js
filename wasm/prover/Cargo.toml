@@ -43,7 +43,7 @@ ring = { version = "0.17", features = ["wasm32_unknown_unknown_js"] }
 time = { version = "0.3.34", features = ["wasm-bindgen"] }
 # Used to calculate elapsed time.
 web-time = "1.0"
-parking_lot = { version = "0.9", features = ["nightly"] }
+parking_lot = { version = "0.12", features = ["nightly"] }
 
 tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.6", package = "tlsn-core" }
 tlsn-prover = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.6", package = "tlsn-prover" }
