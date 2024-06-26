@@ -44,10 +44,8 @@ time = { version = "0.3.34", features = ["wasm-bindgen"] }
 # Used to calculate elapsed time.
 web-time = "1.0"
 
-tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.5", package = "tlsn-core" }
-tlsn-prover = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.5", package = "tlsn-prover", features = [
-  "tracing",
-] }
+tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.6", package = "tlsn-core" }
+tlsn-prover = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.6", package = "tlsn-prover" }
 
 web-sys = { version = "0.3.4", features = [
   "BinaryType",
