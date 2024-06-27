@@ -1,0 +1,16 @@
+[package]
+authors = ["The tlsn-extension Developers"]
+description = "tlsn-js library for using TLSNotary in browsers"
+edition = "2018"
+license = "MIT OR Apache-2.0"
+name = "tlsn-extension-rs"
+rust-version = "1.56"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+rayon = "1.8"
+wasm-bindgen-rayon = "1.2"

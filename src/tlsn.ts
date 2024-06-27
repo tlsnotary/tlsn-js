@@ -27,18 +27,31 @@ export default class TLSN {
     this.start();
   }
 
-  async start() {
-    // console.log('start');
-    const numConcurrency = navigator.hardwareConcurrency;
-    // console.log('!@# navigator.hardwareConcurrency=', numConcurrency);
-    await init();
-    setup_tracing_web(this.logging_filter);
-    // const res = await init();
-    // console.log('!@# res.memory=', res.memory);
-    // 6422528 ~= 6.12 mb
-    // console.log('!@# res.memory.buffer.length=', res.memory.buffer.byteLength);
-    await initThreadPool(numConcurrency);
-    this.resolveStart();
+  async start(currencyOverride?: number) {
+    try {
+      console.log('start');
+      const numConcurrency =
+        typeof currencyOverride === 'number'
+          ? currencyOverride
+          : navigator.hardwareConcurrency;
+      console.log('!@# navigator.hardwareConcurrency=', numConcurrency);
+      // await init();
+      const res = await init();
+      setup_tracing_web(this.logging_filter);
+
+      console.log('!@# res.memory=', res.memory);
+      // 6422528 ~= 6.12 mb
+      console.log(
+        '!@# res.memory.buffer.length=',
+        res.memory.buffer.byteLength,
+      );
+      await initThreadPool(numConcurrency);
+      this.resolveStart();
+      console.log('init thread pool success');
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   }
 
   async waitForStart() {
@@ -61,11 +74,11 @@ export default class TLSN {
     },
   ) {
     await this.waitForStart();
-    // console.log('worker', url, {
-    //   ...options,
-    //   notaryUrl: options?.notaryUrl,
-    //   websocketProxyUrl: options?.websocketProxyUrl,
-    // });
+    console.log('worker', url, {
+      ...options,
+      notaryUrl: options?.notaryUrl,
+      websocketProxyUrl: options?.websocketProxyUrl,
+    });
     const resProver = await prover(
       url,
       {
@@ -77,13 +90,13 @@ export default class TLSN {
       options?.secretResps || [],
     );
     const resJSON = JSON.parse(resProver);
-    // console.log('!@# resProver,resJSON=', { resProver, resJSON });
-    // console.log('!@# resAfter.memory=', resJSON.memory);
+    console.log('!@# resProver,resJSON=', { resProver, resJSON });
+    console.log('!@# resAfter.memory=', resJSON.memory);
     // 1105920000 ~= 1.03 gb
-    // console.log(
-    //   '!@# resAfter.memory.buffer.length=',
-    //   resJSON.memory?.buffer?.byteLength,
-    // );
+    console.log(
+      '!@# resAfter.memory.buffer.length=',
+      resJSON.memory?.buffer?.byteLength,
+    );
 
     return resJSON;
   }

@@ -26,8 +26,10 @@ var options = {
     /ResizeObserver loop completed with undelivered notifications/,
   ],
   mode: 'development',
+  target: 'web',
   entry: {
-    app: path.join(__dirname, 'app.tsx'),
+    // app: path.join(__dirname, 'app.tsx'),
+    basic: path.join(__dirname, 'basic.tsx'),
   },
   output: {
     filename: '[name].bundle.js',
