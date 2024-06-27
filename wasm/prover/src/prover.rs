@@ -10,7 +10,7 @@ use ws_stream_wasm::*;
 use crate::hyper_io::FuturesIo;
 use crate::request_opt::RequestOptions;
 use crate::requests::{ClientType, NotarizationSessionRequest, NotarizationSessionResponse};
-use crate::{spawn_rayon_with_handle, spawn_with_handle};
+use crate::spawn_with_handle;
 
 pub use wasm_bindgen_rayon::init_thread_pool;
 
@@ -120,13 +120,7 @@ pub async fn prover(
         builder.max_recv_data(max_recv_data);
     }
 
-    let prover = spawn_rayon_with_handle(move || async move {
-        let prover = Prover::new(builder.build()?).setup(notary_io).await?;
-
-        Ok::<_, anyhow::Error>(prover)
-    })
-    .await
-    .map_err(|e| JsError::new(&e.to_string()))?;
+    let prover = Prover::new(builder.build()?).setup(notary_io).await?;
 
     debug!("connecting to server");
     let (_, server_io) = WsMeta::connect(&options.websocket_proxy_url, None)
@@ -134,148 +128,144 @@ pub async fn prover(
         .expect_throw("assume the client ws connection succeeds");
     debug!("connected to server");
 
-    let proof = spawn_rayon_with_handle(move || async move {
-        let (tls_connection, prover_fut) = prover.connect(server_io.into_io()).await?;
-        let tls_connection = unsafe { FuturesIo::new(tls_connection) };
+    let (tls_connection, prover_fut) = prover.connect(server_io.into_io()).await?;
+    let tls_connection = unsafe { FuturesIo::new(tls_connection) };
 
-        let prover_ctrl = prover_fut.control();
+    let prover_ctrl = prover_fut.control();
 
-        log_phase(ProverPhases::SpawnProverThread);
-        let prover_handle = spawn_with_handle(prover_fut);
+    log_phase(ProverPhases::SpawnProverThread);
+    let prover_handle = spawn_with_handle(prover_fut);
 
-        // Attach the hyper HTTP client to the TLS connection
-        log_phase(ProverPhases::AttachHttpClient);
-        let (mut request_sender, connection) =
-            hyper::client::conn::http1::handshake(tls_connection).await?;
+    // Attach the hyper HTTP client to the TLS connection
+    log_phase(ProverPhases::AttachHttpClient);
+    let (mut request_sender, connection) =
+        hyper::client::conn::http1::handshake(tls_connection).await?;
 
-        // Spawn the HTTP task to be run concurrently
-        log_phase(ProverPhases::SpawnHttpTask);
-        let connection_handle = spawn_with_handle(connection.without_shutdown());
+    // Spawn the HTTP task to be run concurrently
+    log_phase(ProverPhases::SpawnHttpTask);
+    let connection_handle = spawn_with_handle(connection.without_shutdown());
 
-        log_phase(ProverPhases::BuildRequest);
-        let mut req_with_header = Request::builder()
-            .uri(target_url.as_str())
-            .method(options.method.as_str());
+    log_phase(ProverPhases::BuildRequest);
+    let mut req_with_header = Request::builder()
+        .uri(target_url.as_str())
+        .method(options.method.as_str());
 
-        for (key, value) in &options.headers {
-            info!("adding header: {} - {}", key.as_str(), value.as_str());
-            req_with_header = req_with_header.header(key.as_str(), value.as_str());
-        }
+    for (key, value) in &options.headers {
+        info!("adding header: {} - {}", key.as_str(), value.as_str());
+        req_with_header = req_with_header.header(key.as_str(), value.as_str());
+    }
 
-        let req_with_body = if options.body.is_empty() {
-            info!("empty body");
-            req_with_header.body(Full::new(Bytes::default()))
-        } else {
-            info!("added body - {}", options.body.as_str());
-            req_with_header.body(Full::from(options.body.clone()))
-        };
+    let req_with_body = if options.body.is_empty() {
+        info!("empty body");
+        req_with_header.body(Full::new(Bytes::default()))
+    } else {
+        info!("added body - {}", options.body.as_str());
+        req_with_header.body(Full::from(options.body.clone()))
+    };
 
-        let unwrapped_request = req_with_body?;
+    let unwrapped_request = req_with_body?;
 
-        log_phase(ProverPhases::StartMpcConnection);
+    log_phase(ProverPhases::StartMpcConnection);
 
-        // Defer decryption of the response.
-        prover_ctrl.defer_decryption().await?;
+    // Defer decryption of the response.
+    prover_ctrl.defer_decryption().await?;
 
-        // Send the request to the Server and get a response via the MPC TLS connection
-        let response = request_sender.send_request(unwrapped_request).await?;
+    // Send the request to the Server and get a response via the MPC TLS connection
+    let response = request_sender.send_request(unwrapped_request).await?;
 
-        log_phase(ProverPhases::ReceivedResponse);
-        if response.status() != StatusCode::OK {
-            bail!("Response status is not OK: {:?}", response.status());
-        }
+    log_phase(ProverPhases::ReceivedResponse);
+    if response.status() != StatusCode::OK {
+        JsError::new(&format!(
+            "Response status is not OK: {:?}",
+            response.status()
+        ));
+    }
 
-        log_phase(ProverPhases::ParseResponse);
-        // Pretty printing :)
-        let payload = response.into_body().collect().await?.to_bytes();
-        let parsed = serde_json::from_str::<serde_json::Value>(&String::from_utf8_lossy(&payload))?;
-        let response_pretty = serde_json::to_string_pretty(&parsed)?;
-        info!("Response: {}", response_pretty);
+    log_phase(ProverPhases::ParseResponse);
+    // Pretty printing :)
+    let payload = response.into_body().collect().await?.to_bytes();
+    let parsed = serde_json::from_str::<serde_json::Value>(&String::from_utf8_lossy(&payload))?;
+    let response_pretty = serde_json::to_string_pretty(&parsed)?;
+    info!("Response: {}", response_pretty);
 
-        // Close the connection to the server
-        log_phase(ProverPhases::CloseConnection);
-        let mut tls_connection = connection_handle.await?.io.into_inner();
-        tls_connection.close().await?;
+    // Close the connection to the server
+    log_phase(ProverPhases::CloseConnection);
+    let mut tls_connection = connection_handle.await?.io.into_inner();
+    tls_connection.close().await?;
 
-        // The Prover task should be done now, so we can grab it.
-        log_phase(ProverPhases::StartNotarization);
-        let prover = prover_handle.await?;
-        let mut prover = prover.start_notarize();
+    // The Prover task should be done now, so we can grab it.
+    log_phase(ProverPhases::StartNotarization);
+    let prover = prover_handle.await?;
+    let mut prover = prover.start_notarize();
 
-        let secret_headers_slices: Vec<&[u8]> = secret_headers
-            .iter()
-            .map(|header| header.as_bytes())
-            .collect();
+    let secret_headers_slices: Vec<&[u8]> = secret_headers
+        .iter()
+        .map(|header| header.as_bytes())
+        .collect();
 
-        // Identify the ranges in the transcript that contain revealed_headers
-        let (sent_public_ranges, sent_private_ranges) = find_ranges(
-            prover.sent_transcript().data(),
-            secret_headers_slices.as_slice(),
-        );
+    // Identify the ranges in the transcript that contain revealed_headers
+    let (sent_public_ranges, sent_private_ranges) = find_ranges(
+        prover.sent_transcript().data(),
+        secret_headers_slices.as_slice(),
+    );
 
-        let secret_body_slices: Vec<&[u8]> =
-            secret_body.iter().map(|body| body.as_bytes()).collect();
+    let secret_body_slices: Vec<&[u8]> = secret_body.iter().map(|body| body.as_bytes()).collect();
 
-        // Identify the ranges in the transcript that contain the only data we want to reveal later
-        let (recv_public_ranges, recv_private_ranges) = find_ranges(
-            prover.recv_transcript().data(),
-            secret_body_slices.as_slice(),
-        );
+    // Identify the ranges in the transcript that contain the only data we want to reveal later
+    let (recv_public_ranges, recv_private_ranges) = find_ranges(
+        prover.recv_transcript().data(),
+        secret_body_slices.as_slice(),
+    );
 
-        log_phase(ProverPhases::Commit);
+    log_phase(ProverPhases::Commit);
 
-        let _recv_len = prover.recv_transcript().data().len();
+    let _recv_len = prover.recv_transcript().data().len();
 
-        let builder = prover.commitment_builder();
+    let builder = prover.commitment_builder();
 
-        // Commit to the outbound and inbound transcript, isolating the data that contain secrets
-        let sent_pub_commitment_ids = sent_public_ranges
-            .iter()
-            .map(|range| builder.commit_sent(range))
-            .collect::<Result<Vec<_>, _>>()?;
+    // Commit to the outbound and inbound transcript, isolating the data that contain secrets
+    let sent_pub_commitment_ids = sent_public_ranges
+        .iter()
+        .map(|range| builder.commit_sent(range))
+        .collect::<Result<Vec<_>, _>>()?;
 
-        sent_private_ranges
-            .iter()
-            .try_for_each(|range| builder.commit_sent(range).map(|_| ()))?;
+    sent_private_ranges
+        .iter()
+        .try_for_each(|range| builder.commit_sent(range).map(|_| ()))?;
 
-        let recv_pub_commitment_ids = recv_public_ranges
-            .iter()
-            .map(|range| builder.commit_recv(range))
-            .collect::<Result<Vec<_>, _>>()?;
+    let recv_pub_commitment_ids = recv_public_ranges
+        .iter()
+        .map(|range| builder.commit_recv(range))
+        .collect::<Result<Vec<_>, _>>()?;
 
-        recv_private_ranges
-            .iter()
-            .try_for_each(|range| builder.commit_recv(range).map(|_| ()))?;
+    recv_private_ranges
+        .iter()
+        .try_for_each(|range| builder.commit_recv(range).map(|_| ()))?;
 
-        // Finalize, returning the notarized session
-        log_phase(ProverPhases::Finalize);
-        let notarized_session = prover.finalize().await?;
+    // Finalize, returning the notarized session
+    log_phase(ProverPhases::Finalize);
+    let notarized_session = prover.finalize().await?;
 
-        log_phase(ProverPhases::NotarizationComplete);
+    log_phase(ProverPhases::NotarizationComplete);
 
-        // Create a proof for all committed data in this session
-        log_phase(ProverPhases::CreateProof);
-        let session_proof = notarized_session.session_proof();
+    // Create a proof for all committed data in this session
+    log_phase(ProverPhases::CreateProof);
+    let session_proof = notarized_session.session_proof();
 
-        let mut proof_builder = notarized_session.data().build_substrings_proof();
+    let mut proof_builder = notarized_session.data().build_substrings_proof();
 
-        // Reveal everything except the redacted stuff (which for the response it's everything except the screen_name)
-        sent_pub_commitment_ids
-            .iter()
-            .chain(recv_pub_commitment_ids.iter())
-            .try_for_each(|id| proof_builder.reveal_by_id(*id).map(|_| ()))?;
+    // Reveal everything except the redacted stuff (which for the response it's everything except the screen_name)
+    sent_pub_commitment_ids
+        .iter()
+        .chain(recv_pub_commitment_ids.iter())
+        .try_for_each(|id| proof_builder.reveal_by_id(*id).map(|_| ()))?;
 
-        let substrings_proof = proof_builder.build()?;
+    let substrings_proof = proof_builder.build()?;
 
-        let proof = TlsProof {
-            session: session_proof,
-            substrings: substrings_proof,
-        };
-
-        Ok::<_, anyhow::Error>(proof)
-    })
-    .await
-    .map_err(|e| JsError::new(&e.to_string()))?;
+    let proof = TlsProof {
+        session: session_proof,
+        substrings: substrings_proof,
+    };
 
     let res = serde_json::to_string_pretty(&proof)?;
 
