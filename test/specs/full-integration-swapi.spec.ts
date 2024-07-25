@@ -12,7 +12,7 @@ import { assert } from '../utils';
       maxTranscriptSize: 16384,
       notaryUrl: process.env.LOCAL_NOTARY
         ? 'http://localhost:7047'
-        : 'https://notary.pse.dev/v0.1.0-alpha.6',
+        : 'https://notary.pse.dev/v0.1.0-alpha.5',
       websocketProxyUrl: process.env.LOCAL_WS
         ? 'ws://localhost:55688'
         : 'wss://notary.pse.dev/proxy?token=swapi.dev',
