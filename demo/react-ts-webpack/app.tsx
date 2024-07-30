@@ -1,6 +1,6 @@
 import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { prove, verify, set_logging_filter } from 'tlsn-js';
+import { prove, verify, set_logging_filter } from '../../src';
 import { Proof } from 'tlsn-js/build/types';
 import { Watch } from 'react-loader-spinner';
 
@@ -22,10 +22,23 @@ function App(): ReactElement {
   const onClick = useCallback(async () => {
     setProcessing(true);
     await set_logging_filter('info,tlsn_extension_rs=debug');
+
+    const resp = await fetch(`http://localhost:7047/session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        clientType: 'Websocket',
+        // maxRecvData: 4096,
+        // maxSentData: 16384,
+      }),
+    });
+    const { sessionId } = await resp.json();
     const p = await prove('https://swapi.dev/api/people/1', {
       method: 'GET',
       maxTranscriptSize: 16384,
-      notaryUrl: 'http://localhost:7047',
+      notaryUrl: `http://localhost:7047/notarize?sessionId=${sessionId}`,
       websocketProxyUrl: 'ws://localhost:55688',
     });
     setProof(p);

@@ -1,18 +1,31 @@
-import TLSN from './tlsn';
+// import TLSN from './tlsn';
 import { DEFAULT_LOGGING_FILTER } from './tlsn';
 import { Proof } from './types';
 
-let _tlsn: TLSN;
+import * as Comlink from 'comlink';
+
+const TLSN: any = Comlink.wrap(
+  new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+);
+
+let _tlsn: any;
 const current_logging_filter = DEFAULT_LOGGING_FILTER;
 
-async function getTLSN(logging_filter?: string): Promise<TLSN> {
+async function getTLSN(logging_filter?: string): Promise<any> {
   const logging_filter_changed =
     logging_filter && logging_filter == current_logging_filter;
 
   if (!logging_filter_changed && _tlsn) return _tlsn;
   // @ts-ignore
-  if (logging_filter) _tlsn = await new TLSN(logging_filter);
-  else _tlsn = await new TLSN();
+  if (logging_filter) {
+    _tlsn = new Promise(async (resolve) => {
+      resolve(await new TLSN(logging_filter));
+    });
+  } else {
+    _tlsn = new Promise(async (resolve) => {
+      resolve(await new TLSN());
+    });
+  }
   return _tlsn;
 }
 
