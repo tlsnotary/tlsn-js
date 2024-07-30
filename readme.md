@@ -69,6 +69,10 @@ npm install tlsn-js
 
 > [!IMPORTANT]
 > **Note on Rust-to-WASM Compilation**: This project requires compiling Rust into WASM, which needs [`clang`](https://clang.llvm.org/) version 16.0.0 or newer. MacOS users, be aware that Xcode's default `clang` might be older. If you encounter the error `No available targets are compatible with triple "wasm32-unknown-unknown"`, it's likely due to an outdated `clang`. Updating `clang` to a newer version should resolve this issue.
+>
+> For MacOS aarch64 users, if Apple's clang isnt woking, try installing llvm via homebrew. Then set the following ENVs to get the build to work:<br>
+> ```export AR=/opt/homebrew/opt/llvm/bin/llvm-ar``` <br>
+> ```export CC=/opt/homebrew/opt/llvm/bin/clang```
 
 ```
 # make sure you have rust installed
