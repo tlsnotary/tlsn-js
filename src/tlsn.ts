@@ -5,8 +5,8 @@ import init, {
   Method,
 } from '../wasm/pkg/tlsn_wasm';
 
-const json = `{"name":"Luke Skywalker","height":"172","mass":"77","hair_color":"blond","skin_color":"fair","eye_color":"blue","birth_year":"19BBY","gender":"male","homeworld":"https://swapi.dev/api/planets/1/","films":["https://swapi.dev/api/films/1/","https://swapi.dev/api/films/2/","https://swapi.dev/api/films/3/","https://swapi.dev/api/films/6/"],"species":[],"vehicles":["https://swapi.dev/api/vehicles/14/","https://swapi.dev/api/vehicles/30/"],"starships":["https://swapi.dev/api/starships/12/","https://swapi.dev/api/starships/22/"],"created":"2014-12-09T13:50:51.644000Z","edited":"2014-12-20T21:17:56.891000Z","url":"https://swapi.dev/api/people/1/"}`;
-
+// const json = `{"name":"Luke Skywalker","height":"172","mass":"77","hair_color":"blond","skin_color":"fair","eye_color":"blue","birth_year":"19BBY","gender":"male","homeworld":"https://swapi.dev/api/planets/1/","films":["https://swapi.dev/api/films/1/","https://swapi.dev/api/films/2/","https://swapi.dev/api/films/3/","https://swapi.dev/api/films/6/"],"species":[],"vehicles":["https://swapi.dev/api/vehicles/14/","https://swapi.dev/api/vehicles/30/"],"starships":["https://swapi.dev/api/starships/12/","https://swapi.dev/api/starships/22/"],"created":"2014-12-09T13:50:51.644000Z","edited":"2014-12-20T21:17:56.891000Z","url":"https://swapi.dev/api/people/1/"}`;
+const json = `{"a":{"b":"c"}}`;
 export const DEFAULT_LOGGING_FILTER: string = 'info,tlsn_extension_rs=debug';
 
 export default class TLSN {
@@ -139,20 +139,15 @@ export default class TLSN {
     // );
 
     let ptr = -1,
-      data = '',
-      isExpectingKey = false,
-      isParsingKey = false,
-      isExpectingValue = false,
-      isParsingValue = false;
+      data = '';
     const stack = [];
     const keys = [];
-    const values: any = {};
+    const values: any = [];
     console.log(json);
     for (let i = 0; i < json.length; i++) {
       const char = json.charAt(i);
       const lastStack = stack[stack.length - 1];
 
-      console.log(char);
       if (lastStack === '{') {
         expect(
           char === '"' || char === ':' || char === ',' || char === '}',
@@ -165,6 +160,10 @@ export default class TLSN {
           char === '"' || char === '[' || /^\d$/.test(char) || char === '{',
           `unexpected ${char}`,
         );
+        if (char === '{') {
+          data = data + char;
+          continue;
+        }
         stack.pop();
       }
 
@@ -208,7 +207,7 @@ export default class TLSN {
       }
 
       if (char === '}' || (char === ',' && lastStack !== '[')) {
-        values[keys.join('.')] = [data, ptr, i];
+        values.push([keys.join('.'), data, ptr, i]);
         keys.pop();
         data = '';
         ptr = -1;
@@ -219,7 +218,7 @@ export default class TLSN {
     console.log(keys, data);
     console.log(values);
     console.log(
-      Object.values(values).map((val: any) => json.slice(val[1], val[2])),
+      Object.values(values).map((val: any) => json.slice(val[2], val[3])),
     );
 
     // const commit = {
