@@ -1,3 +1,5 @@
+import { ParsedTranscriptData } from './types';
+
 type Stack =
   | {
       type: 'object';
@@ -291,11 +293,18 @@ export function processJSON(str: string): Commitment[] {
   }));
 }
 
-export function processTranscript(transcript: string): Commitment[] {
-  const commitments: Commitment[] = [];
+export function processTranscript(transcript: string): ParsedTranscriptData {
+  // const commitments: Commitment[] = [];
+  const returnVal: ParsedTranscriptData = {
+    start: 0,
+    end: transcript.length,
+  };
+
   let text = '',
     ptr = -1,
-    lineIndex = 0;
+    lineIndex = 0,
+    isBody = false;
+
   for (let i = 0; i < transcript.length; i++) {
     const char = transcript.charAt(i);
 
@@ -320,37 +329,64 @@ export function processTranscript(transcript: string): Commitment[] {
 
   _processEOL(text, transcript.length - 1, lineIndex++);
 
-  return commitments;
+  return returnVal;
 
   function _processEOL(txt: string, index: number, lineIndex: number) {
     try {
       if (!txt) return;
-      if (!isNaN(Number(txt))) return;
+      if (!isNaN(Number(txt))) {
+        isBody = true;
+        return;
+      }
 
       const json = JSON.parse(txt);
 
+      returnVal.body = {
+        // value: txt,
+        start: ptr,
+        end: index,
+      };
+
       if (typeof json === 'object') {
         const jsonCommits = processJSON(txt);
-        commitments.push(
-          ...jsonCommits.map((commit) => ({
-            ...commit,
-            start: commit.start + ptr,
-            end: commit.end + ptr,
-          })),
-        );
-      } else {
-        commitments.push({
-          start: ptr,
-          end: index,
+        jsonCommits.forEach((commit) => {
+          if (commit.path) {
+            returnVal.json = returnVal.json || {};
+            returnVal.json[commit.path] = {
+              // value: txt.slice(commit.start, commit.end),
+              start: commit.start + ptr,
+              end: commit.end + ptr,
+            };
+          }
         });
       }
     } catch (e) {
-      const [name, value] = text.split(':');
-      commitments.push({
-        name: value ? name : '',
-        start: ptr,
-        end: index,
-      });
+      const [name, value] = txt.split(': ');
+      if (lineIndex === 0) {
+        returnVal.info = {
+          // value: txt,
+          start: ptr,
+          end: index,
+        };
+      } else if (!isBody && value) {
+        returnVal.headers = returnVal.headers || {};
+        returnVal.headers[name] = {
+          // value: txt,
+          start: ptr,
+          end: index,
+        };
+      } else if (isBody) {
+        returnVal.body = {
+          // value: txt,
+          start: ptr,
+          end: index,
+        };
+      }
+      // commitments.push({
+      //   name: value ? name : '',
+      //   start: ptr,
+      //   end: index,
+      // });
     }
   }
 }

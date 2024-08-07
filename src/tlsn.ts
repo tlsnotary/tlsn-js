@@ -12,8 +12,12 @@ import { processTranscript, stringToBuffer } from './utils';
 
 export default class TLSN {
   private startPromise: Promise<void>;
+
   private resolveStart!: () => void;
-  private loggingFilter: LoggingLevel;
+
+  private loggingLevel: LoggingLevel;
+
+  private sessions: Map<string, Prover> = new Map();
 
   /**
    * Initializes a new instance of the TLSN class.
@@ -22,7 +26,7 @@ export default class TLSN {
    *                              Defaults to 'Info'
    */
   constructor(config: { loggingLevel?: LoggingLevel }) {
-    this.loggingFilter = config?.loggingLevel || 'Info';
+    this.loggingLevel = config?.loggingLevel || 'Info';
 
     this.startPromise = new Promise((resolve) => {
       this.resolveStart = resolve;
@@ -31,8 +35,17 @@ export default class TLSN {
   }
 
   private debug(...args: any[]) {
-    if (this.loggingFilter === 'Debug' || this.loggingFilter === 'Trace') {
-      console.log('tlsn-js DEBUG', ...args);
+    switch (this.loggingLevel) {
+      case 'Error':
+        break;
+      case 'Info':
+        break;
+      case 'Warn':
+        break;
+      case 'Debug':
+      case 'Trace':
+        console.log('tlsn-js DEBUG', ...args);
+        break;
     }
   }
 
@@ -44,7 +57,7 @@ export default class TLSN {
     const res = await init();
 
     init_logging({
-      level: this.loggingFilter,
+      level: this.loggingLevel,
       crate_filters: undefined,
       span_events: undefined,
     });
@@ -63,7 +76,7 @@ export default class TLSN {
     return this.startPromise;
   }
 
-  async getNotarySession(
+  private async getNotarySessionKey(
     notaryUrl: string,
     maxRecvData?: number,
     maxSentData?: number,
@@ -89,7 +102,7 @@ export default class TLSN {
     return publicKey!;
   }
 
-  async createNotaryProver(
+  async sendNotaryRequest(
     requestConfig: {
       url: string;
       method?: Method;
@@ -115,7 +128,7 @@ export default class TLSN {
       proxyUrl,
     } = proverConfig;
 
-    const session = await this.getNotarySession(
+    const session = await this.getNotarySessionKey(
       notaryUrl,
       maxRecvData,
       maxSentData,
@@ -132,6 +145,8 @@ export default class TLSN {
 
     await prover.setup(notarySessionUrl);
 
+    this.sessions.set(id, prover);
+
     const headerMap: Map<string, number[]> = new Map();
 
     headerMap.set('Host', stringToBuffer(hostname));
@@ -147,7 +162,31 @@ export default class TLSN {
       body,
     });
 
-    return new NotaryProver(prover);
+    const transcript = prover.transcript();
+
+    const recv = Buffer.from(transcript.recv).toString();
+    const sent = Buffer.from(transcript.sent).toString();
+
+    // console.log(
+    //   recvCommits.map(({ value, start, end }) => {
+    //     return [name || path, recv.slice(start, end), start, end];
+    //   }),
+    // );
+    //
+    // console.log(
+    //   sentCommits.map(({ name, path, start, end }) => {
+    //     return [name || path, sent.slice(start, end), start, end];
+    //   }),
+    // );
+
+    return {
+      id,
+      transcript: { recv, sent },
+      ranges: {
+        recv: processTranscript(recv),
+        sent: processTranscript(sent),
+      },
+    };
   }
 
   // async verify(
@@ -169,61 +208,61 @@ export default class TLSN {
   // }
 }
 
-class NotaryProver {
-  #prover: Prover;
-  #transcript: Transcript;
-
-  constructor(prover: Prover) {
-    this.#prover = prover;
-    this.#transcript = prover.transcript();
-  }
-
-  get transcript() {
-    return this.#transcript;
-  }
-
-  #calculateCommitments(): Commit {
-    const recv = Buffer.from(this.transcript.recv).toString();
-    const sent = Buffer.from(this.transcript.sent).toString();
-    const recvCommits = processTranscript(recv);
-    const sentCommits = processTranscript(sent);
-
-    console.log(
-      recvCommits.map(({ name, path, start, end }) => {
-        return [name || path, recv.slice(start, end), start, end];
-      }),
-    );
-
-    console.log(
-      sentCommits.map(({ name, path, start, end }) => {
-        return [name || path, sent.slice(start, end), start, end];
-      }),
-    );
-
-    return {
-      sent: [{ start: 0, end: this.transcript.sent.length }, ...sentCommits],
-      recv: [{ start: 0, end: this.transcript.recv.length }, ...recvCommits],
-    };
-  }
-
-  async notarize(commit?: Commit): Promise<NotarizedSession> {
-    const session = await this.#prover.notarize(
-      commit || this.#calculateCommitments(),
-    );
-
-    return session;
-    // const proof = resp.proof({
-    //   sent: [{ start: 0, end: this.transcript.sent.length }],
-    //   recv: [{ start: 0, end: this.transcript.recv.length }],
-    // });
-    //
-    // return {
-    //   version: '0.1.0-alpha.6',
-    //   meta: {
-    //     notaryUrl: notaryUrl,
-    //     proxyUrl: proxyUrl,
-    //   },
-    //   proof: Buffer.from(proof.serialize()).toString('hex'),
-    // };
-  }
-}
+// class NotaryProver {
+//   #prover: Prover;
+//   #transcript: Transcript;
+//
+//   constructor(prover: Prover) {
+//     this.#prover = prover;
+//     this.#transcript = prover.transcript();
+//   }
+//
+//   get transcript() {
+//     return this.#transcript;
+//   }
+//
+//   #calculateCommitments(): Commit {
+//     const recv = Buffer.from(this.transcript.recv).toString();
+//     const sent = Buffer.from(this.transcript.sent).toString();
+//     const recvCommits = processTranscript(recv);
+//     const sentCommits = processTranscript(sent);
+//
+//     console.log(
+//       recvCommits.map(({ name, path, start, end }) => {
+//         return [name || path, recv.slice(start, end), start, end];
+//       }),
+//     );
+//
+//     console.log(
+//       sentCommits.map(({ name, path, start, end }) => {
+//         return [name || path, sent.slice(start, end), start, end];
+//       }),
+//     );
+//
+//     return {
+//       sent: [{ start: 0, end: this.transcript.sent.length }, ...sentCommits],
+//       recv: [{ start: 0, end: this.transcript.recv.length }, ...recvCommits],
+//     };
+//   }
+//
+//   async notarize(commit?: Commit): Promise<NotarizedSession> {
+//     const session = await this.#prover.notarize(
+//       commit || this.#calculateCommitments(),
+//     );
+//
+//     return session;
+//     // const proof = resp.proof({
+//     //   sent: [{ start: 0, end: this.transcript.sent.length }],
+//     //   recv: [{ start: 0, end: this.transcript.recv.length }],
+//     // });
+//     //
+//     // return {
+//     //   version: '0.1.0-alpha.6',
+//     //   meta: {
+//     //     notaryUrl: notaryUrl,
+//     //     proxyUrl: proxyUrl,
+//     //   },
+//     //   proof: Buffer.from(proof.serialize()).toString('hex'),
+//     // };
+//   }
+// }

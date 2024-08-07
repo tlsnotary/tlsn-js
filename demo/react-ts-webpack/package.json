@@ -4,11 +4,13 @@
   "description": "",
   "main": "webpack.js",
   "scripts": {
-    "dev": "webpack-dev-server --config webpack.js"
+    "dev": "webpack-dev-server --config webpack.js",
+    "build": "webpack --config webpack.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "comlink": "^4.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-loader-spinner": "^6.1.6",

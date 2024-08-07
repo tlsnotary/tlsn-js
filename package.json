@@ -3,8 +3,8 @@
   "version": "v0.1.0-alpha.5.3",
   "description": "",
   "repository": "https://github.com/tlsnotary/tlsn-js",
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
+  "main": "build/lib.js",
+  "types": "build/lib.d.ts",
   "files": [
     "build/",
     "src/",
@@ -31,9 +31,6 @@
     "lint": "concurrently npm:lint:tsc npm:lint:eslint",
     "run:test": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\"}' mocha -r ts-node/register 'test/testRunner.ts'",
     "test": "npm run build:tlsn-binaries && npm run build:test && npm run run:test"
-  },
-  "dependencies": {
-    "comlink": "^4.4.1"
   },
   "devDependencies": {
     "@types/expect": "^24.3.0",

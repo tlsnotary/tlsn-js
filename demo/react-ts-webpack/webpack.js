@@ -52,6 +52,9 @@ var options = {
         exclude: /node_modules/,
         use: [
           {
+            loader: 'source-map-loader',
+          },
+          {
             loader: require.resolve('ts-loader'),
           },
         ],
@@ -77,15 +80,15 @@ var options = {
       .concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
   },
   plugins: [
-    // new CopyWebpackPlugin({
-    //   patterns: [
-    //     {
-    //       from: 'node_modules/tlsn-js/build',
-    //       to: path.join(__dirname, 'build'),
-    //       force: true,
-    //     },
-    //   ],
-    // }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: 'node_modules/tlsn-js/build',
+          to: path.join(__dirname, 'build'),
+          force: true,
+        },
+      ],
+    }),
     new HtmlWebpackPlugin({
       template: path.join(__dirname, 'index.ejs'),
       filename: 'index.html',

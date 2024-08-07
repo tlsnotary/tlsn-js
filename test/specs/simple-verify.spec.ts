@@ -1,4 +1,4 @@
-import { verify } from '../../src';
+import { verify } from '../../src/lib';
 import simple_proof_redacted from '../assets/simple_proof_redacted.json';
 import { assert } from '../utils';
 

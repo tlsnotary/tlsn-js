@@ -1,4 +1,4 @@
-import { prove, verify } from '../../src';
+import { prove, verify } from '../../src/lib';
 import { assert } from '../utils';
 
 (async function () {

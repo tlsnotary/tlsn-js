@@ -1,7 +1,12 @@
 import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import TLSN from '../../../src/tlsn';
+import * as Comlink from 'comlink';
 import { Watch } from 'react-loader-spinner';
+import TLSN from '../../../src/lib';
+
+const WrappedTLSN: any = Comlink.wrap(
+  new Worker(new URL('./worker.ts', import.meta.url)),
+);
 
 const container = document.getElementById('root');
 const root = createRoot(container!);
@@ -20,9 +25,9 @@ function App(): ReactElement {
 
   const onClick = useCallback(async () => {
     setProcessing(true);
-    const tlsn = new TLSN({ loggingLevel: 'Debug' });
+    const tlsn = (await new WrappedTLSN({ loggingLevel: 'Debug' })) as TLSN;
 
-    const prover = await tlsn.createNotaryProver(
+    const prover = await tlsn.sendNotaryRequest(
       {
         url: 'https://swapi.dev/api/people/1',
         method: 'GET',
@@ -36,9 +41,30 @@ function App(): ReactElement {
       },
     );
 
-    const session = await prover.notarize();
+    console.log(prover);
+
+    logRecv(prover.ranges.recv);
+    logRecv(prover.ranges.recv.info);
+    Object.values(prover.ranges.recv.headers!).forEach(logRecv);
+    logRecv(prover.ranges.recv.body);
+    Object.values(prover.ranges.recv.json!).forEach(logRecv);
+
+    logSent(prover.ranges.sent);
+    logSent(prover.ranges.sent.info);
+    Object.values(prover.ranges.sent.headers!).forEach(logSent);
+    // logSent(prover.ranges.sent.body);
+    // Object.values(prover.ranges.sent.json!).forEach(logSent);
+
+    function logRecv(data: any) {
+      console.log(prover.transcript.recv.slice(data.start, data.end));
+    }
+
+    function logSent(data: any) {
+      console.log(prover.transcript.sent.slice(data.start, data.end));
+    }
+    // const session = await prover.notarize();
     // setProof(p);
-    console.log(session);
+    // console.log(session);
   }, [setProof, setProcessing]);
 
   useEffect(() => {
