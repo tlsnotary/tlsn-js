@@ -1,6 +1,6 @@
 import * as Comlink from 'comlink';
 import TLSN from './tlsn';
 
-// export default TLSN;
+export default TLSN;
 
 Comlink.expose(TLSN);

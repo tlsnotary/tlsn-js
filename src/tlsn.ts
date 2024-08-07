@@ -3,24 +3,26 @@ import init, {
   init_logging,
   Prover,
   Method,
+  LoggingLevel,
+  Transcript,
+  Commit,
+  NotarizedSession,
 } from '../wasm/pkg/tlsn_wasm';
-import { processTranscript } from './utils';
-
-export const DEFAULT_LOGGING_FILTER: string = 'info,tlsn_extension_rs=debug';
+import { processTranscript, stringToBuffer } from './utils';
 
 export default class TLSN {
   private startPromise: Promise<void>;
   private resolveStart!: () => void;
-  private logging_filter: string;
+  private loggingFilter: LoggingLevel;
 
   /**
    * Initializes a new instance of the TLSN class.
    *
-   * @param logging_filter - Optional logging filter string.
-   *                         Defaults to DEFAULT_LOGGING_FILTER
+   * @param config.loggingLevel - Optional logging filter string.
+   *                              Defaults to 'Info'
    */
-  constructor(logging_filter: string = DEFAULT_LOGGING_FILTER) {
-    this.logging_filter = logging_filter;
+  constructor(config: { loggingLevel?: LoggingLevel }) {
+    this.loggingFilter = config?.loggingLevel || 'Info';
 
     this.startPromise = new Promise((resolve) => {
       this.resolveStart = resolve;
@@ -28,19 +30,32 @@ export default class TLSN {
     this.start();
   }
 
-  async start() {
-    console.log('start');
-    const numConcurrency = navigator.hardwareConcurrency;
-    console.log('!@# navigator.hardwareConcurrency=', numConcurrency);
-    const res = await init();
-    // await init();
-    init_logging();
+  private debug(...args: any[]) {
+    if (this.loggingFilter === 'Debug' || this.loggingFilter === 'Trace') {
+      console.log('tlsn-js DEBUG', ...args);
+    }
+  }
 
-    console.log('!@# res.memory=', res.memory);
+  async start() {
+    const numConcurrency = navigator.hardwareConcurrency;
+
+    this.debug('navigator.hardwareConcurrency=', numConcurrency);
+
+    const res = await init();
+
+    init_logging({
+      level: this.loggingFilter,
+      crate_filters: undefined,
+      span_events: undefined,
+    });
+
     // 6422528 ~= 6.12 mb
-    console.log('!@# res.memory.buffer.length=', res.memory.buffer.byteLength);
+    this.debug('res.memory=', res.memory);
+    this.debug('res.memory.buffer.length=', res.memory.buffer.byteLength);
+    this.debug('initialize thread pool');
     await initThreadPool(numConcurrency);
-    console.log('init thread pool');
+    this.debug('initialized thread pool');
+
     this.resolveStart();
   }
 
@@ -48,49 +63,128 @@ export default class TLSN {
     return this.startPromise;
   }
 
-  async prove(
-    url: string,
-    options?: {
+  async getNotarySession(
+    notaryUrl: string,
+    maxRecvData?: number,
+    maxSentData?: number,
+  ): Promise<string> {
+    const resp = await fetch(`${notaryUrl}/session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        clientType: 'Websocket',
+        maxRecvData,
+        maxSentData,
+      }),
+    });
+    const { sessionId } = await resp.json();
+    return sessionId!;
+  }
+
+  async getNotaryPublicKey(notaryUrl: string) {
+    const res = await fetch(notaryUrl + '/info');
+    const { publicKey } = await res.json();
+    return publicKey!;
+  }
+
+  async createNotaryProver(
+    requestConfig: {
+      url: string;
       method?: Method;
       headers?: { [key: string]: string };
-      body?: string;
+      body?: any;
+    },
+    proverConfig: {
+      notaryUrl: string;
+      proxyUrl: string;
+      id?: string;
       maxSentData?: number;
       maxRecvData?: number;
-      maxTranscriptSize?: number;
-      notaryUrl?: string;
-      websocketProxyUrl?: string;
-      secretHeaders?: string[];
-      secretResps?: string[];
     },
   ) {
     await this.waitForStart();
 
+    const { url, headers = {}, method = 'GET', body } = requestConfig;
+    const {
+      id = String(Date.now()),
+      maxSentData,
+      maxRecvData,
+      notaryUrl,
+      proxyUrl,
+    } = proverConfig;
+
+    const session = await this.getNotarySession(
+      notaryUrl,
+      maxRecvData,
+      maxSentData,
+    );
+    const notarySessionUrl = `${notaryUrl}/notarize?sessionId=${session}`;
+    const hostname = new URL(url).hostname;
+
     const prover = new Prover({
-      id: 'test',
-      server_dns: new URL(url).hostname || '',
-      max_recv_data: options?.maxRecvData,
-      max_sent_data: options?.maxSentData,
+      id,
+      server_dns: hostname,
+      max_recv_data: maxRecvData,
+      max_sent_data: maxSentData,
     });
 
-    await prover.setup(options!.notaryUrl!);
-    await prover.send_request(options!.websocketProxyUrl!, {
+    await prover.setup(notarySessionUrl);
+
+    const headerMap: Map<string, number[]> = new Map();
+
+    headerMap.set('Host', stringToBuffer(hostname));
+    headerMap.set('Connection', stringToBuffer('close'));
+    Object.entries(headers).forEach(([key, value]) => {
+      headerMap.set(key, stringToBuffer(value));
+    });
+
+    await prover.send_request(proxyUrl, {
       uri: url,
-      method: options?.method || 'GET',
-      // @ts-ignore
-      headers: new Map([
-        ['Host', Buffer.from('swapi.dev').toJSON().data],
-        ['Content-Type', Buffer.from('application/json').toJSON().data],
-      ]),
-      body: { a: 'apple', b: 'boy' },
+      method: method,
+      headers: headerMap,
+      body,
     });
 
-    const transcript = prover.transcript();
+    return new NotaryProver(prover);
+  }
 
-    const recv = Buffer.from(transcript.recv).toString();
-    const sent = Buffer.from(transcript.sent).toString();
-    console.log('recv: ', recv);
-    console.log('sent: ', sent);
+  // async verify(
+  //   proof: any,
+  //   pubkey: string,
+  //   config?: {
+  //     maxSentData?: number;
+  //     maxRecvData?: number;
+  //   },
+  // ) {
+  //   // await this.waitForStart();
+  //   // const verifier = new Verifier({
+  //   //   id: 'test',
+  //   //   max_received_data: config?.maxRecvData || undefined,
+  //   //   max_sent_data: config?.maxSentData || undefined,
+  //   // });
+  //   // const raw = await verify(JSON.stringify(proof), pubkey);
+  //   // return JSON.parse(raw);
+  // }
+}
 
+class NotaryProver {
+  #prover: Prover;
+  #transcript: Transcript;
+
+  constructor(prover: Prover) {
+    this.#prover = prover;
+    this.#transcript = prover.transcript();
+  }
+
+  get transcript() {
+    return this.#transcript;
+  }
+
+  #calculateCommitments(): Commit {
+    const recv = Buffer.from(this.transcript.recv).toString();
+    const sent = Buffer.from(this.transcript.sent).toString();
     const recvCommits = processTranscript(recv);
     const sentCommits = processTranscript(sent);
 
@@ -106,46 +200,30 @@ export default class TLSN {
       }),
     );
 
-    // const commit = {
-    //   sent: [{ start: 0, end: transcript.sent.length }],
-    //   recv: [{ start: 0, end: transcript.recv.length - 70 }],
-    // };
-    // const resp = await prover.notarize(commit);
-    // const proof = await resp.proof({
-    //   sent: [{ start: 0, end: transcript.sent.length }],
-    //   recv: [{ start: 0, end: transcript.recv.length - 70 }],
+    return {
+      sent: [{ start: 0, end: this.transcript.sent.length }, ...sentCommits],
+      recv: [{ start: 0, end: this.transcript.recv.length }, ...recvCommits],
+    };
+  }
+
+  async notarize(commit?: Commit): Promise<NotarizedSession> {
+    const session = await this.#prover.notarize(
+      commit || this.#calculateCommitments(),
+    );
+
+    return session;
+    // const proof = resp.proof({
+    //   sent: [{ start: 0, end: this.transcript.sent.length }],
+    //   recv: [{ start: 0, end: this.transcript.recv.length }],
     // });
-    // console.log(proof);
-
-    // const resProver = await prover(
-    //   url,
-    //   {
-    //     ...options,
-    //     notaryUrl: options?.notaryUrl,
-    //     websocketProxyUrl: options?.websocketProxyUrl,
+    //
+    // return {
+    //   version: '0.1.0-alpha.6',
+    //   meta: {
+    //     notaryUrl: notaryUrl,
+    //     proxyUrl: proxyUrl,
     //   },
-    //   options?.secretHeaders || [],
-    //   options?.secretResps || [],
-    // );
-    // const resJSON = JSON.parse(resProver);
-    // console.log('!@# resProver,resJSON=', { resProver, resJSON });
-    // console.log('!@# resAfter.memory=', resJSON.memory);
-    // 1105920000 ~= 1.03 gb
-    // console.log(
-    //   '!@# resAfter.memory.buffer.length=',
-    //   resJSON.memory?.buffer?.byteLength,
-    // );
-
-    // return resp;
+    //   proof: Buffer.from(proof.serialize()).toString('hex'),
+    // };
   }
-
-  async verify(proof: any, pubkey: string) {
-    // await this.waitForStart();
-    // const raw = await verify(JSON.stringify(proof), pubkey);
-    // return JSON.parse(raw);
-  }
-}
-
-function expect(cond: any, msg = 'invalid assertion') {
-  if (!cond) throw Error(msg);
 }

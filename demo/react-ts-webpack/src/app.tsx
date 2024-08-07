@@ -1,7 +1,6 @@
 import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { prove, verify, set_logging_filter } from '../../src';
-import { Proof } from 'tlsn-js/build/types';
+import TLSN from '../../../src/tlsn';
 import { Watch } from 'react-loader-spinner';
 
 const container = document.getElementById('root');
@@ -17,40 +16,38 @@ function App(): ReactElement {
     recv: string;
     notaryUrl: string;
   } | null>(null);
-  const [proof, setProof] = useState<Proof | null>(null);
+  const [proof, setProof] = useState<null>(null);
 
   const onClick = useCallback(async () => {
     setProcessing(true);
-    await set_logging_filter('info,tlsn_extension_rs=debug');
+    const tlsn = new TLSN({ loggingLevel: 'Debug' });
 
-    const resp = await fetch(`http://localhost:7047/session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const prover = await tlsn.createNotaryProver(
+      {
+        url: 'https://swapi.dev/api/people/1',
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       },
-      body: JSON.stringify({
-        clientType: 'Websocket',
-        // maxRecvData: 4096,
-        // maxSentData: 16384,
-      }),
-    });
-    const { sessionId } = await resp.json();
-    const p = await prove('https://swapi.dev/api/people/1', {
-      method: 'GET',
-      maxTranscriptSize: 16384,
-      notaryUrl: `http://localhost:7047/notarize?sessionId=${sessionId}`,
-      websocketProxyUrl: 'ws://localhost:55688',
-    });
-    setProof(p);
+      {
+        notaryUrl: `http://localhost:7047`,
+        proxyUrl: 'ws://localhost:55688',
+      },
+    );
+
+    const session = await prover.notarize();
+    // setProof(p);
+    console.log(session);
   }, [setProof, setProcessing]);
 
   useEffect(() => {
     (async () => {
-      if (proof) {
-        const r = await verify(proof);
-        setResult(r);
-        setProcessing(false);
-      }
+      // if (proof) {
+      //   const r = await verify(proof);
+      //   setResult(r);
+      //   setProcessing(false);
+      // }
     })();
   }, [proof, setResult]);
 

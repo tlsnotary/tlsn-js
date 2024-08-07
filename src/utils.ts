@@ -294,18 +294,20 @@ export function processJSON(str: string): Commitment[] {
 export function processTranscript(transcript: string): Commitment[] {
   const commitments: Commitment[] = [];
   let text = '',
-    ptr = -1;
+    ptr = -1,
+    lineIndex = 0;
   for (let i = 0; i < transcript.length; i++) {
     const char = transcript.charAt(i);
 
     if (char === '\r') {
-      _processEOL(text, i);
+      _processEOL(text, i, lineIndex++);
       continue;
     }
 
     if (char === '\n') {
       text = '';
       ptr = -1;
+
       continue;
     }
 
@@ -316,11 +318,11 @@ export function processTranscript(transcript: string): Commitment[] {
     text = text + char;
   }
 
-  _processEOL(text, transcript.length - 1);
+  _processEOL(text, transcript.length - 1, lineIndex++);
 
   return commitments;
 
-  function _processEOL(txt: string, index: number) {
+  function _processEOL(txt: string, index: number, lineIndex: number) {
     try {
       if (!txt) return;
       if (!isNaN(Number(txt))) return;
@@ -355,4 +357,8 @@ export function processTranscript(transcript: string): Commitment[] {
 
 export function expect(cond: any, msg = 'invalid expression') {
   if (!cond) throw new Error(msg);
+}
+
+export function stringToBuffer(str: string): number[] {
+  return Buffer.from(str).toJSON().data;
 }

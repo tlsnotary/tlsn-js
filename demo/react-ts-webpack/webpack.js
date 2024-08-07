@@ -27,7 +27,7 @@ var options = {
   ],
   mode: 'development',
   entry: {
-    app: path.join(__dirname, 'app.tsx'),
+    app: path.join(__dirname, 'src', 'app.tsx'),
   },
   output: {
     filename: '[name].bundle.js',
@@ -77,15 +77,15 @@ var options = {
       .concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
   },
   plugins: [
-    new CopyWebpackPlugin({
-      patterns: [
-        {
-          from: 'node_modules/tlsn-js/build',
-          to: path.join(__dirname, 'build'),
-          force: true,
-        },
-      ],
-    }),
+    // new CopyWebpackPlugin({
+    //   patterns: [
+    //     {
+    //       from: 'node_modules/tlsn-js/build',
+    //       to: path.join(__dirname, 'build'),
+    //       force: true,
+    //     },
+    //   ],
+    // }),
     new HtmlWebpackPlugin({
       template: path.join(__dirname, 'index.ejs'),
       filename: 'index.html',
