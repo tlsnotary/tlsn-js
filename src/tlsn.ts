@@ -1,19 +1,16 @@
-import init, {
-  initThreadPool,
-  init_logging,
+import {
   Prover,
   Method,
   LoggingLevel,
-  Transcript,
   Commit,
   NotarizedSession,
 } from '../wasm/pkg/tlsn_wasm';
-import { processTranscript, stringToBuffer } from './utils';
+import { arrayToHex, expect, processTranscript, stringToBuffer } from './utils';
 
-export default class TLSN {
-  private startPromise: Promise<void>;
-
-  private resolveStart!: () => void;
+export class TLSN {
+  // private startPromise: Promise<void>;
+  //
+  // private resolveStart!: () => void;
 
   private loggingLevel: LoggingLevel;
 
@@ -28,10 +25,10 @@ export default class TLSN {
   constructor(config: { loggingLevel?: LoggingLevel }) {
     this.loggingLevel = config?.loggingLevel || 'Info';
 
-    this.startPromise = new Promise((resolve) => {
-      this.resolveStart = resolve;
-    });
-    this.start();
+    // this.startPromise = new Promise((resolve) => {
+    //   this.resolveStart = resolve;
+    // });
+    // this.start();
   }
 
   private debug(...args: any[]) {
@@ -54,27 +51,27 @@ export default class TLSN {
 
     this.debug('navigator.hardwareConcurrency=', numConcurrency);
 
-    const res = await init();
+    // const res = await init();
+    //
+    // init_logging({
+    //   level: this.loggingLevel,
+    //   crate_filters: undefined,
+    //   span_events: undefined,
+    // });
+    //
+    // // 6422528 ~= 6.12 mb
+    // this.debug('res.memory=', res.memory);
+    // this.debug('res.memory.buffer.length=', res.memory.buffer.byteLength);
+    // this.debug('initialize thread pool');
+    // await initThreadPool(numConcurrency);
+    // this.debug('initialized thread pool');
 
-    init_logging({
-      level: this.loggingLevel,
-      crate_filters: undefined,
-      span_events: undefined,
-    });
-
-    // 6422528 ~= 6.12 mb
-    this.debug('res.memory=', res.memory);
-    this.debug('res.memory.buffer.length=', res.memory.buffer.byteLength);
-    this.debug('initialize thread pool');
-    await initThreadPool(numConcurrency);
-    this.debug('initialized thread pool');
-
-    this.resolveStart();
+    // this.resolveStart();
   }
 
-  async waitForStart() {
-    return this.startPromise;
-  }
+  // async waitForStart() {
+  //   return this.startPromise;
+  // }
 
   private async getNotarySessionKey(
     notaryUrl: string,
@@ -102,7 +99,7 @@ export default class TLSN {
     return publicKey!;
   }
 
-  async sendNotaryRequest(
+  async submitNotaryRequest(
     requestConfig: {
       url: string;
       method?: Method;
@@ -117,7 +114,7 @@ export default class TLSN {
       maxRecvData?: number;
     },
   ) {
-    await this.waitForStart();
+    // await this.waitForStart();
 
     const { url, headers = {}, method = 'GET', body } = requestConfig;
     const {
@@ -167,18 +164,6 @@ export default class TLSN {
     const recv = Buffer.from(transcript.recv).toString();
     const sent = Buffer.from(transcript.sent).toString();
 
-    // console.log(
-    //   recvCommits.map(({ value, start, end }) => {
-    //     return [name || path, recv.slice(start, end), start, end];
-    //   }),
-    // );
-    //
-    // console.log(
-    //   sentCommits.map(({ name, path, start, end }) => {
-    //     return [name || path, sent.slice(start, end), start, end];
-    //   }),
-    // );
-
     return {
       id,
       transcript: { recv, sent },
@@ -187,6 +172,15 @@ export default class TLSN {
         sent: processTranscript(sent),
       },
     };
+  }
+
+  async commitNotaryRequest(id: string, commit: Commit) {
+    const prover = this.sessions.get(id);
+    expect(prover, `cannot find prover sessions - ${prover}`);
+    const session = await prover!.notarize(commit);
+    const arrayBuf = session.serialize();
+    console.log('deserialize', NotarizedSession.deserialize(arrayBuf));
+    return arrayToHex(arrayBuf);
   }
 
   // async verify(

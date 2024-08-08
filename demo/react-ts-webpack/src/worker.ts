@@ -1,6 +1,9 @@
 import * as Comlink from 'comlink';
-import TLSN from '../../../src/lib';
+import init, { Prover, NotarizedSession, TlsProof } from '../../../src/lib';
 
-export default TLSN;
-
-Comlink.expose(TLSN);
+Comlink.expose({
+  init,
+  Prover,
+  NotarizedSession,
+  TlsProof,
+});

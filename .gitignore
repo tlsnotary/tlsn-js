@@ -1,6 +1,5 @@
 wasm/prover/pkg
 wasm/prover/target
-wasm/prover/Cargo.lock
 wasm-pack.log
 node_modules/
 .idea/
@@ -9,7 +8,3 @@ build/
 dev-build/
 test-build/
 ./demo/node_modules
-./demo/package-lock.json
-package-lock.json
-pnpm-lock.yaml
-yarn.lock

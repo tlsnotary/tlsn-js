@@ -285,11 +285,9 @@ export function processJSON(str: string): Commitment[] {
   }
 
   return Object.values(commitments).map(({ path, start, end }) => ({
-    // type,
     path,
     start,
     end,
-    // data: str.slice(start, end),
   }));
 }
 
@@ -342,7 +340,6 @@ export function processTranscript(transcript: string): ParsedTranscriptData {
       const json = JSON.parse(txt);
 
       returnVal.body = {
-        // value: txt,
         start: ptr,
         end: index,
       };
@@ -353,7 +350,6 @@ export function processTranscript(transcript: string): ParsedTranscriptData {
           if (commit.path) {
             returnVal.json = returnVal.json || {};
             returnVal.json[commit.path] = {
-              // value: txt.slice(commit.start, commit.end),
               start: commit.start + ptr,
               end: commit.end + ptr,
             };
@@ -364,14 +360,12 @@ export function processTranscript(transcript: string): ParsedTranscriptData {
       const [name, value] = txt.split(': ');
       if (lineIndex === 0) {
         returnVal.info = {
-          // value: txt,
           start: ptr,
           end: index,
         };
       } else if (!isBody && value) {
         returnVal.headers = returnVal.headers || {};
         returnVal.headers[name] = {
-          // value: txt,
           start: ptr,
           end: index,
         };
@@ -382,11 +376,6 @@ export function processTranscript(transcript: string): ParsedTranscriptData {
           end: index,
         };
       }
-      // commitments.push({
-      //   name: value ? name : '',
-      //   start: ptr,
-      //   end: index,
-      // });
     }
   }
 }
@@ -397,4 +386,8 @@ export function expect(cond: any, msg = 'invalid expression') {
 
 export function stringToBuffer(str: string): number[] {
   return Buffer.from(str).toJSON().data;
+}
+
+export function arrayToHex(uintArr: Uint8Array): string {
+  return Buffer.from(uintArr).toString('hex');
 }

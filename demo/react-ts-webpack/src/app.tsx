@@ -2,9 +2,14 @@ import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Comlink from 'comlink';
 import { Watch } from 'react-loader-spinner';
-import TLSN from '../../../src/lib';
+// import init, { Prover, NotarizedSession, TlsProof } from '../../../src/lib';
+import {
+  Prover as TProver,
+  NotarizedSession as TNotarizedSession,
+  TlsProof as TTlsProof,
+} from '../../../src/lib';
 
-const WrappedTLSN: any = Comlink.wrap(
+const { init, Prover, NotarizedSession, TlsProof }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
 );
 
@@ -25,46 +30,69 @@ function App(): ReactElement {
 
   const onClick = useCallback(async () => {
     setProcessing(true);
-    const tlsn = (await new WrappedTLSN({ loggingLevel: 'Debug' })) as TLSN;
+    console.time('submit');
+    await init({ loggingLevel: 'Info' });
+    const prover = (await new Prover({
+      server_dns: 'swapi.dev',
+    })) as TProver;
 
-    const prover = await tlsn.sendNotaryRequest(
-      {
-        url: 'https://swapi.dev/api/people/1',
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    await prover.setup(`http://localhost:7047`);
+    const resp = await prover.sendRequest('ws://localhost:55688', {
+      url: 'https://swapi.dev/api/people/1',
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      {
-        notaryUrl: `http://localhost:7047`,
-        proxyUrl: 'ws://localhost:55688',
+      body: {
+        hello: 'world',
+        one: 1,
       },
-    );
+    });
 
-    console.log(prover);
+    console.timeEnd('submit');
+    console.log(resp);
 
-    logRecv(prover.ranges.recv);
-    logRecv(prover.ranges.recv.info);
-    Object.values(prover.ranges.recv.headers!).forEach(logRecv);
-    logRecv(prover.ranges.recv.body);
-    Object.values(prover.ranges.recv.json!).forEach(logRecv);
+    console.time('transcript');
+    const transcript = await prover.transcript();
+    console.log(transcript);
+    console.timeEnd('transcript');
+    console.time('commit');
+    const session = await prover.notarize({
+      sent: [
+        transcript.ranges.sent.info!,
+        transcript.ranges.sent.headers!['content-type'],
+        transcript.ranges.sent.headers!['host'],
+      ],
+      recv: [
+        transcript.ranges.recv.info!,
+        transcript.ranges.recv.json!['name'],
+        transcript.ranges.recv.json!['gender'],
+      ],
+    });
+    console.timeEnd('commit');
+    console.time('proof');
 
-    logSent(prover.ranges.sent);
-    logSent(prover.ranges.sent.info);
-    Object.values(prover.ranges.sent.headers!).forEach(logSent);
-    // logSent(prover.ranges.sent.body);
-    // Object.values(prover.ranges.sent.json!).forEach(logSent);
+    const notarizedSession = (await new NotarizedSession(
+      session,
+    )) as TNotarizedSession;
+    const proofHex = await notarizedSession.proof({
+      sent: [
+        transcript.ranges.sent.info!,
+        transcript.ranges.sent.headers!['content-type'],
+        transcript.ranges.sent.headers!['host'],
+      ],
+      recv: [
+        transcript.ranges.recv.info!,
+        transcript.ranges.recv.json!['name'],
+        transcript.ranges.recv.json!['gender'],
+      ],
+    });
 
-    function logRecv(data: any) {
-      console.log(prover.transcript.recv.slice(data.start, data.end));
-    }
-
-    function logSent(data: any) {
-      console.log(prover.transcript.sent.slice(data.start, data.end));
-    }
-    // const session = await prover.notarize();
-    // setProof(p);
-    // console.log(session);
+    console.timeEnd('proof');
+    const notaryKey = `-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEBv36FI4ZFszJa0DQFJ3wWCXvVLFr\\ncRzMG5kaTeHGoSzDu6cFqx3uEWYpFGo6C0EOUgf+mEgbktLrXocv5yHzKg==\\n-----END PUBLIC KEY-----\\n`;
+    const proof = (await new TlsProof(proofHex)) as TTlsProof;
+    await proof.verify(notaryKey);
+    // return resp;
   }, [setProof, setProcessing]);
 
   useEffect(() => {
