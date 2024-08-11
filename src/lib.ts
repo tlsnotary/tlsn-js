@@ -17,7 +17,7 @@ import initWasm, {
   NotaryPublicKey,
 } from '../wasm/pkg/tlsn_wasm';
 import { arrayToHex, processTranscript, stringToBuffer, expect } from './utils';
-import { ParsedTranscriptData } from './types';
+import type { ParsedTranscriptData, ProofData } from './types';
 
 let LOGGING_LEVEL: LoggingLevel = 'Info';
 
@@ -214,14 +214,7 @@ export class TlsProof {
   async verify(
     notaryPublicKey: NotaryPublicKey,
     redactedSymbol = '*',
-  ): Promise<{
-    time: number;
-    server_dns: string;
-    sent: string;
-    sent_auth_ranges: { start: number; end: number }[];
-    recv: string;
-    recv_auth_ranges: { start: number; end: number }[];
-  }> {
+  ): Promise<ProofData> {
     const { received, received_auth_ranges, sent, ...rest } =
       this.#proof.verify(notaryPublicKey);
 
@@ -292,6 +285,8 @@ export class NotaryServer {
 }
 
 export {
+  type ParsedTranscriptData,
+  type ProofData,
   type LoggingLevel,
   type LoggingConfig,
   type Transcript,

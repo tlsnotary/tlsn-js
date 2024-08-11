@@ -8,7 +8,8 @@ import {
   TlsProof as TTlsProof,
   Commit,
   NotaryServer,
-} from '../../../src/lib';
+  ProofData,
+} from 'tlsn-js';
 
 const { init, Prover, NotarizedSession, TlsProof }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
@@ -21,13 +22,8 @@ root.render(<App />);
 
 function App(): ReactElement {
   const [processing, setProcessing] = useState(false);
-  const [result, setResult] = useState<{
-    time: number;
-    sent: string;
-    recv: string;
-    notaryUrl: string;
-  } | null>(null);
-  const [proof, setProof] = useState<null>(null);
+  const [result, setResult] = useState<ProofData | null>(null);
+  const [proofHex, setProofHex] = useState<null | string>(null);
 
   const onClick = useCallback(async () => {
     setProcessing(true);
@@ -87,26 +83,24 @@ function App(): ReactElement {
     const proofHex = await notarizedSession.proof(commit);
 
     console.timeEnd('proof');
-    const notaryKey = await notary.publicKey();
-    const proof = (await new TlsProof(proofHex)) as TTlsProof;
-    const proofData = await proof.verify({
-      typ: 'P256',
-      key: notaryKey,
-    });
-    // return resp;
-
-    console.log(proofData);
-  }, [setProof, setProcessing]);
+    setProofHex(proofHex);
+  }, [setProofHex, setProcessing]);
 
   useEffect(() => {
     (async () => {
-      // if (proof) {
-      //   const r = await verify(proof);
-      //   setResult(r);
-      //   setProcessing(false);
-      // }
+      if (proofHex) {
+        const proof = (await new TlsProof(proofHex)) as TTlsProof;
+        const notary = NotaryServer.from(`http://localhost:7047`);
+        const notaryKey = await notary.publicKey();
+        const proofData = await proof.verify({
+          typ: 'P256',
+          key: notaryKey,
+        });
+        setResult(proofData);
+        setProcessing(false);
+      }
     })();
-  }, [proof, setResult]);
+  }, [proofHex, setResult]);
 
   return (
     <div>
@@ -115,9 +109,9 @@ function App(): ReactElement {
       </button>
       <div>
         <b>Proof: </b>
-        {!processing && !proof ? (
+        {!processing && !proofHex ? (
           <i>not started</i>
-        ) : !proof ? (
+        ) : !proofHex ? (
           <>
             Proving data from swapi...
             <Watch
@@ -136,14 +130,14 @@ function App(): ReactElement {
           <>
             <details>
               <summary>View Proof</summary>
-              <pre>{JSON.stringify(proof, null, 2)}</pre>
+              <pre>{JSON.stringify(proofHex, null, 2)}</pre>
             </details>
           </>
         )}
       </div>
       <div>
         <b>Verification: </b>
-        {!proof ? (
+        {!proofHex ? (
           <i>not started</i>
         ) : !result ? (
           <i>verifying</i>
