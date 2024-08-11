@@ -4,10 +4,10 @@ export type CommitData = {
 };
 
 export type ParsedTranscriptData = {
-  start: number;
-  end: number;
+  all: CommitData;
   info?: CommitData;
-  headers?: { [key: string]: CommitData };
+  headers: { [key: string]: CommitData };
   body?: CommitData;
   json?: { [path: string]: CommitData };
+  lineBreaks: CommitData[];
 };

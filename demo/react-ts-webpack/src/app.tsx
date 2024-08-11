@@ -2,11 +2,12 @@ import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Comlink from 'comlink';
 import { Watch } from 'react-loader-spinner';
-// import init, { Prover, NotarizedSession, TlsProof } from '../../../src/lib';
 import {
   Prover as TProver,
   NotarizedSession as TNotarizedSession,
   TlsProof as TTlsProof,
+  Commit,
+  NotaryServer,
 } from '../../../src/lib';
 
 const { init, Prover, NotarizedSession, TlsProof }: any = Comlink.wrap(
@@ -30,13 +31,14 @@ function App(): ReactElement {
 
   const onClick = useCallback(async () => {
     setProcessing(true);
+    const notary = NotaryServer.from(`http://localhost:7047`);
     console.time('submit');
     await init({ loggingLevel: 'Info' });
     const prover = (await new Prover({
       server_dns: 'swapi.dev',
     })) as TProver;
 
-    await prover.setup(`http://localhost:7047`);
+    await prover.setup(await notary.sessionUrl());
     const resp = await prover.sendRequest('ws://localhost:55688', {
       url: 'https://swapi.dev/api/people/1',
       method: 'GET',
@@ -57,42 +59,43 @@ function App(): ReactElement {
     console.log(transcript);
     console.timeEnd('transcript');
     console.time('commit');
-    const session = await prover.notarize({
+    const commit: Commit = {
       sent: [
         transcript.ranges.sent.info!,
         transcript.ranges.sent.headers!['content-type'],
         transcript.ranges.sent.headers!['host'],
+        ...transcript.ranges.sent.lineBreaks,
       ],
       recv: [
         transcript.ranges.recv.info!,
+        transcript.ranges.recv.headers!['server'],
+        transcript.ranges.recv.headers!['date'],
         transcript.ranges.recv.json!['name'],
         transcript.ranges.recv.json!['gender'],
+        ...transcript.ranges.recv.lineBreaks,
       ],
-    });
+    };
+
+    const session = await prover.notarize(commit);
     console.timeEnd('commit');
     console.time('proof');
 
     const notarizedSession = (await new NotarizedSession(
       session,
     )) as TNotarizedSession;
-    const proofHex = await notarizedSession.proof({
-      sent: [
-        transcript.ranges.sent.info!,
-        transcript.ranges.sent.headers!['content-type'],
-        transcript.ranges.sent.headers!['host'],
-      ],
-      recv: [
-        transcript.ranges.recv.info!,
-        transcript.ranges.recv.json!['name'],
-        transcript.ranges.recv.json!['gender'],
-      ],
-    });
+
+    const proofHex = await notarizedSession.proof(commit);
 
     console.timeEnd('proof');
-    const notaryKey = `-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEBv36FI4ZFszJa0DQFJ3wWCXvVLFr\\ncRzMG5kaTeHGoSzDu6cFqx3uEWYpFGo6C0EOUgf+mEgbktLrXocv5yHzKg==\\n-----END PUBLIC KEY-----\\n`;
+    const notaryKey = await notary.publicKey();
     const proof = (await new TlsProof(proofHex)) as TTlsProof;
-    await proof.verify(notaryKey);
+    const proofData = await proof.verify({
+      typ: 'P256',
+      key: notaryKey,
+    });
     // return resp;
+
+    console.log(proofData);
   }, [setProof, setProcessing]);
 
   useEffect(() => {

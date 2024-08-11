@@ -294,8 +294,12 @@ export function processJSON(str: string): Commitment[] {
 export function processTranscript(transcript: string): ParsedTranscriptData {
   // const commitments: Commitment[] = [];
   const returnVal: ParsedTranscriptData = {
-    start: 0,
-    end: transcript.length,
+    all: {
+      start: 0,
+      end: transcript.length,
+    },
+    headers: {},
+    lineBreaks: [],
   };
 
   let text = '',
@@ -308,13 +312,20 @@ export function processTranscript(transcript: string): ParsedTranscriptData {
 
     if (char === '\r') {
       _processEOL(text, i, lineIndex++);
+      returnVal.lineBreaks.push({
+        start: i,
+        end: i + 1,
+      });
       continue;
     }
 
     if (char === '\n') {
       text = '';
       ptr = -1;
-
+      returnVal.lineBreaks.push({
+        start: i,
+        end: i + 1,
+      });
       continue;
     }
 
@@ -365,7 +376,7 @@ export function processTranscript(transcript: string): ParsedTranscriptData {
         };
       } else if (!isBody && value) {
         returnVal.headers = returnVal.headers || {};
-        returnVal.headers[name] = {
+        returnVal.headers[name.toLowerCase()] = {
           start: ptr,
           end: index,
         };

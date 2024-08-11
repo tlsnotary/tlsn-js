@@ -12,8 +12,11 @@ import initWasm, {
   Prover as WasmProver,
   type ProverConfig,
   type Method,
+  VerifierConfig,
+  VerifierData,
+  NotaryPublicKey,
 } from '../wasm/pkg/tlsn_wasm';
-import { arrayToHex, processTranscript, stringToBuffer } from './utils';
+import { arrayToHex, processTranscript, stringToBuffer, expect } from './utils';
 import { ParsedTranscriptData } from './types';
 
 let LOGGING_LEVEL: LoggingLevel = 'Info';
@@ -72,37 +75,12 @@ export class Prover {
     return this.#config.id;
   }
 
-  private async getNotarySessionUrl(verifierUrl: string): Promise<string> {
-    const { max_sent_data, max_recv_data } = this.#config;
-    const resp = await fetch(`${verifierUrl}/session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        clientType: 'Websocket',
-        maxRecvData: max_recv_data,
-        maxSentData: max_sent_data,
-      }),
-    });
-    const { sessionId } = await resp.json();
-
-    return `${verifierUrl}/notarize?sessionId=${sessionId!}`;
-  }
-
   async free() {
     return this.#prover.free();
   }
 
-  async setup(
-    verifierUrl: string,
-    config?: { isNotary: boolean },
-  ): Promise<void> {
-    const { isNotary = true } = config || {};
-    const url = isNotary
-      ? await this.getNotarySessionUrl(verifierUrl)
-      : verifierUrl;
-    return this.#prover.setup(url);
+  async setup(verifierUrl: string): Promise<void> {
+    return this.#prover.setup(verifierUrl);
   }
 
   async transcript(): Promise<{
@@ -171,6 +149,28 @@ export class Prover {
   }
 }
 
+export class Verifier {
+  #config: VerifierConfig;
+  #verifier: WasmVerifier;
+
+  constructor(config: VerifierConfig) {
+    this.#config = config;
+    this.#verifier = new WasmVerifier(this.#config);
+  }
+
+  get id() {
+    return this.#config.id;
+  }
+
+  async verify(): Promise<VerifierData> {
+    return this.#verifier.verify();
+  }
+
+  async connect(proverUrl: string): Promise<void> {
+    return this.#verifier.connect(proverUrl);
+  }
+}
+
 export class NotarizedSession {
   #session: WasmNotarizedSession;
 
@@ -211,21 +211,87 @@ export class TlsProof {
     return arrayToHex(this.#proof.serialize());
   }
 
-  async verify(notaryKey: string) {
-    const result = this.#proof.verify(
-      new Uint8Array(stringToBuffer(notaryKey)),
+  async verify(
+    notaryPublicKey: NotaryPublicKey,
+    redactedSymbol = '*',
+  ): Promise<{
+    time: number;
+    server_dns: string;
+    sent: string;
+    sent_auth_ranges: { start: number; end: number }[];
+    recv: string;
+    recv_auth_ranges: { start: number; end: number }[];
+  }> {
+    const { received, received_auth_ranges, sent, ...rest } =
+      this.#proof.verify(notaryPublicKey);
+
+    return {
+      ...rest,
+      recv_auth_ranges: received_auth_ranges,
+      recv: received.reduce((recv: string, num) => {
+        recv =
+          recv + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
+        return recv;
+      }, ''),
+      sent: sent.reduce((sent: string, num) => {
+        sent =
+          sent + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
+        return sent;
+      }, ''),
+    };
+  }
+}
+
+export class NotaryServer {
+  #url: string;
+
+  static from(url: string) {
+    return new NotaryServer(url);
+  }
+
+  constructor(url: string) {
+    this.#url = url;
+  }
+
+  get url() {
+    return this.#url;
+  }
+
+  async publicKey(): Promise<string> {
+    const res = await fetch(this.#url + '/info');
+    const { publicKey } = await res.json();
+    expect(
+      typeof publicKey === 'string' && !!publicKey.length,
+      'invalid public key',
     );
-    debug(result);
+    return publicKey!;
+  }
+
+  async sessionUrl(
+    maxSentData?: number,
+    maxRecvData?: number,
+  ): Promise<string> {
+    const resp = await fetch(`${this.#url}/session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        clientType: 'Websocket',
+        maxRecvData,
+        maxSentData,
+      }),
+    });
+    const { sessionId } = await resp.json();
+    expect(
+      typeof sessionId === 'string' && !!sessionId.length,
+      'invalid session id',
+    );
+    return `${this.#url}/notarize?sessionId=${sessionId!}`;
   }
 }
 
 export {
-  // init,
-  // initThreadPool,
-  // init_logging,
-  // TlsProof,
-  // Verifier,
-  // NotarizedSession,
   type LoggingLevel,
   type LoggingConfig,
   type Transcript,
