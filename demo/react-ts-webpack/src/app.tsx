@@ -29,9 +29,9 @@ function App(): ReactElement {
     setProcessing(true);
     const notary = NotaryServer.from(`http://localhost:7047`);
     console.time('submit');
-    await init({ loggingLevel: 'Info' });
+    await init({ loggingLevel: 'Debug' });
     const prover = (await new Prover({
-      server_dns: 'swapi.dev',
+      serverDns: 'swapi.dev',
     })) as TProver;
 
     await prover.setup(await notary.sessionUrl());
@@ -71,7 +71,7 @@ function App(): ReactElement {
         ...transcript.ranges.recv.lineBreaks,
       ],
     };
-
+    console.log(commit);
     const session = await prover.notarize(commit);
     console.timeEnd('commit');
     console.time('proof');

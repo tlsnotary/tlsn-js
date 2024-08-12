@@ -298,6 +298,10 @@ export function processTranscript(transcript: string): ParsedTranscriptData {
       start: 0,
       end: transcript.length,
     },
+    info: {
+      start: 0,
+      end: transcript.indexOf('\n') + 1,
+    },
     headers: {},
     lineBreaks: [],
   };

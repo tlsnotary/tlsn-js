@@ -59,14 +59,17 @@ export class Prover {
   #prover: WasmProver;
   #config: ProverConfig;
 
-  constructor(
-    config: Omit<ProverConfig, 'id'> & {
-      id?: string;
-    },
-  ) {
+  constructor(config: {
+    id?: string;
+    serverDns: string;
+    maxSentData?: number;
+    maxRecvData?: number;
+  }) {
     this.#config = {
       id: config.id || String(Date.now()),
-      ...config,
+      server_dns: config.serverDns,
+      max_recv_data: config.maxRecvData,
+      max_sent_data: config.maxSentData,
     };
     this.#prover = new WasmProver(this.#config);
   }
@@ -186,6 +189,7 @@ export class NotarizedSession {
 
   async proof(reveal: Reveal) {
     const proof = this.#session.proof(reveal);
+    console.log(proof);
     return arrayToHex(proof.serialize());
   }
 
@@ -280,7 +284,10 @@ export class NotaryServer {
       typeof sessionId === 'string' && !!sessionId.length,
       'invalid session id',
     );
-    return `${this.#url}/notarize?sessionId=${sessionId!}`;
+    const url = new URL(this.#url);
+    const protocol = url.protocol === 'https:' ? 'wss' : 'ws';
+    const pathname = url.pathname;
+    return `${protocol}://${url.host}${pathname === '/' ? '' : pathname}/notarize?sessionId=${sessionId!}`;
   }
 }
 

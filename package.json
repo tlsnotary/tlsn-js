@@ -16,6 +16,7 @@
     "serve:test": "serve  --config ../serve.json ./test-build -l 3001",
     "build:src": "webpack --config webpack.build.config.js",
     "build:types": "tsc --project tsconfig.compile.json",
+    "build:tlsn-binaries": "sh utils/build-tlsn-binaries.sh",
     "build:lib": "NODE_ENV=production concurrently npm:build:src npm:build:types",
     "build": "npm run build:lib",
     "update:wasm": "sh utils/check-wasm.sh -f",
@@ -26,13 +27,15 @@
     "lint:tsc": "tsc --noEmit",
     "lint": "concurrently npm:lint:tsc npm:lint:eslint",
     "run:test": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\"}' mocha -r ts-node/register 'test/testRunner.ts'",
-    "test": "npm run build:test && npm run                                                                                     run:test"
+    "test": "npm run build:tlsn-binaries && npm run build:test && npm run run:test",
+    "test:only": "npm run build:test && npm run run:test"
   },
   "devDependencies": {
     "@types/expect": "^24.3.0",
     "@types/mocha": "^10.0.6",
     "@types/serve-handler": "^6.1.4",
     "browserify": "^17.0.0",
+    "comlink": "^4.4.1",
     "concurrently": "^5.1.0",
     "constants-browserify": "^1.0.0",
     "copy-webpack-plugin": "^5.0.5",

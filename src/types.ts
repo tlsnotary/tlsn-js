@@ -5,7 +5,7 @@ export type CommitData = {
 
 export type ParsedTranscriptData = {
   all: CommitData;
-  info?: CommitData;
+  info: CommitData;
   headers: { [key: string]: CommitData };
   body?: CommitData;
   json?: { [path: string]: CommitData };
