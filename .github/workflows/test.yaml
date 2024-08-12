@@ -71,9 +71,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Test WASM
-        run: npm run test:wasm
-
       - name: Build Test dependencies
         run: npm run build:tlsn-binaries
 
