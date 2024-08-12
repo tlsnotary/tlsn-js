@@ -46,8 +46,8 @@ const spawnTlsnServerFixture = () => {
 
 let localNotaryServer: ChildProcess;
 const spawnLocalNotaryServer = async () => {
-  const localNotaryServerPath = './utils/tlsn/notary-server/';
-  localNotaryServer = exec(`target/release/notary-server`, {
+  const localNotaryServerPath = './utils/tlsn/notary/server';
+  localNotaryServer = exec(`../target/release/notary-server`, {
     cwd: localNotaryServerPath,
   });
   localNotaryServer.stdout?.on('data', (data) => {
@@ -74,7 +74,7 @@ const spawnLocalNotaryServer = async () => {
 
 const configureNotarySerer = () => {
   try {
-    const configPath = './utils/tlsn/notary-server/config/config.yaml';
+    const configPath = './utils/tlsn/notary/server/config/config.yaml';
     const fileContents = fs.readFileSync(configPath, 'utf8');
     const data = yaml.load(fileContents) as any;
     data.tls.enabled = false;
