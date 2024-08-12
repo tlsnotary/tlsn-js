@@ -23,25 +23,88 @@ at your option.
 
 ## Example
 ```ts
-import { prove, verify } from '../src';
+// worker.ts
+import * as Comlink from 'comlink';
+import init, { Prover, NotarizedSession, TlsProof } from 'tlsn-js';
 
-// To create a proof
-const proof = await prove('https://swapi.dev/api/people/1', {
-    method: 'GET',
-    headers: {
-      Connection: 'close',
-      Accept: 'application/json',
-      'Accept-Encoding': 'identity',
-    },
-    body: '',
-    maxTranscriptSize: 20000,
-    notaryUrl: 'https://127.0.0.1:7047',
-    websocketProxyUrl: 'ws://127.0.0.1:55688',
+Comlink.expose({
+  init,
+  Prover,
+  NotarizedSession,
+  TlsProof,
 });
 
-// To verify a proof
-const result = await verify(proof);
-console.log(result);
+```
+```ts
+// app.ts
+import { NotaryServer } from 'tlsn-js';
+const { init, Prover, NotarizedSession, TlsProof }: any = Comlink.wrap(
+  new Worker(new URL('./worker.ts', import.meta.url)),
+);
+
+// To create a proof
+await init({ loggingLevel: 'Debug '});
+const notary = NotaryServer.from(`http://localhost:7047`);
+const prover = await new Prover({ serverDns: 'swapi.dev' });
+
+// Connect to verifier
+await prover.setup(await notary.sessionUrl());
+
+// Submit request
+await prover.sendRequest('ws://localhost:55688', {
+  url: 'https://swapi.dev/api/people/1',
+  method: 'GET',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: {
+    hello: 'world',
+    one: 1,
+  },
+});
+
+// Get transcript and precalculated ranges
+const transcript = await prover.transcript();
+
+// Select ranges to commit 
+const commit: Commit = {
+  sent: [
+    transcript.ranges.sent.info!,
+    transcript.ranges.sent.headers!['content-type'],
+    transcript.ranges.sent.headers!['host'],
+    ...transcript.ranges.sent.lineBreaks,
+  ],
+  recv: [
+    transcript.ranges.recv.info!,
+    transcript.ranges.recv.headers!['server'],
+    transcript.ranges.recv.headers!['date'],
+    transcript.ranges.recv.json!['name'],
+    transcript.ranges.recv.json!['gender'],
+    ...transcript.ranges.recv.lineBreaks,
+  ],
+};
+
+// Notarize selected ranges
+const serializedSession = await prover.notarize(commit);
+
+// Instantiate NotarizedSession
+// note: this is necessary because workers can only post messages in serializable values
+const notarizedSession = await new NotarizedSession(serializedSession);
+
+
+// Create proof for commited ranges
+// note: this will reveal the selected ranges
+const serializedProof = await notarizedSession.proof(commit);
+
+// Instantiate Proof
+// note: necessary due to limitation with workers
+const proof = await new TlsProof(serializedProof);
+
+// Verify a proof
+const proofData = await proof.verify({
+  typ: 'P256',
+  key: await notary.publicKey(),
+});
 ```
 
 ## Running a local websocket proxy for `https://swapi.dev`
