@@ -16,7 +16,7 @@ import initWasm, {
   VerifierData,
   NotaryPublicKey,
 } from '../wasm/pkg/tlsn_wasm';
-import { arrayToHex, processTranscript, stringToBuffer, expect } from './utils';
+import { arrayToHex, processTranscript, expect, headerToMap } from './utils';
 import type { ParsedTranscriptData, ProofData } from './types';
 
 let LOGGING_LEVEL: LoggingLevel = 'Info';
@@ -58,6 +58,64 @@ export default async function init(config?: {
 export class Prover {
   #prover: WasmProver;
   #config: ProverConfig;
+
+  static async notarize(options: {
+    url: string;
+    notaryUrl: string;
+    websocketProxyUrl: string;
+    method?: Method;
+    headers?: {
+      [name: string]: string;
+    };
+    body?: any;
+    maxSentData?: number;
+    maxRecvData?: number;
+    id: string;
+    commit?: Commit;
+  }) {
+    const {
+      url,
+      method = 'GET',
+      headers = {},
+      body,
+      maxSentData,
+      maxRecvData,
+      notaryUrl,
+      websocketProxyUrl,
+      id,
+      commit: _commit,
+    } = options;
+    const hostname = new URL(url).hostname;
+    const notary = NotaryServer.from(notaryUrl);
+    const prover = new WasmProver({
+      id,
+      server_dns: hostname,
+      max_sent_data: maxSentData,
+      max_recv_data: maxRecvData,
+    });
+
+    await prover.setup(await notary.sessionUrl(maxSentData, maxRecvData));
+
+    await prover.send_request(websocketProxyUrl + `?token=${hostname}`, {
+      uri: url,
+      method,
+      headers: headerToMap(headers),
+      body,
+    });
+
+    const transcript = prover.transcript();
+
+    const commit = _commit || {
+      sent: [{ start: 0, end: transcript.sent.length }],
+      recv: [{ start: 0, end: transcript.recv.length }],
+    };
+
+    const session = await prover.notarize(commit);
+
+    const tlsProof = await session.proof(commit);
+
+    return tlsProof.serialize();
+  }
 
   constructor(config: {
     id?: string;
@@ -118,12 +176,10 @@ export class Prover {
   }> {
     const { url, method = 'GET', headers = {}, body } = request;
     const hostname = new URL(url).hostname;
-    const headerMap: Map<string, number[]> = new Map();
-
-    headerMap.set('Host', stringToBuffer(hostname));
-    headerMap.set('Connection', stringToBuffer('close'));
-    Object.entries(headers).forEach(([key, value]) => {
-      headerMap.set(key, stringToBuffer(value));
+    const headerMap = headerToMap({
+      Host: hostname,
+      Connection: 'close',
+      ...headers,
     });
 
     const resp = await this.#prover.send_request(wsProxyUrl, {

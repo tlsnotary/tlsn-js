@@ -86,6 +86,31 @@ function App(): ReactElement {
     setProofHex(proofHex);
   }, [setProofHex, setProcessing]);
 
+  const onAltClick = useCallback(async () => {
+    setProcessing(true);
+    await init({ loggingLevel: 'Debug' });
+    const proof = await Prover.notarize({
+      id: 'test',
+      notaryUrl: 'http://localhost:7047',
+      websocketProxyUrl: 'ws://localhost:55688',
+      url: 'https://swapi.dev/api/people/1',
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: {
+        hello: 'world',
+        one: 1,
+      },
+      commit: {
+        sent: [{ start: 0, end: 50 }],
+        recv: [{ start: 0, end: 50 }],
+      },
+    });
+
+    setProofHex(proof);
+  }, [setProofHex, setProcessing]);
+
   useEffect(() => {
     (async () => {
       if (proofHex) {
@@ -104,9 +129,22 @@ function App(): ReactElement {
 
   return (
     <div>
-      <button onClick={!processing ? onClick : undefined} disabled={processing}>
-        Start demo
-      </button>
+      <div>
+        <button
+          onClick={!processing ? onClick : undefined}
+          disabled={processing}
+        >
+          Start Demo (Normal config)
+        </button>
+      </div>
+      <div>
+        <button
+          onClick={!processing ? onAltClick : undefined}
+          disabled={processing}
+        >
+          Start Demo 2 (With helper method)
+        </button>
+      </div>
       <div>
         <b>Proof: </b>
         {!processing && !proofHex ? (
