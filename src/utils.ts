@@ -406,3 +406,13 @@ export function stringToBuffer(str: string): number[] {
 export function arrayToHex(uintArr: Uint8Array): string {
   return Buffer.from(uintArr).toString('hex');
 }
+
+export function headerToMap(headers: {
+  [name: string]: string;
+}): Map<string, number[]> {
+  const headerMap: Map<string, number[]> = new Map();
+  Object.entries(headers).forEach(([key, value]) => {
+    headerMap.set(key, stringToBuffer(value));
+  });
+  return headerMap;
+}
