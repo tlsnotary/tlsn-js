@@ -1,8 +1,13 @@
-use axum::{extract::State, response::IntoResponse, routing::get, Router};
+use axum::{
+    extract::{Request, State},
+    response::IntoResponse,
+    routing::get,
+    Router,
+};
 use axum_websocket::{WebSocket, WebSocketUpgrade};
 use eyre::eyre;
-use http::Request;
-use hyper::server::conn::Http;
+use hyper::{body::Incoming, server::conn::http1};
+use hyper_util::rt::TokioIo;
 use std::{
     net::{IpAddr, SocketAddr},
     sync::Arc,
@@ -14,7 +19,7 @@ use tokio::{
     net::TcpListener,
 };
 use tokio_util::compat::TokioAsyncReadCompatExt;
-use tower::MakeService;
+use tower_service::Service;
 use tracing::{debug, error, info};
 use ws_stream_tungstenite::WsStream;
 
@@ -45,14 +50,13 @@ pub async fn run_server(
 
     info!("Listening for TCP traffic at {}", verifier_address);
 
-    let protocol = Arc::new(Http::new());
+    let protocol = Arc::new(http1::Builder::new());
     let router = Router::new()
         .route("/verify", get(ws_handler))
         .with_state(VerifierGlobals {
             server_domain: server_domain.to_string(),
             verification_session_id: verification_session_id.to_string(),
         });
-    let mut app = router.into_make_service();
 
     loop {
         let stream = match listener.accept().await {
@@ -64,14 +68,19 @@ pub async fn run_server(
         };
         debug!("Received a prover's TCP connection");
 
+        let tower_service = router.clone();
         let protocol = protocol.clone();
-        let service = MakeService::<_, Request<hyper::Body>>::make_service(&mut app, &stream);
 
         tokio::spawn(async move {
             info!("Accepted prover's TCP connection",);
+            // Reference: https://github.com/tokio-rs/axum/blob/5201798d4e4d4759c208ef83e30ce85820c07baa/examples/low-level-rustls/src/main.rs#L67-L80
+            let io = TokioIo::new(stream);
+            let hyper_service = hyper::service::service_fn(move |request: Request<Incoming>| {
+                tower_service.clone().call(request)
+            });
+            // Serve different requests using the same hyper protocol and axum router
             let _ = protocol
-                // Can unwrap because it's infallible
-                .serve_connection(stream, service.await.unwrap())
+                .serve_connection(io, hyper_service)
                 // use with_upgrades to upgrade connection to websocket for websocket clients
                 // and to extract tcp connection for tcp clients
                 .with_upgrades()

@@ -1,5 +1,4 @@
 use async_tungstenite::{tokio::connect_async_with_config, tungstenite::protocol::WebSocketConfig};
-use futures::AsyncWriteExt;
 use http_body_util::Empty;
 use hyper::{body::Bytes, Request, StatusCode, Uri};
 use hyper_util::rt::TokioIo;
@@ -107,7 +106,7 @@ async fn prover<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
             .await
             .unwrap();
 
-    let connection_task = tokio::spawn(connection.without_shutdown());
+    tokio::spawn(connection);
 
     // MPC-TLS: Send Request and wait for Response.
     info!("Send Request and wait for Response");
