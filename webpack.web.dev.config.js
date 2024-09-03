@@ -1,7 +1,6 @@
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
-const { compilerOptions } = require('./tsconfig.json');
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -49,25 +48,25 @@ module.exports = [
     devtool: 'source-map',
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.jsx', '.png', '.svg'],
-      modules: [
-        path.resolve('./node_modules'),
-        path.resolve(__dirname, compilerOptions.baseUrl),
-      ],
-      fallback: {
-        browserify: require.resolve('browserify'),
-        stream: require.resolve('stream-browserify'),
-        path: require.resolve('path-browserify'),
-        crypto: require.resolve('crypto-browserify'),
-        os: require.resolve('os-browserify/browser'),
-        http: require.resolve('stream-http'),
-        https: require.resolve('https-browserify'),
-        assert: require.resolve('assert/'),
-        events: require.resolve('events/'),
-        'ansi-html-community': require.resolve('ansi-html-community'),
-        'html-entities': require.resolve('html-entities'),
-        constants: false,
-        fs: false,
-      },
+      // modules: [
+      //   path.resolve('./node_modules'),
+      //   path.resolve(__dirname, compilerOptions.baseUrl),
+      // ],
+      // fallback: {
+      //   browserify: require.resolve('browserify'),
+      //   stream: require.resolve('stream-browserify'),
+      //   path: require.resolve('path-browserify'),
+      //   crypto: require.resolve('crypto-browserify'),
+      //   os: require.resolve('os-browserify/browser'),
+      //   http: require.resolve('stream-http'),
+      //   https: require.resolve('https-browserify'),
+      //   assert: require.resolve('assert/'),
+      //   events: require.resolve('events/'),
+      //   'ansi-html-community': require.resolve('ansi-html-community'),
+      //   'html-entities': require.resolve('html-entities'),
+      //   constants: false,
+      //   fs: false,
+      // },
     },
     module: {
       rules: [...rules, ...rendererRules],

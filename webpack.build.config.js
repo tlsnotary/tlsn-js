@@ -30,9 +30,9 @@ module.exports = [
   {
     mode: isProd ? 'production' : 'development',
     entry: {
-      index: path.join(__dirname, 'src', 'index.ts'),
+      lib: path.join(__dirname, 'src', 'lib.ts'),
     },
-    target: 'web',
+    target: 'webworker',
     devtool: 'source-map',
     resolve: {
       extensions: ['.ts', '.js'],
