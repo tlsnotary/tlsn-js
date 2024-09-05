@@ -12,7 +12,3 @@ cargo run --release
 ## WebSocket APIs
 ### /verify
 To perform verification via websocket, i.e. `ws://localhost:9816/verify`
-
-## Design Choices
-### WebSocket
-Refer to https://github.com/tlsnotary/tlsn/tree/main/notary-server#websocket

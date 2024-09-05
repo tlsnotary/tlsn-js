@@ -12,8 +12,9 @@ use std::{
     net::{IpAddr, SocketAddr},
     sync::Arc,
 };
-use tlsn_core::proof::SessionInfo;
-use tlsn_verifier::tls::{Verifier, VerifierConfig};
+use tlsn_common::config::ProtocolConfigValidator;
+use tlsn_verifier::{SessionInfo, Verifier, VerifierConfig};
+
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     net::TcpListener,
@@ -25,18 +26,21 @@ use ws_stream_tungstenite::WsStream;
 
 mod axum_websocket;
 
+// Maximum number of bytes that can be sent from prover to server
+const MAX_SENT_DATA: usize = 1 << 12;
+// Maximum number of bytes that can be received by prover from server
+const MAX_RECV_DATA: usize = 1 << 14;
+
 /// Global data that needs to be shared with the axum handlers
 #[derive(Clone, Debug)]
 struct VerifierGlobals {
     pub server_domain: String,
-    pub verification_session_id: String,
 }
 
 pub async fn run_server(
     verifier_host: &str,
     verifier_port: u16,
     server_domain: &str,
-    verification_session_id: &str,
 ) -> Result<(), eyre::ErrReport> {
     let verifier_address = SocketAddr::new(
         IpAddr::V4(verifier_host.parse().map_err(|err| {
@@ -55,7 +59,6 @@ pub async fn run_server(
         .route("/verify", get(ws_handler))
         .with_state(VerifierGlobals {
             server_domain: server_domain.to_string(),
-            verification_session_id: verification_session_id.to_string(),
         });
 
     loop {
@@ -101,13 +104,7 @@ async fn handle_socket(socket: WebSocket, verifier_globals: VerifierGlobals) {
     debug!("Upgraded to websocket connection");
     let stream = WsStream::new(socket.into_inner());
 
-    match verifier(
-        stream,
-        &verifier_globals.verification_session_id,
-        &verifier_globals.server_domain,
-    )
-    .await
-    {
+    match verifier(stream, &verifier_globals.server_domain).await {
         Ok((sent, received, _session_info)) => {
             info!("Successfully verified {}", &verifier_globals.server_domain);
             info!("Verified sent data:\n{}", sent,);
@@ -121,36 +118,41 @@ async fn handle_socket(socket: WebSocket, verifier_globals: VerifierGlobals) {
 
 async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     socket: T,
-    verification_session_id: &str,
     server_domain: &str,
 ) -> Result<(String, String, SessionInfo), eyre::ErrReport> {
     debug!("Starting verification...");
 
     // Setup Verifier.
+    let config_validator = ProtocolConfigValidator::builder()
+        .max_sent_data(MAX_SENT_DATA)
+        .max_recv_data(MAX_RECV_DATA)
+        .build()
+        .unwrap();
+
     let verifier_config = VerifierConfig::builder()
-        .id(verification_session_id)
-        .build()?;
+        .protocol_config_validator(config_validator)
+        .build()
+        .unwrap();
     let verifier = Verifier::new(verifier_config);
 
     // Verify MPC-TLS and wait for (redacted) data.
     debug!("Starting MPC-TLS verification...");
-    let (sent, received, session_info) = verifier
-        .verify(socket.compat())
-        .await
-        .map_err(|err| eyre!("Verification failed: {err}"))?;
+    // Verify MPC-TLS and wait for (redacted) data.
+    let (mut partial_transcript, session_info) = verifier.verify(socket.compat()).await.unwrap();
+    partial_transcript.set_unauthed(0);
 
     // Check sent data: check host.
     debug!("Starting sent data verification...");
-    let sent_data = String::from_utf8(sent.data().to_vec())
-        .map_err(|err| eyre!("Failed to parse sent data: {err}"))?;
+    let sent = partial_transcript.sent_unsafe().to_vec();
+    let sent_data = String::from_utf8(sent.clone()).expect("Verifier expected sent data");
     sent_data
         .find(server_domain)
         .ok_or_else(|| eyre!("Verification failed: Expected host {}", server_domain))?;
 
     // Check received data: check json and version number.
     debug!("Starting received data verification...");
-    let response = String::from_utf8(received.data().to_vec())
-        .map_err(|err| eyre!("Failed to parse received data: {err}"))?;
+    let received = partial_transcript.received_unsafe().to_vec();
+    let response = String::from_utf8(received.clone()).expect("Verifier expected received data");
     debug!("Received data: {:?}", response);
     response
         .find("eye_color")
@@ -160,8 +162,8 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
         return Err(eyre!("Verification failed: server name mismatches"));
     }
 
-    let sent_string = bytes_to_redacted_string(sent.data())?;
-    let received_string = bytes_to_redacted_string(received.data())?;
+    let sent_string = bytes_to_redacted_string(&sent)?;
+    let received_string = bytes_to_redacted_string(&received)?;
 
     Ok((sent_string, received_string, session_info))
 }

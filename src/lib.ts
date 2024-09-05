@@ -47,9 +47,9 @@ export default async function init(config?: {
   });
 
   // 6422528 ~= 6.12 mb
-  debug('res.memory=', res.memory);
-  debug('res.memory.buffer.length=', res.memory.buffer.byteLength);
-  debug('DEBUG', 'initialize thread pool');
+  debug('res.memory', res.memory);
+  debug('res.memory.buffer.length', res.memory.buffer.byteLength);
+  debug('initialize thread pool');
 
   await initThreadPool(hardwareConcurrency);
   debug('initialized thread pool');
@@ -205,6 +205,10 @@ export class Prover {
   async notarize(commit: Commit): Promise<string> {
     const notarizedSession = await this.#prover.notarize(commit);
     return arrayToHex(notarizedSession.serialize());
+  }
+
+  async reveal(reveal: Reveal): Promise<void> {
+    await this.#prover.reveal(reveal);
   }
 }
 
