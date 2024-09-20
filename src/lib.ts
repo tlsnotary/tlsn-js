@@ -192,7 +192,13 @@ export class Prover {
       Connection: 'close',
     };
 
-    if (body) h['Content-Length'] = body.length.toString();
+    if (typeof body === 'string') {
+      h['Content-Length'] = body.length.toString();
+    } else if (typeof body === 'object') {
+      h['Content-Length'] = JSON.stringify(body).length.toString();
+    } else if (typeof body === 'number') {
+      h['Content-Length'] = body.toString().length.toString();
+    }
 
     const headerMap = headerToMap({
       ...h,

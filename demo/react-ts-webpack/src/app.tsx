@@ -4,14 +4,14 @@ import * as Comlink from 'comlink';
 import { Watch } from 'react-loader-spinner';
 import {
   Prover as TProver,
-  NotarizedSession as TNotarizedSession,
-  TlsProof as TTlsProof,
+  Attestation as TAttestation,
+  Presentation as TPresentation,
   Commit,
   NotaryServer,
   ProofData,
 } from 'tlsn-js';
 
-const { init, Prover, NotarizedSession, TlsProof }: any = Comlink.wrap(
+const { init, Prover, Attestation, Presentation }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
 );
 
@@ -29,7 +29,7 @@ function App(): ReactElement {
     setProcessing(true);
     const notary = NotaryServer.from(`http://localhost:7047`);
     console.time('submit');
-    await init({ loggingLevel: 'Debug' });
+    await init({ loggingLevel: 'Info' });
     const prover = (await new Prover({
       serverDns: 'swapi.dev',
     })) as TProver;
@@ -72,18 +72,20 @@ function App(): ReactElement {
       ],
     };
     console.log(commit);
-    const session = await prover.notarize(commit);
+    const notarizationOutputs = await prover.notarize(commit);
     console.timeEnd('commit');
     console.time('proof');
 
-    const notarizedSession = (await new NotarizedSession(
-      session,
-    )) as TNotarizedSession;
+    const presentation = (await new Presentation({
+      attestationHex: notarizationOutputs.attestation,
+      secretsHex: notarizationOutputs.secrets,
+      reveal: commit,
+    })) as TPresentation;
 
-    const proofHex = await notarizedSession.proof(commit);
+    const presentationHex = await presentation.serialize();
 
     console.timeEnd('proof');
-    setProofHex(proofHex);
+    setProofHex(presentationHex);
   }, [setProofHex, setProcessing]);
 
   const onAltClick = useCallback(async () => {
@@ -114,14 +116,12 @@ function App(): ReactElement {
   useEffect(() => {
     (async () => {
       if (proofHex) {
-        const proof = (await new TlsProof(proofHex)) as TTlsProof;
+        const proof = (await Presentation.serialize(proofHex)) as TPresentation;
         const notary = NotaryServer.from(`http://localhost:7047`);
         const notaryKey = await notary.publicKey();
-        const proofData = await proof.verify({
-          typ: 'P256',
-          key: notaryKey,
-        });
-        setResult(proofData);
+        const proofData = await proof.verify();
+        console.log(proofData, notaryKey);
+        // setResult(proofData);
         setProcessing(false);
       }
     })();
