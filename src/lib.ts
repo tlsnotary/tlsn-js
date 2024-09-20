@@ -3,9 +3,9 @@ import initWasm, {
   init_logging,
   LoggingLevel,
   LoggingConfig,
-  NotarizedSession as WasmNotarizedSession,
+  Attestation as WasmAttestation,
   Transcript,
-  TlsProof as WasmTlsProof,
+  Secrets as WasmSecrets,
   type Commit,
   type Reveal,
   Verifier as WasmVerifier,
@@ -13,10 +13,20 @@ import initWasm, {
   type ProverConfig,
   type Method,
   VerifierConfig,
-  VerifierData,
-  NotaryPublicKey,
+  VerifierOutput,
+  VerifyingKey,
+  Presentation as WasmPresentation,
+  build_presentation,
+  ConnectionInfo,
+  PartialTranscript,
 } from '../wasm/pkg/tlsn_wasm';
-import { arrayToHex, processTranscript, expect, headerToMap } from './utils';
+import {
+  arrayToHex,
+  processTranscript,
+  expect,
+  headerToMap,
+  hexToArray,
+} from './utils';
 import type { ParsedTranscriptData, ProofData } from './types';
 
 let LOGGING_LEVEL: LoggingLevel = 'Info';
@@ -70,7 +80,8 @@ export class Prover {
     body?: any;
     maxSentData?: number;
     maxRecvData?: number;
-    id: string;
+    maxRecvDataOnline?: number;
+    deferDecryptionFromStart?: boolean;
     commit?: Commit;
   }) {
     const {
@@ -78,20 +89,22 @@ export class Prover {
       method = 'GET',
       headers = {},
       body,
-      maxSentData,
-      maxRecvData,
+      maxSentData = 1024,
+      maxRecvData = 1024,
+      maxRecvDataOnline,
+      deferDecryptionFromStart,
       notaryUrl,
       websocketProxyUrl,
-      id,
       commit: _commit,
     } = options;
     const hostname = new URL(url).hostname;
     const notary = NotaryServer.from(notaryUrl);
     const prover = new WasmProver({
-      id,
-      server_dns: hostname,
+      server_name: hostname,
       max_sent_data: maxSentData,
       max_recv_data: maxRecvData,
+      max_recv_data_online: maxRecvDataOnline,
+      defer_decryption_from_start: deferDecryptionFromStart,
     });
 
     await prover.setup(await notary.sessionUrl(maxSentData, maxRecvData));
@@ -110,30 +123,28 @@ export class Prover {
       recv: [{ start: 0, end: transcript.recv.length }],
     };
 
-    const session = await prover.notarize(commit);
+    const { attestation, secrets } = await prover.notarize(commit);
 
-    const tlsProof = await session.proof(commit);
+    const presentation = build_presentation(attestation, secrets, commit);
 
-    return tlsProof.serialize();
+    return presentation.serialize();
   }
 
   constructor(config: {
-    id?: string;
     serverDns: string;
     maxSentData?: number;
     maxRecvData?: number;
+    maxRecvDataOnline?: number;
+    deferDecryptionFromStart?: boolean;
   }) {
     this.#config = {
-      id: config.id || String(Date.now()),
-      server_dns: config.serverDns,
-      max_recv_data: config.maxRecvData,
-      max_sent_data: config.maxSentData,
+      server_name: config.serverDns,
+      max_recv_data: config.maxRecvData || 1024,
+      max_sent_data: config.maxSentData || 1024,
+      max_recv_data_online: config.maxRecvDataOnline,
+      defer_decryption_from_start: config.deferDecryptionFromStart,
     };
     this.#prover = new WasmProver(this.#config);
-  }
-
-  get id() {
-    return this.#config.id;
   }
 
   async free() {
@@ -176,9 +187,15 @@ export class Prover {
   }> {
     const { url, method = 'GET', headers = {}, body } = request;
     const hostname = new URL(url).hostname;
-    const headerMap = headerToMap({
+    const h: { [name: string]: string } = {
       Host: hostname,
       Connection: 'close',
+    };
+
+    if (body) h['Content-Length'] = body.length.toString();
+
+    const headerMap = headerToMap({
+      ...h,
       ...headers,
     });
 
@@ -188,6 +205,7 @@ export class Prover {
       headers: headerMap,
       body,
     });
+
     debug('prover.sendRequest', resp);
 
     return {
@@ -202,9 +220,18 @@ export class Prover {
     };
   }
 
-  async notarize(commit: Commit): Promise<string> {
-    const notarizedSession = await this.#prover.notarize(commit);
-    return arrayToHex(notarizedSession.serialize());
+  async notarize(
+    commit: Commit,
+  ): Promise<{ attestation: string; secrets: string }> {
+    const { attestation, secrets } = await this.#prover.notarize(commit);
+    return {
+      attestation: arrayToHex(attestation.serialize()),
+      secrets: arrayToHex(secrets.serialize()),
+    };
+  }
+
+  async reveal(reveal: Reveal) {
+    return this.#prover.reveal(reveal);
   }
 }
 
@@ -212,16 +239,15 @@ export class Verifier {
   #config: VerifierConfig;
   #verifier: WasmVerifier;
 
-  constructor(config: VerifierConfig) {
-    this.#config = config;
+  constructor(config: { maxSentData?: number; maxRecvData?: number }) {
+    this.#config = {
+      max_recv_data: config.maxRecvData || 1024,
+      max_sent_data: config.maxSentData || 1024,
+    };
     this.#verifier = new WasmVerifier(this.#config);
   }
 
-  get id() {
-    return this.#config.id;
-  }
-
-  async verify(): Promise<VerifierData> {
+  async verify(): Promise<VerifierOutput> {
     return this.#verifier.verify();
   }
 
@@ -230,68 +256,98 @@ export class Verifier {
   }
 }
 
-export class NotarizedSession {
-  #session: WasmNotarizedSession;
+export class Presentation {
+  #presentation: WasmPresentation;
 
-  constructor(serializedSessionHex: string) {
-    this.#session = WasmNotarizedSession.deserialize(
-      new Uint8Array(Buffer.from(serializedSessionHex, 'hex')),
+  static deserialize(presentationHex: string) {
+    return new Presentation(
+      WasmPresentation.deserialize(hexToArray(presentationHex)),
     );
   }
 
-  async free() {
-    return this.#session.free();
+  constructor(
+    params:
+      | {
+          attestationHex: string;
+          secretsHex: string;
+          reveal: Reveal;
+        }
+      | WasmPresentation,
+  ) {
+    if (params instanceof WasmPresentation) {
+      this.#presentation = params;
+    } else {
+      this.#presentation = build_presentation(
+        WasmAttestation.deserialize(hexToArray(params.attestationHex)),
+        WasmSecrets.deserialize(hexToArray(params.secretsHex)),
+        params.reveal,
+      );
+    }
   }
 
-  async proof(reveal: Reveal) {
-    const proof = this.#session.proof(reveal);
-    console.log(proof);
-    return arrayToHex(proof.serialize());
+  async free() {
+    return this.#presentation.free();
   }
 
   async serialize() {
-    return arrayToHex(this.#session.serialize());
+    return arrayToHex(this.#presentation.serialize());
+  }
+
+  async verify(): Promise<{
+    attestation: string;
+    serverName?: string;
+    connectionInfo: ConnectionInfo;
+    transcript: PartialTranscript | undefined;
+  }> {
+    const { attestation, server_name, connection_info, transcript } =
+      this.#presentation.verify();
+
+    return {
+      attestation: arrayToHex(attestation.serialize()),
+      serverName: server_name,
+      connectionInfo: connection_info,
+      transcript,
+    };
   }
 }
 
-export class TlsProof {
-  #proof: WasmTlsProof;
+export class Attestation {
+  #attestation: WasmAttestation;
 
-  constructor(serializedProofHex: string) {
-    this.#proof = WasmTlsProof.deserialize(
-      new Uint8Array(Buffer.from(serializedProofHex, 'hex')),
-    );
+  constructor(attestationHex: string) {
+    this.#attestation = WasmAttestation.deserialize(hexToArray(attestationHex));
   }
 
   async free() {
-    return this.#proof.free();
+    return this.#attestation.free();
+  }
+
+  async verifyingKey() {
+    return this.#attestation.verifying_key();
   }
 
   async serialize() {
-    return arrayToHex(this.#proof.serialize());
+    return this.#attestation.serialize();
+  }
+}
+
+export class Secrets {
+  #secrets: WasmSecrets;
+
+  constructor(secretsHex: string) {
+    this.#secrets = WasmSecrets.deserialize(hexToArray(secretsHex));
   }
 
-  async verify(
-    notaryPublicKey: NotaryPublicKey,
-    redactedSymbol = '*',
-  ): Promise<ProofData> {
-    const { received, received_auth_ranges, sent, ...rest } =
-      this.#proof.verify(notaryPublicKey);
+  async free() {
+    return this.#secrets.free();
+  }
 
-    return {
-      ...rest,
-      recv_auth_ranges: received_auth_ranges,
-      recv: received.reduce((recv: string, num) => {
-        recv =
-          recv + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
-        return recv;
-      }, ''),
-      sent: sent.reduce((sent: string, num) => {
-        sent =
-          sent + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
-        return sent;
-      }, ''),
-    };
+  async serialize() {
+    return this.#secrets.serialize();
+  }
+
+  async transcript() {
+    return this.#secrets.transcript();
   }
 }
 
@@ -356,4 +412,8 @@ export {
   type Commit,
   type Reveal,
   type ProverConfig,
+  type VerifierConfig,
+  type VerifyingKey,
+  type ConnectionInfo,
+  type PartialTranscript,
 };

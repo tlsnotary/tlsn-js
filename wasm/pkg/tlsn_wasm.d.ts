@@ -6,6 +6,14 @@
 */
 export function init_logging(config?: LoggingConfig): void;
 /**
+* Builds a presentation.
+* @param {Attestation} attestation
+* @param {Secrets} secrets
+* @param {Reveal} reveal
+* @returns {Presentation}
+*/
+export function build_presentation(attestation: Attestation, secrets: Secrets, reveal: Reveal): Presentation;
+/**
 * @param {number} num_threads
 * @returns {Promise<any>}
 */
@@ -30,9 +38,29 @@ export interface HttpResponse {
     headers: [string, number[]][];
 }
 
+export type TlsVersion = "V1_2" | "V1_3";
+
+export interface TranscriptLength {
+    sent: number;
+    recv: number;
+}
+
+export interface ConnectionInfo {
+    time: number;
+    version: TlsVersion;
+    transcript_length: TranscriptLength;
+}
+
 export interface Transcript {
     sent: number[];
     recv: number[];
+}
+
+export interface PartialTranscript {
+    sent: number[];
+    sent_authed: { start: number; end: number }[];
+    recv: number[];
+    recv_authed: { start: number; end: number }[];
 }
 
 export interface Commit {
@@ -47,26 +75,40 @@ export interface Reveal {
 
 export type KeyType = "P256";
 
-export interface NotaryPublicKey {
-    typ: KeyType;
-    key: string;
+export interface PresentationOutput {
+    attestation: Attestation;
+    server_name: string | undefined;
+    connection_info: ConnectionInfo;
+    transcript: PartialTranscript | undefined;
 }
 
-export interface ProofData {
-    time: number;
-    server_dns: string;
-    sent: number[];
-    sent_auth_ranges: { start: number; end: number }[];
-    received: number[];
-    received_auth_ranges: { start: number; end: number }[];
+export interface NotarizationOutput {
+    attestation: Attestation;
+    secrets: Secrets;
 }
 
-export interface VerifierData {
-    server_dns: string;
-    sent: number[];
-    sent_auth_ranges: { start: number; end: number }[];
-    received: number[];
-    received_auth_ranges: { start: number; end: number }[];
+export interface VerifierOutput {
+    server_name: string;
+    connection_info: ConnectionInfo;
+    transcript: PartialTranscript;
+}
+
+export interface VerifyingKey {
+    alg: number;
+    data: number[];
+}
+
+export interface VerifierConfig {
+    max_sent_data: number;
+    max_recv_data: number;
+}
+
+export interface ProverConfig {
+    server_name: string;
+    max_sent_data: number;
+    max_recv_data_online: number | undefined;
+    max_recv_data: number;
+    defer_decryption_from_start: boolean | undefined;
 }
 
 export interface CrateLogFilter {
@@ -84,34 +126,14 @@ export type SpanEvent = "New" | "Close" | "Active";
 
 export type LoggingLevel = "Trace" | "Debug" | "Info" | "Warn" | "Error";
 
-export interface VerifierConfig {
-    id: string;
-    max_sent_data: number | undefined;
-    max_received_data: number | undefined;
-}
-
-export interface ProverConfig {
-    id: string;
-    server_dns: string;
-    max_sent_data: number | undefined;
-    max_recv_data: number | undefined;
-}
-
 /**
 */
-export class NotarizedSession {
+export class Attestation {
   free(): void;
 /**
-* Builds a new proof.
-* @param {Reveal} reveal
-* @returns {TlsProof}
+* @returns {VerifyingKey}
 */
-  proof(reveal: Reveal): TlsProof;
-/**
-* Returns the transcript.
-* @returns {Transcript}
-*/
-  transcript(): Transcript;
+  verifying_key(): VerifyingKey;
 /**
 * Serializes to a byte array.
 * @returns {Uint8Array}
@@ -120,9 +142,28 @@ export class NotarizedSession {
 /**
 * Deserializes from a byte array.
 * @param {Uint8Array} bytes
-* @returns {NotarizedSession}
+* @returns {Attestation}
 */
-  static deserialize(bytes: Uint8Array): NotarizedSession;
+  static deserialize(bytes: Uint8Array): Attestation;
+}
+/**
+*/
+export class Presentation {
+  free(): void;
+/**
+* Verifies the presentation.
+* @returns {PresentationOutput}
+*/
+  verify(): PresentationOutput;
+/**
+* @returns {Uint8Array}
+*/
+  serialize(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {Presentation}
+*/
+  static deserialize(bytes: Uint8Array): Presentation;
 }
 /**
 */
@@ -156,9 +197,9 @@ export class Prover {
 /**
 * Runs the notarization protocol.
 * @param {Commit} commit
-* @returns {Promise<NotarizedSession>}
+* @returns {Promise<NotarizationOutput>}
 */
-  notarize(commit: Commit): Promise<NotarizedSession>;
+  notarize(commit: Commit): Promise<NotarizationOutput>;
 /**
 * Reveals data to the verifier and finalizes the protocol.
 * @param {Reveal} reveal
@@ -168,23 +209,24 @@ export class Prover {
 }
 /**
 */
-export class TlsProof {
+export class Secrets {
   free(): void;
 /**
+* Returns the transcript.
+* @returns {Transcript}
+*/
+  transcript(): Transcript;
+/**
+* Serializes to a byte array.
 * @returns {Uint8Array}
 */
   serialize(): Uint8Array;
 /**
+* Deserializes from a byte array.
 * @param {Uint8Array} bytes
-* @returns {TlsProof}
+* @returns {Secrets}
 */
-  static deserialize(bytes: Uint8Array): TlsProof;
-/**
-* Verifies the proof using the provided notary public key.
-* @param {NotaryPublicKey} notary_key
-* @returns {ProofData}
-*/
-  verify(notary_key: NotaryPublicKey): ProofData;
+  static deserialize(bytes: Uint8Array): Secrets;
 }
 /**
 */
@@ -202,9 +244,9 @@ export class Verifier {
   connect(prover_url: string): Promise<void>;
 /**
 * Verifies the connection and finalizes the protocol.
-* @returns {Promise<VerifierData>}
+* @returns {Promise<VerifierOutput>}
 */
-  verify(): Promise<VerifierData>;
+  verify(): Promise<VerifierOutput>;
 }
 /**
 */
@@ -226,20 +268,24 @@ export class wbg_rayon_PoolBuilder {
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
-  readonly __wbg_notarizedsession_free: (a: number) => void;
-  readonly notarizedsession_proof: (a: number, b: number, c: number) => void;
-  readonly notarizedsession_transcript: (a: number) => number;
-  readonly notarizedsession_serialize: (a: number, b: number) => void;
-  readonly notarizedsession_deserialize: (a: number, b: number, c: number) => void;
-  readonly __wbg_tlsproof_free: (a: number) => void;
-  readonly tlsproof_serialize: (a: number, b: number) => void;
-  readonly tlsproof_deserialize: (a: number, b: number, c: number) => void;
-  readonly tlsproof_verify: (a: number, b: number, c: number) => void;
+  readonly __wbg_attestation_free: (a: number) => void;
+  readonly attestation_verifying_key: (a: number) => number;
+  readonly attestation_serialize: (a: number, b: number) => void;
+  readonly attestation_deserialize: (a: number, b: number, c: number) => void;
+  readonly __wbg_secrets_free: (a: number) => void;
+  readonly secrets_transcript: (a: number) => number;
+  readonly secrets_serialize: (a: number, b: number) => void;
+  readonly __wbg_presentation_free: (a: number) => void;
+  readonly presentation_verify: (a: number, b: number) => void;
+  readonly presentation_serialize: (a: number, b: number) => void;
+  readonly presentation_deserialize: (a: number, b: number, c: number) => void;
+  readonly secrets_deserialize: (a: number, b: number, c: number) => void;
   readonly __wbg_verifier_free: (a: number) => void;
   readonly verifier_new: (a: number) => number;
   readonly verifier_connect: (a: number, b: number, c: number) => number;
   readonly verifier_verify: (a: number) => number;
   readonly init_logging: (a: number) => void;
+  readonly build_presentation: (a: number, b: number, c: number, d: number) => void;
   readonly __wbg_prover_free: (a: number) => void;
   readonly prover_new: (a: number) => number;
   readonly prover_setup: (a: number, b: number, c: number) => number;
@@ -258,8 +304,8 @@ export interface InitOutput {
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_export_3: WebAssembly.Table;
-  readonly _dyn_core__ops__function__FnMut_____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h55b2cafb95688ebd: (a: number, b: number) => void;
-  readonly _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hd2e6f08741139974: (a: number, b: number, c: number) => void;
+  readonly _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hc0e5bb67f3c02103: (a: number, b: number, c: number) => void;
+  readonly _dyn_core__ops__function__FnMut_____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h554e67a0479894ff: (a: number, b: number) => void;
   readonly _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h6f377bea5980efdf: (a: number, b: number, c: number) => void;
   readonly _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h71d6551dc02f3cc7: (a: number, b: number, c: number) => void;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
