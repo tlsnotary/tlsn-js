@@ -148,6 +148,7 @@ npm run dev
 npm install
 npm run build
 ```
+Note: if compilation doesn't work check file 'workerHelpers.worker.js' and replace path to '../../../tlsn_wasm.js'
 
 ## Adding a new test
 1. Create a new `new-test.spec.ts` file in the `test/` directory

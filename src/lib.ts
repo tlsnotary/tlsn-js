@@ -3,9 +3,9 @@ import initWasm, {
   init_logging,
   LoggingLevel,
   LoggingConfig,
-  NotarizedSession as WasmNotarizedSession,
+  SignedSession as WasmSignedSession,
   Transcript,
-  TlsProof as WasmTlsProof,
+  verify_attestation_document,
   type Commit,
   type Reveal,
   Verifier as WasmVerifier,
@@ -13,10 +13,8 @@ import initWasm, {
   type ProverConfig,
   type Method,
   VerifierConfig,
-  VerifierData,
-  NotaryPublicKey,
 } from '../wasm/pkg/tlsn_wasm';
-import { arrayToHex, processTranscript, expect, headerToMap } from './utils';
+import { arrayToHex, expect, headerToMap } from './utils';
 import type { ParsedTranscriptData, ProofData } from './types';
 
 let LOGGING_LEVEL: LoggingLevel = 'Info';
@@ -25,6 +23,53 @@ function debug(...args: any[]) {
   if (['Debug', 'Trace'].includes(LOGGING_LEVEL)) {
     console.log('tlsn-js DEBUG', ...args);
   }
+}
+
+export interface RemoteAttestation {
+  protected: string;
+  payload: string;
+  signature: string;
+  certificate: string;
+  payload_object: Payload;
+}
+
+export interface Payload {
+  module_id: string;
+  timestamp: number;
+  digest: string;
+  pcrs: Map<number, string>;
+  certificate: Uint8Array;
+  cabundle: Uint8Array[];
+  public_key: Buffer;
+  user_data: Uint8Array | null;
+  nonce: string | null;
+}
+
+/**
+ * It generates a random nonce of length 40 using hexadecimal characters.
+ * This nonce is used to ensure the uniqueness of the attestation.
+ * @returns {string} The generated nonce.
+ */
+
+export function generateNonce() {
+  return Array.from({ length: 40 }, () =>
+    Math.floor(Math.random() * 16).toString(16),
+  ).join('');
+}
+
+export async function verify_attestation(
+  remote_attestation_base64: string,
+  nonce: string,
+  pcrs: string[],
+  timestamp: number = Math.floor(Date.now() / 1000),
+) {
+  console.log('remote_attestation_base64', remote_attestation_base64);
+  return await verify_attestation_document(
+    remote_attestation_base64,
+    nonce,
+    pcrs,
+    BigInt(timestamp),
+  );
 }
 
 export default async function init(config?: {
@@ -53,6 +98,8 @@ export default async function init(config?: {
 
   await initThreadPool(hardwareConcurrency);
   debug('initialized thread pool');
+
+  return true;
 }
 
 export class Prover {
@@ -103,18 +150,7 @@ export class Prover {
       body,
     });
 
-    const transcript = prover.transcript();
-
-    const commit = _commit || {
-      sent: [{ start: 0, end: transcript.sent.length }],
-      recv: [{ start: 0, end: transcript.recv.length }],
-    };
-
-    const session = await prover.notarize(commit);
-
-    const tlsProof = await session.proof(commit);
-
-    return tlsProof.serialize();
+    return await prover.notarize();
   }
 
   constructor(config: {
@@ -144,24 +180,6 @@ export class Prover {
     return this.#prover.setup(verifierUrl);
   }
 
-  async transcript(): Promise<{
-    sent: string;
-    recv: string;
-    ranges: { recv: ParsedTranscriptData; sent: ParsedTranscriptData };
-  }> {
-    const transcript = this.#prover.transcript();
-    const recv = Buffer.from(transcript.recv).toString();
-    const sent = Buffer.from(transcript.sent).toString();
-    return {
-      recv,
-      sent,
-      ranges: {
-        recv: processTranscript(recv),
-        sent: processTranscript(sent),
-      },
-    };
-  }
-
   async sendRequest(
     wsProxyUrl: string,
     request: {
@@ -173,6 +191,7 @@ export class Prover {
   ): Promise<{
     status: number;
     headers: { [key: string]: string };
+    body?: string;
   }> {
     const { url, method = 'GET', headers = {}, body } = request;
     const hostname = new URL(url).hostname;
@@ -199,12 +218,26 @@ export class Prover {
         },
         {},
       ),
+      body: resp.body,
     };
   }
 
-  async notarize(commit: Commit): Promise<string> {
-    const notarizedSession = await this.#prover.notarize(commit);
-    return arrayToHex(notarizedSession.serialize());
+  async notarize(): Promise<{
+    signedSession: string;
+    signature: string;
+    attestation: string;
+    applicationData: string;
+  }> {
+    const signedSessionString = await this.#prover.notarize();
+
+    const signedSession = signedSessionString.split('\r\n');
+
+    return {
+      signature: signedSession[0],
+      signedSession: '',
+      attestation: signedSession[1],
+      applicationData: signedSession[2],
+    };
   }
 }
 
@@ -221,20 +254,16 @@ export class Verifier {
     return this.#config.id;
   }
 
-  async verify(): Promise<VerifierData> {
-    return this.#verifier.verify();
-  }
-
   async connect(proverUrl: string): Promise<void> {
     return this.#verifier.connect(proverUrl);
   }
 }
 
-export class NotarizedSession {
-  #session: WasmNotarizedSession;
+export class SignedSession {
+  #session: WasmSignedSession;
 
   constructor(serializedSessionHex: string) {
-    this.#session = WasmNotarizedSession.deserialize(
+    this.#session = WasmSignedSession.deserialize(
       new Uint8Array(Buffer.from(serializedSessionHex, 'hex')),
     );
   }
@@ -243,55 +272,8 @@ export class NotarizedSession {
     return this.#session.free();
   }
 
-  async proof(reveal: Reveal) {
-    const proof = this.#session.proof(reveal);
-    console.log(proof);
-    return arrayToHex(proof.serialize());
-  }
-
   async serialize() {
     return arrayToHex(this.#session.serialize());
-  }
-}
-
-export class TlsProof {
-  #proof: WasmTlsProof;
-
-  constructor(serializedProofHex: string) {
-    this.#proof = WasmTlsProof.deserialize(
-      new Uint8Array(Buffer.from(serializedProofHex, 'hex')),
-    );
-  }
-
-  async free() {
-    return this.#proof.free();
-  }
-
-  async serialize() {
-    return arrayToHex(this.#proof.serialize());
-  }
-
-  async verify(
-    notaryPublicKey: NotaryPublicKey,
-    redactedSymbol = '*',
-  ): Promise<ProofData> {
-    const { received, received_auth_ranges, sent, ...rest } =
-      this.#proof.verify(notaryPublicKey);
-
-    return {
-      ...rest,
-      recv_auth_ranges: received_auth_ranges,
-      recv: received.reduce((recv: string, num) => {
-        recv =
-          recv + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
-        return recv;
-      }, ''),
-      sent: sent.reduce((sent: string, num) => {
-        sent =
-          sent + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
-        return sent;
-      }, ''),
-    };
   }
 }
 

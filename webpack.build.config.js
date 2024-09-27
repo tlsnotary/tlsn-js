@@ -26,6 +26,25 @@ const rules = [
   },
 ];
 
+var alias = {
+  stream: require.resolve('stream-browserify'),
+  // crypto: require.resolve('crypto-browserify'),
+  // vm: require.resolve('vm-browserify'),
+};
+
+var fileExtensions = [
+  'jpg',
+  'jpeg',
+  'png',
+  'gif',
+  'eot',
+  'otf',
+  'svg',
+  'ttf',
+  'woff',
+  'woff2',
+];
+
 module.exports = [
   {
     mode: isProd ? 'production' : 'development',
@@ -54,5 +73,14 @@ module.exports = [
     plugins: [
       envPlugin,
     ],
+    resolve: {
+      alias: alias,
+      extensions: fileExtensions
+        .map((extension) => '.' + extension)
+        .concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
+      fallback: {
+        stream: require.resolve('stream-browserify'),
+      },
+    }
   },
 ];

@@ -1,8 +1,8 @@
 {
-  "name": "tlsn-js",
-  "version": "v0.1.0-alpha.6.2",
-  "description": "",
-  "repository": "https://github.com/tlsnotary/tlsn-js",
+  "name": "@eternis/tlsn-js",
+  "version": "v0.1.0",
+  "description": "JS library for TLS Notary",
+  "repository": "https://github.com/eternisai/tlsn-js",
   "main": "build/lib.js",
   "types": "build/lib.d.ts",
   "files": [

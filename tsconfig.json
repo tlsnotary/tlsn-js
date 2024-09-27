@@ -15,7 +15,12 @@
     "isolatedModules": true,
     "sourceMap": true,
     "noEmit": true,
-    "jsx": "react"
+    "jsx": "react",
+    "paths": {
+      "crypto": ["node_modules/crypto-browserify"],
+      "stream": ["node_modules/stream-browserify"],
+      "vm": ["node_modules/vm-browserify"]
+    }
   },
   "include": [
     "src"
