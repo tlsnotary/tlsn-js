@@ -9,3 +9,4 @@ dev-build/
 test-build/
 ./demo/node_modules
 utils/tlsn
+bun.lockb

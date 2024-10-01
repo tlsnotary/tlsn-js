@@ -27,26 +27,49 @@ function App(): ReactElement {
 
   const onClick = useCallback(async () => {
     setProcessing(true);
+
+    // Prepare Notary Server connection
     const notary = NotaryServer.from(`http://localhost:7047`);
+
     console.time('submit');
+
     await init({ loggingLevel: 'Debug' });
+
     const prover = (await new Prover({
+      // serverDns: 'example.com',
       serverDns: 'swapi.dev',
     })) as TProver;
 
+    // Setup the prover - max_send_data max_recv_data
     await prover.setup(await notary.sessionUrl());
-    const resp = await prover.sendRequest('ws://localhost:55688', {
-      url: 'https://swapi.dev/api/people/1',
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: {
-        hello: 'world',
-        one: 1,
-      },
-    });
 
+    // proxy serwer
+    // https://github.com/vi/websocat
+    // ws://localhost:55688
+    let resp: any = null;
+    // Example don't handle errors
+    try {
+      resp = await prover.sendRequest('ws://localhost:55688', {
+        // url: 'http://example.com',
+        url: 'https://swapi.dev/api/people/1',
+        method: 'GET',
+        headers: {
+          // 'Content-Type': 'text/html; charset=UTF-8',
+          'Content-Type': 'application/json',
+        },
+        body: {
+          hello: 'world',
+          one: 1,
+        },
+      });
+      if (resp && typeof resp === 'object' && resp.data) {
+        console.log('Response data:', resp.data);
+      } else {
+        throw new Error('Received corrupt or invalid response');
+      }
+    } catch (error) {
+      console.error('Error received:', error);
+    }
     console.timeEnd('submit');
     console.log(resp);
 
@@ -68,6 +91,11 @@ function App(): ReactElement {
         transcript.ranges.recv.headers!['date'],
         transcript.ranges.recv.json!['name'],
         transcript.ranges.recv.json!['gender'],
+        // convervesion form json
+        // transcript.ranges.recv.json!['host'],
+        // transcript.ranges.recv.json!['accept'],
+        // transcript.ranges.recv.json!['connection'],
+        // transcript.ranges.recv.json!['user-agent'],
         ...transcript.ranges.recv.lineBreaks,
       ],
     };
@@ -86,16 +114,21 @@ function App(): ReactElement {
     setProofHex(proofHex);
   }, [setProofHex, setProcessing]);
 
+  // Helper method
   const onAltClick = useCallback(async () => {
     setProcessing(true);
     await init({ loggingLevel: 'Debug' });
     const proof = await Prover.notarize({
       id: 'test',
+      // Notary server
       notaryUrl: 'http://localhost:7047',
+      // Proxy server
       websocketProxyUrl: 'ws://localhost:55688',
+      // url: 'http://example.com',
       url: 'https://swapi.dev/api/people/1',
       method: 'GET',
       headers: {
+        // 'Content-Type': 'text/html; charset=UTF-8',
         'Content-Type': 'application/json',
       },
       body: {
@@ -115,6 +148,7 @@ function App(): ReactElement {
     (async () => {
       if (proofHex) {
         const proof = (await new TlsProof(proofHex)) as TTlsProof;
+        // Notary server
         const notary = NotaryServer.from(`http://localhost:7047`);
         const notaryKey = await notary.publicKey();
         const proofData = await proof.verify({
