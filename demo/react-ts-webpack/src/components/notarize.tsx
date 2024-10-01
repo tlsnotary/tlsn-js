@@ -20,6 +20,8 @@ const EXPECTED_PCRS = {
   '1': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
   '2': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
 };
+const notaryUrl = 'https://notary.eternis.ai';
+const websocketUrl = 'ws://localhost:55688';
 const request = requests.dummy;
 const { dns, url, method, headers, body } = request;
 
@@ -66,7 +68,7 @@ export function Notarization(): ReactElement {
 
   const notarize = async () => {
     setProcessingNotarization(true);
-    const notary = NotaryServer.from(`https://notary.eternis.ai`);
+    const notary = NotaryServer.from(notaryUrl);
     console.time('submit');
     const prover = (await new Prover({
       serverDns: dns,
@@ -74,7 +76,7 @@ export function Notarization(): ReactElement {
 
     await prover.setup(await notary.sessionUrl());
     console.log('setup');
-    const resp = await prover.sendRequest('ws://localhost:55688', {
+    const resp = await prover.sendRequest(websocketUrl, {
       url,
       method: method as 'GET' | 'POST',
       headers,
@@ -128,13 +130,21 @@ export function Notarization(): ReactElement {
         </div>
         <div className="p-8">
           <div className="uppercase tracking-wide text-sm text-indigo-500 font-semibold mb-1">
-            Remote Attestation Verification
+            Notarize data from {dns}
           </div>
-          <h1 className="block mt-1 text-lg leading-tight font-medium text-black">
-            Document Content
-          </h1>
-          <h2 className="text-l font-bold">encoded remote attestation</h2>
+
+          <p className="block mt-1 text-sm leading-tight font-medium text-black">
+            Request: {url}
+          </p>
+          <p className="block mt-1 text-sm leading-tight font-medium text-black">
+            Notary: {notaryUrl}
+          </p>
+          <p className="block mt-1 text-sm leading-tight font-medium text-black">
+            Websocket: {websocketUrl}
+          </p>
+
           <div className="mt-2 h-30 overflow-y-auto border border-gray-200 rounded p-4 mb-4">
+            <h2 className="text-l font-bold">Notary remote attestation</h2>
             <div>{remote_attestation_encoded}..</div>
           </div>
           {applicationData && (
