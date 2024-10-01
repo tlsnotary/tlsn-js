@@ -1,6 +1,6 @@
 import React, { ReactElement, useEffect, useState } from 'react';
 import * as Comlink from 'comlink';
-import { parseSignature, AttestationObject } from 'tlsn-js';
+import { parseSignature, AttestationObject, decodeTLSData } from 'tlsn-js';
 import { CheckCircle, XCircle } from 'lucide-react';
 
 const { init, verify_attestation_signature }: any = Comlink.wrap(
@@ -20,10 +20,10 @@ export function VerifyAttributeAttestation(): ReactElement {
     null | boolean
   >(null);
   const [error, setError] = useState<null | string>(null);
-
   const [attestationObject, setAttestationObject] = useState<string | null>(
     null,
   );
+  const [decodedTLSData, setDecodedTLSData] = useState<null | any>(null);
 
   const verifySignature = async () => {
     if (!attestationObject) return setError('Attestation object is invalid');
@@ -33,6 +33,11 @@ export function VerifyAttributeAttestation(): ReactElement {
       attestationObjectParsed = JSON.parse(
         attestationObject,
       ) as AttestationObject;
+
+      const decodedTLSData = decodeTLSData(
+        attestationObjectParsed.applicationData,
+      );
+      setDecodedTLSData(decodedTLSData);
     } catch (e) {
       console.log(e);
       setIsAttrAttestationValid(false);
@@ -101,6 +106,14 @@ export function VerifyAttributeAttestation(): ReactElement {
               onChange={parseAttestationObject}
               placeholder={placeholder_object}
             ></textarea>
+
+            {decodedTLSData && (
+              <div className="mt-2 h-30 overflow-y-auto border border-gray-200 rounded p-4 mb-4">
+                <h2 className="text-l font-bold">Decoded Application Data</h2>
+
+                <StylizedJSON data={decodedTLSData} />
+              </div>
+            )}
           </div>
 
           <div className="flex justify-between items-center mb-4">
@@ -138,6 +151,65 @@ export function VerifyAttributeAttestation(): ReactElement {
     </div>
   );
 }
+
+const StylizedJSON = ({ data }: { data: any }) => {
+  const convertToStylizedYAML = (obj: any, indent = 0): React.ReactNode[] => {
+    if (typeof obj !== 'object' || obj === null) {
+      throw new Error('Input must be a valid JSON object');
+    }
+
+    return Object.entries(obj).map(([key, value], index) => {
+      const indentation = '  '.repeat(indent);
+      const isArray = Array.isArray(value);
+      const isObject = typeof value === 'object' && value !== null && !isArray;
+
+      let content: React.ReactNode;
+
+      if (isObject || isArray) {
+        content = (
+          <>
+            <span className="text-purple-600">{key}:</span> {isArray ? '▼' : ''}
+            {convertToStylizedYAML(value, indent + 1)}
+          </>
+        );
+      } else {
+        let valueClass = 'text-blue-600';
+        if (typeof value === 'string') {
+          valueClass = 'text-green-600';
+          value = `"${value}"`;
+        } else if (typeof value === 'number') {
+          valueClass = 'text-orange-600';
+        }
+        content = (
+          <>
+            <span className="text-purple-600">{key}:</span>{' '}
+            <span className={valueClass}>{value as any}</span>
+          </>
+        );
+      }
+
+      return (
+        <div key={index} style={{ marginLeft: `${indent * 20}px` }}>
+          {indentation}
+          {content}
+        </div>
+      );
+    });
+  };
+
+  try {
+    const stylizedContent = convertToStylizedYAML(data);
+    return (
+      <pre className="font-mono text-sm bg-gray-100 p-4 rounded-lg overflow-x-auto">
+        {stylizedContent}
+      </pre>
+    );
+  } catch (error) {
+    return (
+      <div className="text-red-600">Error: {(error as Error).message}</div>
+    );
+  }
+};
 
 const placeholder_object = `
 copy the attestation object from the extension

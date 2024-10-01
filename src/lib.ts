@@ -58,6 +58,31 @@ export interface Payload {
 }
 
 /**
+ * Decode the attested bytes tls data which contains request and response
+ * @returns {string} The generated nonce.
+ */
+export function decodeTLSData(hexString: string) {
+  // Remove any whitespace from the hex string
+  hexString = hexString.replace(/\s/g, '');
+
+  // Decode the hex string to a regular string
+  let decodedString = '';
+  for (let i = 0; i < hexString.length; i += 2) {
+    decodedString += String.fromCharCode(parseInt(hexString.substr(i, 2), 16));
+  }
+
+  // Split the decoded string into request and response
+  const [request, response_header, response_body] =
+    decodedString.split('\r\n\r\n');
+
+  return {
+    request,
+    response_header,
+    response_body,
+  };
+}
+
+/**
  * It generates a random nonce of length 40 using hexadecimal characters.
  * This nonce is used to ensure the uniqueness of the attestation.
  * @returns {string} The generated nonce.
