@@ -5,11 +5,12 @@ import {
   Prover as TProver,
   NotaryServer,
   RemoteAttestation,
+  parseSignature,
 } from 'tlsn-js';
 import { CheckCircle, RefreshCw, XCircle } from 'lucide-react';
 import './app.css';
 
-const { init, verify_attestation, Prover }: any =
+const { init, verify_attestation, Prover, verify_attestation_signature }: any =
   Comlink.wrap(new Worker(new URL('./worker.ts', import.meta.url)));
 
 const container = document.getElementById('root');
@@ -28,13 +29,16 @@ const EXPECTED_PCRS = {
 function App(): ReactElement {
   const [processingVerification, setProcessingVerification] = useState(false);
   const [processingNotarization, setProcessingNotarization] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
+  const [notarySignature, setSignature] = useState<string | null>(null);
   const [resultVerify, setResultVerify] = useState<boolean | null>(null);
-  const [proofHex, setProofHex] = useState<null | string>(null);
+  const [applicationData, setApplicationData] = useState<null | string>(null);
   const [remoteAttestation, setRemoteAttestation] =
     useState<null | RemoteAttestation>(null);
 
   const [error, setError] = useState<null | string>(null);
+  const [isAttrAttestationValid, setIsAttrAttestationValid] = useState<
+    null | boolean
+  >(null);
 
   const verify_attestation_document = async () => {
     setProcessingVerification(true);
@@ -43,7 +47,7 @@ function App(): ReactElement {
         remote_attestation_encoded,
         nonce,
         EXPECTED_PCRS,
-        1726606091
+        1726606091,
       );
       if (!resultVerify) setError('remote attestation signature is not valid');
       setResultVerify(resultVerify);
@@ -68,21 +72,18 @@ function App(): ReactElement {
     const notary = NotaryServer.from(`https://notary.eternis.ai`);
     console.time('submit');
     const prover = (await new Prover({
-      serverDns: 'swapi.dev',
+      serverDns: 'dummyjson.com',
     })) as TProver;
 
     await prover.setup(await notary.sessionUrl());
     console.log('setup');
     const resp = await prover.sendRequest('ws://localhost:55688', {
-      url: 'https://swapi.dev/api/people/1',
+      url: 'https://dummyjson.com/products/1',
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: {
-        hello: 'world',
-        one: 1,
-      },
+      // headers: {
+      //   'Content-Type': 'application/json',
+      // },
+      body: {},
     });
 
     console.timeEnd('submit');
@@ -90,21 +91,42 @@ function App(): ReactElement {
 
     const session = await prover.notarize();
 
-    setProofHex(session.applicationData);
-    setResult(session.signature);
+    console.log(session);
+    setApplicationData(session.applicationData);
+    setSignature(session.signature);
     setProcessingNotarization(false);
-  };
 
+    //verify signature
+
+    const notaryKey = await notary.publicKey();
+    //convert to raw_bytes_hex
+    const hex_notary_key =
+      '0406fdfa148e1916ccc96b40d0149df05825ef54b16b711ccc1b991a4de1c6a12cc3bba705ab1dee116629146a3a0b410e5207fe98481b92d2eb5e872fe721f32a';
+
+    const signature_hex = parseSignature(session.signature);
+
+    console.log('signature_hex', signature_hex);
+
+    const isValid = await verify_attestation_signature(
+      session.applicationData,
+      signature_hex,
+      hex_notary_key,
+    );
+
+    console.log('isValid', isValid);
+    setIsAttrAttestationValid(isValid);
+  };
 
   useEffect(() => {
     (async () => {
-      if (proofHex) {
+      if (applicationData) {
         const notary = NotaryServer.from(`https://notary.eternis.ai`);
         const notaryKey = await notary.publicKey();
+
         setProcessingVerification(false);
       }
     })();
-  }, [proofHex, setResult]);
+  }, [applicationData, setSignature]);
 
   const handleRefresh = () => {
     //setVerificationResult(null);
@@ -139,16 +161,16 @@ function App(): ReactElement {
               <h2 className="text-l font-bold">attribute attestation</h2>
             </div>
 
-            {proofHex && (
+            {applicationData && (
               <div>
                 <h2>Application Data Hex</h2>
-                {proofHex}
+                {applicationData}
               </div>
             )}
-            {result && (
+            {notarySignature && (
               <div>
                 <h2>signature</h2>
-                {result}
+                {notarySignature}
               </div>
             )}
           </div>
@@ -178,7 +200,7 @@ function App(): ReactElement {
               {processingNotarization ? (
                 <>
                   <RefreshCw className="animate-spin -ml-1 mr-2 h-5 w-5" />
-                  Nitarizing...
+                  Notarizing...
                 </>
               ) : (
                 <>
@@ -195,6 +217,27 @@ function App(): ReactElement {
               Refresh
             </button>
           </div>
+
+          {isAttrAttestationValid !== null && (
+            <div
+              className={`mt-4 p-4 rounded-md ${isAttrAttestationValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+            >
+              <div className="flex items-center">
+                {isAttrAttestationValid ? (
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                ) : (
+                  <XCircle className="h-5 w-5 mr-2" />
+                )}
+                <span className="font-medium">
+                  {isAttrAttestationValid
+                    ? 'Attribute attestation is valid'
+                    : 'Attribute attestation is invalid'}
+                  {!isAttrAttestationValid && <p>Error: {error}</p>}
+                </span>
+              </div>
+            </div>
+          )}
+
           {resultVerify !== null && (
             <div
               className={`mt-4 p-4 rounded-md ${resultVerify ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
@@ -206,7 +249,9 @@ function App(): ReactElement {
                   <XCircle className="h-5 w-5 mr-2" />
                 )}
                 <span className="font-medium">
-                  {resultVerify ? 'Document is valid' : 'Document is invalid'}
+                  {resultVerify
+                    ? 'Remote attestation is valid'
+                    : 'Remote attestation is invalid'}
                   {!resultVerify && <p>Error: {error}</p>}
                 </span>
               </div>

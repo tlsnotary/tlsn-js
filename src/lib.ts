@@ -6,6 +6,7 @@ import initWasm, {
   SignedSession as WasmSignedSession,
   Transcript,
   verify_attestation_document,
+  verify_attestation_signature,
   type Commit,
   type Reveal,
   Verifier as WasmVerifier,
@@ -57,6 +58,25 @@ export function generateNonce() {
   ).join('');
 }
 
+export { verify_attestation_signature };
+
+//input example:"P256(ecdsa::Signature<NistP256>(252C196D7265E1CD53F3F9E7F36465F95A04297F3A4CF7DA9DD0DDBB0FBCC9717299A49F0582E09D17BA140F392232715EF2E87A7FD4F9567D9826DEF5B01CC3))";
+
+export function parseSignature(input: string) {
+  // Regular expression to match the hex signature
+  const regex = /\(([\dA-Fa-f]+)\)/;
+
+  // Extract the hex signature
+  const match = input.match(regex);
+
+  if (match && match[1]) {
+    // Return the extracted hex signature
+    return match[1];
+  } else {
+    // Return null if no valid signature is found
+    return null;
+  }
+}
 export async function verify_attestation(
   remote_attestation_base64: string,
   nonce: string,
