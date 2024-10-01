@@ -142,38 +142,26 @@ function App(): ReactElement {
           <h1 className="block mt-1 text-lg leading-tight font-medium text-black">
             Document Content
           </h1>
-          <div className="mt-2 h-80 overflow-y-auto border border-gray-200 rounded p-4 mb-4">
-            <div>
-              <h2 className="text-l font-bold">encoded remote attestation</h2>
-              {remote_attestation_encoded.slice(0, 10)}..
-              {remote_attestation_encoded.slice(-10)}
-            </div>
-
-            {remoteAttestation && (
-              <div>
-                <h2>decoded remote attestation</h2>
-                {JSON.stringify(remoteAttestation, null, 2)}
-              </div>
-            )}
+          <h2 className="text-l font-bold">encoded remote attestation</h2>
+          <div className="mt-2 h-30 overflow-y-auto border border-gray-200 rounded p-4 mb-4">
+            <div>{remote_attestation_encoded}..</div>
           </div>
-          <div className="mt-2 h-80 overflow-y-auto border border-gray-200 rounded p-4 mb-4">
+          {applicationData && (
             <div>
               <h2 className="text-l font-bold">attribute attestation</h2>
-            </div>
+              <div className="mt-2 h-50 overflow-y-auto border border-gray-200 rounded p-4 mb-4">
+                <div>
+                  <h2>Application Data Hex</h2>
+                  {applicationData}
+                </div>
 
-            {applicationData && (
-              <div>
-                <h2>Application Data Hex</h2>
-                {applicationData}
+                <div>
+                  <h2>signature</h2>
+                  {notarySignature}
+                </div>
               </div>
-            )}
-            {notarySignature && (
-              <div>
-                <h2>signature</h2>
-                {notarySignature}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
           <div className="flex justify-between items-center mb-4">
             <button
               onClick={verify_attestation_document}
@@ -218,7 +206,7 @@ function App(): ReactElement {
             </button>
           </div>
 
-          {isAttrAttestationValid !== null && (
+          {!processingNotarization && isAttrAttestationValid !== null && (
             <div
               className={`mt-4 p-4 rounded-md ${isAttrAttestationValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
             >
@@ -238,7 +226,7 @@ function App(): ReactElement {
             </div>
           )}
 
-          {resultVerify !== null && (
+          {!processingNotarization && resultVerify !== null && (
             <div
               className={`mt-4 p-4 rounded-md ${resultVerify ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
             >
