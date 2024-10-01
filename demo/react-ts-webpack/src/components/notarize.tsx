@@ -1,6 +1,7 @@
 import React, { ReactElement, useEffect, useState } from 'react';
 import { CheckCircle, RefreshCw, XCircle } from 'lucide-react';
 import { requests } from '../utils/requests';
+import { Link } from 'react-router-dom';
 
 import * as Comlink from 'comlink';
 import {
@@ -114,13 +115,17 @@ export function Notarization(): ReactElement {
     })();
   }, [applicationData, notarySignature]);
 
-  const handleRefresh = () => {
-    //setVerificationResult(null);
-  };
-
   return (
     <div>
       <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
+        <div className="flex justify-between items-center mb-4">
+          <Link
+            to="/verify"
+            className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 flex items-center"
+          >
+            Verify manually an Attribute Attestation
+          </Link>
+        </div>
         <div className="p-8">
           <div className="uppercase tracking-wide text-sm text-indigo-500 font-semibold mb-1">
             Remote Attestation Verification
@@ -184,13 +189,6 @@ export function Notarization(): ReactElement {
                   Notarize
                 </>
               )}
-            </button>
-            <button
-              onClick={handleRefresh}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
-            >
-              <RefreshCw className="mr-2 h-5 w-5" />
-              Refresh
             </button>
           </div>
 
