@@ -102,13 +102,13 @@ export function VerifyAttributeAttestation(): ReactElement {
               id="attestation"
               name="attestation"
               rows={4}
-              className="h-60 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              className="h-40 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               onChange={parseAttestationObject}
               placeholder={placeholder_object}
             ></textarea>
 
             {decodedTLSData && (
-              <div className="mt-2 h-30 overflow-y-auto border border-gray-200 rounded p-4 mb-4">
+              <div className="mt-2 h-30 overflow-y-30 border border-gray-200 rounded p-4 mb-4">
                 <h2 className="text-l font-bold">Decoded Application Data</h2>
 
                 <StylizedJSON data={decodedTLSData} />
@@ -119,7 +119,8 @@ export function VerifyAttributeAttestation(): ReactElement {
           <div className="flex justify-between items-center mb-4">
             <button
               onClick={verifySignature}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              disabled={!attestationObject}
+              className={`px-4 py-2 ${attestationObject ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 cursor-not-allowed'} text-white rounded focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 disabled:opacity-50 flex items-center`}
             >
               <CheckCircle className="mr-2 h-5 w-5" />
               Verify
