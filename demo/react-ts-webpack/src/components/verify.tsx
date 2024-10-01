@@ -116,11 +116,11 @@ export function VerifyAttributeAttestation(): ReactElement {
             )}
           </div>
 
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-center items-center mb-4">
             <button
               onClick={verifySignature}
               disabled={!attestationObject}
-              className={`px-4 py-2 ${attestationObject ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 cursor-not-allowed'} text-white rounded focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 disabled:opacity-50 flex items-center`}
+              className={`px-4 py-2 ${attestationObject ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 cursor-not-allowed'} text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 flex items-center`}
             >
               <CheckCircle className="mr-2 h-5 w-5" />
               Verify
