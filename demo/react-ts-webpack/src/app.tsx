@@ -2,9 +2,10 @@ import React, { ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import './app.css';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 
 import { Notarization } from './components/notarize';
+import { VerifyAttributeAttestation } from './components/verify';
 
 const container = document.getElementById('root');
 const root = createRoot(container!);
@@ -17,7 +18,8 @@ function App(): ReactElement {
       <div>
         <Routes>
           <Route path="/" element={<Notarization />} />
-          <Route path="/verify" element={<></>} />
+          <Route path="/notarize" element={<Notarization />} />
+          <Route path="/verify" element={<VerifyAttributeAttestation />} />
         </Routes>
       </div>
     </Router>

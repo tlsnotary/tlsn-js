@@ -1,4 +1,7 @@
 import React, { ReactElement, useEffect, useState } from 'react';
+import { CheckCircle, RefreshCw, XCircle } from 'lucide-react';
+import { requests } from '../utils/requests';
+
 import * as Comlink from 'comlink';
 import {
   Prover as TProver,
@@ -6,9 +9,6 @@ import {
   RemoteAttestation,
   parseSignature,
 } from 'tlsn-js';
-import { CheckCircle, RefreshCw, XCircle } from 'lucide-react';
-import { requests } from '../utils/requests';
-
 const { init, verify_attestation, Prover, verify_attestation_signature }: any =
   Comlink.wrap(new Worker(new URL('../utils/worker.ts', import.meta.url)));
 
@@ -85,41 +85,34 @@ export function Notarization(): ReactElement {
 
     const session = await prover.notarize();
 
-    console.log(session);
     setApplicationData(session.applicationData);
     setSignature(session.signature);
     setProcessingNotarization(false);
-
-    //verify signature
-    const notaryKey = await notary.publicKey();
-    //convert to raw_bytes_hex
-    const hex_notary_key =
-      '0406fdfa148e1916ccc96b40d0149df05825ef54b16b711ccc1b991a4de1c6a12cc3bba705ab1dee116629146a3a0b410e5207fe98481b92d2eb5e872fe721f32a';
-
-    const signature_hex = parseSignature(session.signature);
-
-    console.log('signature_hex', signature_hex);
-
-    const isValid = await verify_attestation_signature(
-      session.applicationData,
-      signature_hex,
-      hex_notary_key,
-    );
-
-    console.log('isValid', isValid);
-    setIsAttrAttestationValid(isValid);
   };
 
+  //verify signature
   useEffect(() => {
     (async () => {
-      if (applicationData) {
-        const notary = NotaryServer.from(`https://notary.eternis.ai`);
-        const notaryKey = await notary.publicKey();
+      if (applicationData && notarySignature) {
+        //const notary = NotaryServer.from(`https://notary.eternis.ai`);
+        //const notaryKey = await notary.publicKey();
 
+        //convert to raw_bytes_hex
+        const hex_notary_key =
+          '0406fdfa148e1916ccc96b40d0149df05825ef54b16b711ccc1b991a4de1c6a12cc3bba705ab1dee116629146a3a0b410e5207fe98481b92d2eb5e872fe721f32a';
+
+        const signature_hex = parseSignature(notarySignature);
+        const isValid = await verify_attestation_signature(
+          applicationData,
+          signature_hex,
+          hex_notary_key,
+        );
+
+        setIsAttrAttestationValid(isValid);
         setProcessingVerification(false);
       }
     })();
-  }, [applicationData, setSignature]);
+  }, [applicationData, notarySignature]);
 
   const handleRefresh = () => {
     //setVerificationResult(null);

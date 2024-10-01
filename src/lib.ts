@@ -26,6 +26,17 @@ function debug(...args: any[]) {
   }
 }
 
+export interface AttestationObject {
+  version: string;
+  meta: {
+    notaryUrl: string;
+    websocketProxyUrl: string;
+  };
+  signature: string;
+  signedSession: string;
+  applicationData: string;
+  attestations: string;
+}
 export interface RemoteAttestation {
   protected: string;
   payload: string;
@@ -150,7 +161,6 @@ export class Prover {
       notaryUrl,
       websocketProxyUrl,
       id,
-      commit: _commit,
     } = options;
     const hostname = new URL(url).hostname;
     const notary = NotaryServer.from(notaryUrl);
