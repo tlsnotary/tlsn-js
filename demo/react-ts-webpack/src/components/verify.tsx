@@ -107,6 +107,38 @@ export function VerifyAttributeAttestation(): ReactElement {
               placeholder={placeholder_object}
             ></textarea>
 
+            <div className="flex justify-center items-center mb-4">
+              <button
+                onClick={verifySignature}
+                disabled={!attestationObject}
+                className={`px-4 py-2 ${attestationObject ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 cursor-not-allowed'} text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 flex items-center`}
+              >
+                <CheckCircle className="mr-2 h-5 w-5" />
+                Verify
+              </button>
+            </div>
+
+            {isAttrAttestationValid !== null && (
+              <div
+                className={`mt-4 p-4 rounded-md ${isAttrAttestationValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+              >
+                <div className="flex items-center">
+                  {isAttrAttestationValid ? (
+                    <CheckCircle className="h-5 w-5 mr-2" />
+                  ) : (
+                    <XCircle className="h-5 w-5 mr-2" />
+                  )}
+                  <span className="font-medium">
+                    {isAttrAttestationValid && (
+                      <p>Attribute attestation is valid</p>
+                    )}
+
+                    {<p> {error}</p>}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {decodedTLSData && (
               <div className="mt-2 h-30 overflow-y-30 border border-gray-200 rounded p-4 mb-4">
                 <h2 className="text-l font-bold">Decoded Application Data</h2>
@@ -115,38 +147,6 @@ export function VerifyAttributeAttestation(): ReactElement {
               </div>
             )}
           </div>
-
-          <div className="flex justify-center items-center mb-4">
-            <button
-              onClick={verifySignature}
-              disabled={!attestationObject}
-              className={`px-4 py-2 ${attestationObject ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 cursor-not-allowed'} text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 flex items-center`}
-            >
-              <CheckCircle className="mr-2 h-5 w-5" />
-              Verify
-            </button>
-          </div>
-
-          {isAttrAttestationValid !== null && (
-            <div
-              className={`mt-4 p-4 rounded-md ${isAttrAttestationValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
-            >
-              <div className="flex items-center">
-                {isAttrAttestationValid ? (
-                  <CheckCircle className="h-5 w-5 mr-2" />
-                ) : (
-                  <XCircle className="h-5 w-5 mr-2" />
-                )}
-                <span className="font-medium">
-                  {isAttrAttestationValid && (
-                    <p>Attribute attestation is valid</p>
-                  )}
-
-                  {<p> {error}</p>}
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
