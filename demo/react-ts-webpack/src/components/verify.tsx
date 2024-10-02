@@ -159,7 +159,26 @@ const StylizedJSON = ({ data }: { data: any }) => {
       throw new Error('Input must be a valid JSON object');
     }
 
-    return Object.entries(obj).map(([key, value], index) => {
+    const parseData = function (data: any) {
+      try {
+        const data_ = data.request;
+        const lines = data_.split('\n');
+        const request = lines.filter((line: string) =>
+          line.startsWith('GET'),
+        )[0];
+
+        return { request: request, body: data.response_body };
+      } catch (e) {
+        console.log('error parse attestation', e);
+        return data;
+      }
+    };
+
+    const obj_ = parseData(obj);
+
+    console.log('obj_', obj_);
+
+    return Object.entries(obj_).map(([key, value], index) => {
       const indentation = '  '.repeat(indent);
       const isArray = Array.isArray(value);
       const isObject = typeof value === 'object' && value !== null && !isArray;
