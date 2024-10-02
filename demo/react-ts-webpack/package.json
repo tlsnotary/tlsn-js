@@ -11,12 +11,14 @@
   "license": "ISC",
   "dependencies": {
     "comlink": "^4.4.1",
+    "elliptic": "^6.5.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-loader-spinner": "^6.1.6",
     "tlsn-js": "../../"
   },
   "devDependencies": {
+    "@types/elliptic": "^6.4.18",
     "@types/react": "^18.0.26",
     "@types/react-dom": "^18.0.10",
     "babel-loader": "^9.1.3",
