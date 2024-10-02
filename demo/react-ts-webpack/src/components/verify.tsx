@@ -24,26 +24,39 @@ export function VerifyAttributeAttestation(): ReactElement {
     null,
   );
   const [decodedTLSData, setDecodedTLSData] = useState<null | any>(null);
+  const [attrAttestations, setAttrAttestations] = useState<null | any>(null);
 
   const verifySignature = async () => {
     if (!attestationObject) return setError('Attestation object is invalid');
 
-    let attestationObjectParsed;
+    let attestationObject_;
     try {
-      attestationObjectParsed = JSON.parse(
-        attestationObject,
-      ) as AttestationObject;
+      attestationObject_ = JSON.parse(attestationObject) as AttestationObject;
 
-      const decodedTLSData = decodeTLSData(
-        attestationObjectParsed.applicationData,
-      );
+      if (attestationObject_.attestations) {
+        const attr_attestations = attestationObject_.attestations
+          .split(';')
+          .map((attr: string) => {
+            const colonIndex = attr.indexOf(':');
+            if (colonIndex === -1) return undefined;
+
+            const attribute = attr.slice(0, colonIndex);
+            const signature = parseSignature(attr.slice(colonIndex + 1));
+
+            if (attribute !== '') return [attribute, signature];
+            else return undefined;
+          });
+        console.log('attr_attestations', attr_attestations);
+        setAttrAttestations(attr_attestations);
+      }
+      const decodedTLSData = decodeTLSData(attestationObject_.applicationData);
       setDecodedTLSData(decodedTLSData);
     } catch (e) {
       console.log(e);
       setIsAttrAttestationValid(false);
       return setError('Object is invalid');
     }
-    const { applicationData, signature } = attestationObjectParsed;
+    const { applicationData, signature } = attestationObject_;
 
     if (!applicationData) return setError('No application data');
     if (!signature) return setError('No signature');
@@ -80,8 +93,6 @@ export function VerifyAttributeAttestation(): ReactElement {
       setAttestationObject(e.target.value);
     } catch (e) {}
   };
-
-  console.log('erro', error);
 
   return (
     <div>
@@ -139,7 +150,23 @@ export function VerifyAttributeAttestation(): ReactElement {
               </div>
             )}
 
-            {decodedTLSData && (
+            {attrAttestations && (
+              <div className="mt-2 h-30 overflow-y-30 border border-gray-200 rounded p-4 mb-4">
+                <h2 className="text-l font-bold">Attribute attestations</h2>
+                <ul>
+                  {attrAttestations.map(
+                    (attr: any) =>
+                      attr && (
+                        <>
+                          <li key={attr[0]}>{attr[0]}</li>
+                          <li key={attr[1]}>signature: {attr[1]}</li>
+                        </>
+                      ),
+                  )}
+                </ul>
+              </div>
+            )}
+            {!attrAttestations && decodedTLSData && (
               <div className="mt-2 h-30 overflow-y-30 border border-gray-200 rounded p-4 mb-4">
                 <h2 className="text-l font-bold">Decoded Application Data</h2>
 
@@ -175,8 +202,6 @@ const StylizedJSON = ({ data }: { data: any }) => {
     };
 
     const obj_ = parseData(obj);
-
-    console.log('obj_', obj_);
 
     return Object.entries(obj_).map(([key, value], index) => {
       const indentation = '  '.repeat(indent);
@@ -246,3 +271,21 @@ example:
   "attestations": ""
 }
 `;
+
+/*
+other example : twitter
+
+{
+  "version": "1.0",
+  "meta": {
+    "notaryUrl": "https://notary.eternis.ai",
+    "websocketProxyUrl": "wss://inn1.eternis.ai:55688"
+  },
+  "signature": "P256(ecdsa::Signature<NistP256>(860CE693C0F9B916840530624F9553508A3FB9A647CFCC7E821EF87A5E8C9BB1DF31457BEA903B7BA5ECAF5BF19655902BD7980B870B03756FABCB48F1E3FDE8))",
+  "signedSession": "",
+  "applicationData": "statuses>100:P256(ecdsa::Signature<NistP256>(CD0CD9AFF36378D602DA746E9411582D48074ECD04727CBBC5CC0C5A5681C1C2FCF4BA1A35E9E2FCEBAD22C843E95B04C5E595D04259F9ACE1D23FF41C07921E));",
+  "attestations": "screen_name=Colosszsinge:P256(ecdsa::Signature<NistP256>(B12101687A474B23E197CBAFEF17600756783BDDB551A72EDFD7C4CBE82135BF118F4562FE187A3E9D51C5F41357BCDA6E53CB16DC77E1AC12464DA56EBB3E66));"
+}
+
+
+*/
