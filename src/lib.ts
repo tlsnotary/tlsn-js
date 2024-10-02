@@ -6,6 +6,7 @@ import initWasm, {
   SignedSession as WasmSignedSession,
   Transcript,
   verify_attestation_document,
+  verify_attestation_signature,
   type Commit,
   type Reveal,
   Verifier as WasmVerifier,
@@ -25,6 +26,17 @@ function debug(...args: any[]) {
   }
 }
 
+export interface AttestationObject {
+  version: string;
+  meta: {
+    notaryUrl: string;
+    websocketProxyUrl: string;
+  };
+  signature: string;
+  signedSession: string;
+  applicationData: string;
+  attestations: string;
+}
 export interface RemoteAttestation {
   protected: string;
   payload: string;
@@ -46,6 +58,31 @@ export interface Payload {
 }
 
 /**
+ * Decode the attested bytes tls data which contains request and response
+ * @returns {string} The generated nonce.
+ */
+export function decodeTLSData(hexString: string) {
+  // Remove any whitespace from the hex string
+  hexString = hexString.replace(/\s/g, '');
+
+  // Decode the hex string to a regular string
+  let decodedString = '';
+  for (let i = 0; i < hexString.length; i += 2) {
+    decodedString += String.fromCharCode(parseInt(hexString.substr(i, 2), 16));
+  }
+
+  // Split the decoded string into request and response
+  const [request, response_header, response_body] =
+    decodedString.split('\r\n\r\n');
+
+  return {
+    request,
+    response_header,
+    response_body,
+  };
+}
+
+/**
  * It generates a random nonce of length 40 using hexadecimal characters.
  * This nonce is used to ensure the uniqueness of the attestation.
  * @returns {string} The generated nonce.
@@ -57,6 +94,25 @@ export function generateNonce() {
   ).join('');
 }
 
+export { verify_attestation_signature };
+
+//input example:"P256(ecdsa::Signature<NistP256>(252C196D7265E1CD53F3F9E7F36465F95A04297F3A4CF7DA9DD0DDBB0FBCC9717299A49F0582E09D17BA140F392232715EF2E87A7FD4F9567D9826DEF5B01CC3))";
+
+export function parseSignature(input: string) {
+  // Regular expression to match the hex signature
+  const regex = /\(([\dA-Fa-f]+)\)/;
+
+  // Extract the hex signature
+  const match = input.match(regex);
+
+  if (match && match[1]) {
+    // Return the extracted hex signature
+    return match[1];
+  } else {
+    // Return null if no valid signature is found
+    return null;
+  }
+}
 export async function verify_attestation(
   remote_attestation_base64: string,
   nonce: string,
@@ -130,7 +186,6 @@ export class Prover {
       notaryUrl,
       websocketProxyUrl,
       id,
-      commit: _commit,
     } = options;
     const hostname = new URL(url).hostname;
     const notary = NotaryServer.from(notaryUrl);

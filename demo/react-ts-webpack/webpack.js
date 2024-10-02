@@ -119,6 +119,7 @@ var options = {
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
     },
+    historyApiFallback: true,
   },
 };
 
