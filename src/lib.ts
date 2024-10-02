@@ -4,7 +4,6 @@ import initWasm, {
   LoggingLevel,
   LoggingConfig,
   Attestation as WasmAttestation,
-  Transcript,
   Secrets as WasmSecrets,
   type Commit,
   type Reveal,
@@ -27,7 +26,7 @@ import {
   headerToMap,
   hexToArray,
 } from './utils';
-import type { ParsedTranscriptData, ProofData } from './types';
+import { ParsedTranscriptData } from './types';
 
 let LOGGING_LEVEL: LoggingLevel = 'Info';
 
@@ -127,7 +126,7 @@ export class Prover {
 
     const presentation = build_presentation(attestation, secrets, commit);
 
-    return presentation.serialize();
+    return arrayToHex(presentation.serialize());
   }
 
   constructor(config: {
@@ -229,10 +228,10 @@ export class Prover {
   async notarize(
     commit: Commit,
   ): Promise<{ attestation: string; secrets: string }> {
-    const { attestation, secrets } = await this.#prover.notarize(commit);
+    const output = await this.#prover.notarize(commit);
     return {
-      attestation: arrayToHex(attestation.serialize()),
-      secrets: arrayToHex(secrets.serialize()),
+      attestation: arrayToHex(output.attestation.serialize()),
+      secrets: arrayToHex(output.secrets.serialize()),
     };
   }
 
@@ -265,12 +264,6 @@ export class Verifier {
 export class Presentation {
   #presentation: WasmPresentation;
 
-  static deserialize(presentationHex: string) {
-    return new Presentation(
-      WasmPresentation.deserialize(hexToArray(presentationHex)),
-    );
-  }
-
   constructor(
     params:
       | {
@@ -278,14 +271,18 @@ export class Presentation {
           secretsHex: string;
           reveal: Reveal;
         }
-      | WasmPresentation,
+      | string,
   ) {
-    if (params instanceof WasmPresentation) {
-      this.#presentation = params;
+    if (typeof params === 'string') {
+      this.#presentation = WasmPresentation.deserialize(hexToArray(params));
     } else {
+      const attestation = WasmAttestation.deserialize(
+        hexToArray(params.attestationHex),
+      );
+      const secrets = WasmSecrets.deserialize(hexToArray(params.secretsHex));
       this.#presentation = build_presentation(
-        WasmAttestation.deserialize(hexToArray(params.attestationHex)),
-        WasmSecrets.deserialize(hexToArray(params.secretsHex)),
+        attestation,
+        secrets,
         params.reveal,
       );
     }
@@ -299,19 +296,25 @@ export class Presentation {
     return arrayToHex(this.#presentation.serialize());
   }
 
-  async verify(): Promise<{
-    attestation: string;
-    serverName?: string;
-    connectionInfo: ConnectionInfo;
-    transcript: PartialTranscript | undefined;
-  }> {
-    const { attestation, server_name, connection_info, transcript } =
-      this.#presentation.verify();
+  async verifyingKey() {
+    return this.#presentation.verifying_key();
+  }
+
+  async verify(): Promise<VerifierOutput> {
+    const {
+      server_name = '',
+      connection_info,
+      transcript = {
+        sent: [],
+        recv: [],
+        recv_authed: [],
+        sent_authed: [],
+      },
+    } = this.#presentation.verify();
 
     return {
-      attestation: arrayToHex(attestation.serialize()),
-      serverName: server_name,
-      connectionInfo: connection_info,
+      server_name: server_name,
+      connection_info,
       transcript,
     };
   }
@@ -409,17 +412,42 @@ export class NotaryServer {
   }
 }
 
+export class Transcript {
+  #sent: number[];
+  #recv: number[];
+
+  constructor(params: { sent: number[]; recv: number[] }) {
+    this.#recv = params.recv;
+    this.#sent = params.sent;
+  }
+
+  recv(redactedSymbol = '*') {
+    return this.#recv.reduce((recv: string, num) => {
+      recv =
+        recv + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
+      return recv;
+    }, '');
+  }
+
+  sent(redactedSymbol = '*') {
+    return this.#sent.reduce((sent: string, num) => {
+      sent =
+        sent + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
+      return sent;
+    }, '');
+  }
+}
+
 export {
   type ParsedTranscriptData,
-  type ProofData,
   type LoggingLevel,
   type LoggingConfig,
-  type Transcript,
   type Commit,
   type Reveal,
   type ProverConfig,
   type VerifierConfig,
   type VerifyingKey,
+  type VerifierOutput,
   type ConnectionInfo,
   type PartialTranscript,
 };

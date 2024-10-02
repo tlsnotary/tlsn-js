@@ -4,14 +4,13 @@ import * as Comlink from 'comlink';
 import { Watch } from 'react-loader-spinner';
 import {
   Prover as TProver,
-  Attestation as TAttestation,
   Presentation as TPresentation,
   Commit,
   NotaryServer,
-  ProofData,
+  Transcript,
 } from 'tlsn-js';
 
-const { init, Prover, Attestation, Presentation }: any = Comlink.wrap(
+const { init, Prover, Presentation }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
 );
 
@@ -20,16 +19,25 @@ const root = createRoot(container!);
 
 root.render(<App />);
 
+import { ec as EC } from 'elliptic';
+
 function App(): ReactElement {
+  const [initialized, setInitialized] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [result, setResult] = useState<ProofData | null>(null);
+  const [result, setResult] = useState<any | null>(null);
   const [proofHex, setProofHex] = useState<null | string>(null);
+
+  useEffect(() => {
+    (async () => {
+      await init({ loggingLevel: 'Info' });
+      setInitialized(true);
+    })();
+  }, []);
 
   const onClick = useCallback(async () => {
     setProcessing(true);
     const notary = NotaryServer.from(`http://localhost:7047`);
     console.time('submit');
-    await init({ loggingLevel: 'Info' });
     const prover = (await new Prover({
       serverDns: 'swapi.dev',
     })) as TProver;
@@ -71,7 +79,6 @@ function App(): ReactElement {
         ...transcript.ranges.recv.lineBreaks,
       ],
     };
-    console.log(commit);
     const notarizationOutputs = await prover.notarize(commit);
     console.timeEnd('commit');
     console.time('proof');
@@ -90,7 +97,6 @@ function App(): ReactElement {
 
   const onAltClick = useCallback(async () => {
     setProcessing(true);
-    await init({ loggingLevel: 'Debug' });
     const proof = await Prover.notarize({
       id: 'test',
       notaryUrl: 'http://localhost:7047',
@@ -116,12 +122,26 @@ function App(): ReactElement {
   useEffect(() => {
     (async () => {
       if (proofHex) {
-        const proof = (await Presentation.serialize(proofHex)) as TPresentation;
+        const proof = (await new Presentation(proofHex)) as TPresentation;
         const notary = NotaryServer.from(`http://localhost:7047`);
         const notaryKey = await notary.publicKey();
-        const proofData = await proof.verify();
-        console.log(proofData, notaryKey);
-        // setResult(proofData);
+        const verifierOutput = await proof.verify();
+        console.log(verifierOutput, notaryKey);
+        const transcript = new Transcript({
+          sent: verifierOutput.transcript.sent,
+          recv: verifierOutput.transcript.recv,
+        });
+        const vk = await proof.verifyingKey();
+        const ec = new EC('secp256k1');
+        const pk = ec.keyFromPublic(Buffer.from(vk.data)).getPublic();
+        const der = pk.encode('der' as any, false) as any;
+        setResult({
+          time: verifierOutput.connection_info.time,
+          verifyingKey: `-----BEGIN PUBLIC KEY-----\n${Buffer.from(der).toString('base64')}\n-----END PUBLIC KEY-----`,
+          serverName: verifierOutput.server_name,
+          sent: transcript.sent(),
+          recv: transcript.recv(),
+        });
         setProcessing(false);
       }
     })();
@@ -132,7 +152,7 @@ function App(): ReactElement {
       <div>
         <button
           onClick={!processing ? onClick : undefined}
-          disabled={processing}
+          disabled={processing || !initialized}
         >
           Start Demo (Normal config)
         </button>
@@ -140,7 +160,7 @@ function App(): ReactElement {
       <div>
         <button
           onClick={!processing ? onAltClick : undefined}
-          disabled={processing}
+          disabled={processing || !initialized}
         >
           Start Demo 2 (With helper method)
         </button>

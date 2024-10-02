@@ -28,7 +28,7 @@ let server: ChildProcess;
 
 let tlsnServerFixture: ChildProcess;
 const spawnTlsnServerFixture = () => {
-  const tlsnServerFixturePath = './utils/tlsn/tlsn/tlsn-server-fixture/';
+  const tlsnServerFixturePath = './utils/tlsn/crates/server-fixture/';
   // Spawn the server process
   // tlsnServerFixture = spawn(tlsnServerFixturePath, []);
   tlsnServerFixture = exec(`../target/release/main`, {
@@ -46,8 +46,9 @@ const spawnTlsnServerFixture = () => {
 
 let localNotaryServer: ChildProcess;
 const spawnLocalNotaryServer = async () => {
-  const localNotaryServerPath = './utils/tlsn/notary/server';
-  localNotaryServer = exec(`../target/release/notary-server`, {
+  const localNotaryServerPath = './utils/tlsn/crates/notary/server';
+  console.log(localNotaryServerPath);
+  localNotaryServer = exec(`../../../target/release/notary-server`, {
     cwd: localNotaryServerPath,
   });
   localNotaryServer.stdout?.on('data', (data) => {
@@ -74,7 +75,7 @@ const spawnLocalNotaryServer = async () => {
 
 const configureNotarySerer = () => {
   try {
-    const configPath = './utils/tlsn/notary/server/config/config.yaml';
+    const configPath = './utils/tlsn/crates/notary/server/config/config.yaml';
     const fileContents = fs.readFileSync(configPath, 'utf8');
     const data = yaml.load(fileContents) as any;
     data.tls.enabled = false;
@@ -91,9 +92,9 @@ const configureNotarySerer = () => {
 before(async function () {
   server = exec('serve  --config ../serve.json ./test-build -l 3001');
 
-  // spawnTlsnServerFixture();
-  // configureNotarySerer();
-  // await spawnLocalNotaryServer();
+  spawnTlsnServerFixture();
+  configureNotarySerer();
+  await spawnLocalNotaryServer();
   browser = await puppeteer.launch(opts);
   page = await browser.newPage();
   await page.goto('http://127.0.0.1:3001');
@@ -104,21 +105,21 @@ after(async function () {
   console.log('Cleaning up:');
 
   try {
-    // tlsnServerFixture.kill();
-    // console.log('* Stopped TLSN Server Fixture ✅');
+    tlsnServerFixture.kill();
+    console.log('* Stopped TLSN Server Fixture ✅');
 
-    // localNotaryServer.kill();
-    // console.log('* Stopped Notary Server ✅');
+    localNotaryServer.kill();
+    console.log('* Stopped Notary Server ✅');
 
-    // server.kill();
-    // console.log('* Stopped Test Web Server ✅');
-    //
-    // await page.close();
-    // await browser.close();
-    // const childProcess = browser.process();
-    // if (childProcess) {
-    //   childProcess.kill(9);
-    // }
+    server.kill();
+    console.log('* Stopped Test Web Server ✅');
+
+    await page.close();
+    await browser.close();
+    const childProcess = browser.process();
+    if (childProcess) {
+      childProcess.kill(9);
+    }
     console.log('* Closed browser ✅');
     process.exit(0);
   } catch (e) {

@@ -5,6 +5,8 @@ import {
   Attestation as _Attestation,
 } from '../../src/lib';
 import * as Comlink from 'comlink';
+import { Transcript } from '../../build/lib';
+import { assert } from '../utils';
 
 const { init, Prover, Presentation, Attestation }: any = Comlink.wrap(
   // @ts-ignore
@@ -56,24 +58,28 @@ const { init, Prover, Presentation, Attestation }: any = Comlink.wrap(
       secretsHex: notarizationOutput.secrets,
       reveal: commit,
     })) as _Presentation;
-    console.log('presentation:', presentation);
+    console.log('presentation:', await presentation.serialize());
     console.timeEnd('prove');
 
     console.time('verify');
-    const result = await presentation.verify();
-    const attestation = (await new Attestation(
-      result.attestation,
-    )) as _Attestation;
-    const verifyingKey = await attestation.verifyingKey();
+    const { transcript: partialTranscript, server_name } =
+      await presentation.verify();
+    const verifyingKey = await presentation.verifyingKey();
     console.timeEnd('verify');
 
     console.log('verifyingKey', verifyingKey);
-    console.log('result', result);
-    // assert(result.sent.includes('host: swapi.dev'));
-    // assert(!result.sent.includes('secret: test_secret'));
-    // assert(result.recv.includes('"name":"Luke Skywalker"'));
-    // assert(result.recv.includes('"hair_color":"blond"'));
-    // assert(result.recv.includes('"skin_color":"fair"'));
+    const t = new Transcript({
+      sent: partialTranscript.sent,
+      recv: partialTranscript.recv,
+    });
+    const sent = t.sent();
+    const recv = t.recv();
+    assert(sent.includes('host: swapi.dev'));
+    assert(!sent.includes('secret: test_secret'));
+    assert(recv.includes('"name":"Luke Skywalker"'));
+    assert(recv.includes('"hair_color":"blond"'));
+    assert(recv.includes('"skin_color":"fair"'));
+    assert(server_name === 'swapi.dev');
 
     // @ts-ignore
     document.getElementById('full-integration-swapi').textContent = 'OK';
