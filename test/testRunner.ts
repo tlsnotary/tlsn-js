@@ -10,7 +10,7 @@ const timeout = 300000;
 
 // puppeteer options
 let opts: PuppeteerLaunchOptions = {
-  headless: !!process.env.HEADLESS ? 'new' : false,
+  headless: !!process.env.HEADLESS ? true : false,
   slowMo: 100,
   timeout: timeout,
 };

@@ -1,7 +1,7 @@
 import { Presentation as _Presentation } from '../../src/lib';
 // import { assert } from '../utils';
 import * as Comlink from 'comlink';
-import { Transcript } from '../../build/lib';
+import { Transcript } from '../../src/lib';
 import { assert } from '../utils';
 
 const { init, Presentation }: any = Comlink.wrap(
