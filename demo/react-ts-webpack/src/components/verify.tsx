@@ -5,7 +5,6 @@ import {
   decode_and_verify,
   Attributes,
   Attribute,
-  NotaryServer,
 } from 'tlsn-js';
 import { CheckCircle, XCircle } from 'lucide-react';
 
@@ -52,18 +51,8 @@ export function VerifyAttributeAttestation(): ReactElement {
 
       setDecodedAttestation(attestationObject_);
 
-      const { notaryUrl } = attestationObject_.meta;
-      const notary = NotaryServer.from(notaryUrl);
-      const notaryKey = await notary.publicKey();
-      console.log('notaryKey', notaryKey);
-
-      //TODO: convert to raw_bytes_hex
-      const hex_notary_key =
-        '0406fdfa148e1916ccc96b40d0149df05825ef54b16b711ccc1b991a4de1c6a12cc3bba705ab1dee116629146a3a0b410e5207fe98481b92d2eb5e872fe721f32a';
-
       const { isValid, decodedAppData, attributes } = await decode_and_verify(
         attestationObject_,
-        hex_notary_key,
         verify_attestation_signature,
       );
 

@@ -59,6 +59,14 @@ export interface Payload {
 
 export type Attributes = Attribute[];
 
+function pemToRawHex(pemString: string) {
+  const base64 = pemString
+    .replace('-----BEGIN PUBLIC KEY-----', '')
+    .replace('-----END PUBLIC KEY-----', '')
+    .replace(/\s/g, '');
+  return Buffer.from(base64, 'base64').toString('hex').slice(-130);
+}
+
 /**
  * attribute_hex is the hex binary epresentation of the attribute
  * attribute_name is the name of the attribute
@@ -72,7 +80,6 @@ export type Attribute = {
 
 export async function decode_and_verify(
   attestationObject: AttestationObject,
-  hex_notary_key: string,
   verify_signature_function: (
     attribute_hex: string,
     signature: string,
@@ -88,9 +95,15 @@ export async function decode_and_verify(
   };
   binaryAppData: string | null;
   attributes: Attributes | null;
+  hex_notary_key: string;
 }> {
-  const { attributes, binaryAppData, decodedAppData, signature } =
-    decodeAttestation(attestationObject);
+  const {
+    attributes,
+    binaryAppData,
+    decodedAppData,
+    signature,
+    hex_notary_key,
+  } = await decodeAttestation(attestationObject);
 
   if (!binaryAppData) throw new Error('binaryAppData is null');
   if (!signature) throw new Error('signature is null');
@@ -110,7 +123,13 @@ export async function decode_and_verify(
         break;
       }
     }
-    return { isValid, decodedAppData, binaryAppData, attributes };
+    return {
+      isValid,
+      decodedAppData,
+      binaryAppData,
+      attributes,
+      hex_notary_key,
+    };
   } else {
     try {
       isValid = await verify_signature_function(
@@ -123,10 +142,12 @@ export async function decode_and_verify(
       isValid = false;
     }
   }
-  return { isValid, decodedAppData, binaryAppData, attributes };
+  return { isValid, decodedAppData, binaryAppData, attributes, hex_notary_key };
 }
 
-export function decodeAttestation(attestationObject: AttestationObject): {
+export async function decodeAttestation(
+  attestationObject: AttestationObject,
+): Promise<{
   attributes: Attributes | null;
   decodedAppData: {
     request: string;
@@ -135,14 +156,26 @@ export function decodeAttestation(attestationObject: AttestationObject): {
   };
   signature: string | null;
   binaryAppData: string | null;
-} {
+  hex_notary_key: string;
+}> {
   const signature = parseSignature(attestationObject.signature);
   const binaryAppData = attestationObject.applicationData;
   const decodedAppData = decodeAppData(attestationObject.applicationData);
 
-  console.log('decodedAppData', decodedAppData);
+  const { notaryUrl } = attestationObject.meta;
+  const notary = NotaryServer.from(notaryUrl);
+  const notaryKeyPem = await notary.publicKey();
+
+  const hex_notary_key = pemToRawHex(notaryKeyPem);
+
   if (!attestationObject.attestations)
-    return { attributes: null, decodedAppData, signature, binaryAppData };
+    return {
+      attributes: null,
+      decodedAppData,
+      signature,
+      binaryAppData,
+      hex_notary_key,
+    };
 
   const attributes = attestationObject.attestations
     .split(';')
@@ -163,6 +196,7 @@ export function decodeAttestation(attestationObject: AttestationObject): {
     decodedAppData,
     signature: signature,
     binaryAppData,
+    hex_notary_key,
   };
 }
 /**
