@@ -116,6 +116,10 @@ export async function decode_and_verify(
   let isValid = true;
   if (attributes) {
     for (const attribute of attributes) {
+      console.log('attribute', attribute);
+      console.log('hex_notary_key', hex_notary_key);
+      console.log('attribute.signature', attribute.signature);
+
       const isValid_ = await verify_signature_function(
         attribute.attribute_hex,
         attribute.signature,
