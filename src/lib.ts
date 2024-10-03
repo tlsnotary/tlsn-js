@@ -59,6 +59,11 @@ export interface Payload {
 
 export type Attributes = Attribute[];
 
+/**
+ * Convert the PEM string represetation of a P256 public key to a hex string of its raw bytes
+ * @param pemString - The PEM string to convert
+ * @returns The raw hex string
+ */
 function pemToRawHex(pemString: string) {
   const base64 = pemString
     .replace('-----BEGIN PUBLIC KEY-----', '')
@@ -68,9 +73,9 @@ function pemToRawHex(pemString: string) {
 }
 
 /**
- * attribute_hex is the hex binary epresentation of the attribute
- * attribute_name is the name of the attribute
- * signature is the signature of the attribute in bytes or attribute_hex
+ * @param attribute_hex is the hex binary epresentation of the attribute
+ * @param attribute_name is the name of the attribute
+ * @param signature is the signature of the attribute in bytes or attribute_hex
  */
 export type Attribute = {
   attribute_name: string;
