@@ -55,6 +55,9 @@ export function VerifyAttributeAttestation(): ReactElement {
         attestationObject_,
         verify_attestation_signature,
       );
+      if (!isValid) {
+        return setError('Signature is invalid');
+      }
 
       setIsAttrAttestationValid(isValid);
       setAttrAttestations(attributes);
