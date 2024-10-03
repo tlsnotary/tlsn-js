@@ -11,23 +11,10 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install stable rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-          toolchain: nightly
-
-      - name: Use caching
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: wasm/prover
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -52,9 +39,6 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-
-      - name: Install nightly tool-chain
-        run: rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
 
       - name: Install dependencies
         run: pnpm install

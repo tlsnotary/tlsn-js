@@ -2,13 +2,12 @@ import {
   Prover as _Prover,
   NotaryServer,
   Presentation as _Presentation,
-  Attestation as _Attestation,
 } from '../../src/lib';
 import * as Comlink from 'comlink';
 import { Transcript } from '../../build/lib';
 import { assert } from '../utils';
 
-const { init, Prover, Presentation, Attestation }: any = Comlink.wrap(
+const { init, Prover, Presentation }: any = Comlink.wrap(
   // @ts-ignore
   new Worker(new URL('../worker.ts', import.meta.url)),
 );
