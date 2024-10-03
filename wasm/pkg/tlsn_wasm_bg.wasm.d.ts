@@ -1,12 +1,5 @@
 /* tslint:disable */
 /* eslint-disable */
-export function init_logging(a: number): void;
-export function verify_attestation_document(a: number, b: number, c: number, d: number, e: number, f: number, g: number): number;
-export function verify_attestation_signature(a: number, b: number, c: number, d: number, e: number, f: number): number;
-export function __wbg_verifier_free(a: number, b: number): void;
-export function verifier_new(a: number): number;
-export function verifier_connect(a: number, b: number, c: number): number;
-export function verifier_verify(a: number): number;
 export function __wbg_prover_free(a: number, b: number): void;
 export function prover_new(a: number): number;
 export function prover_setup(a: number, b: number, c: number): number;
@@ -15,6 +8,13 @@ export function prover_notarize(a: number): number;
 export function __wbg_signedsession_free(a: number, b: number): void;
 export function signedsession_serialize(a: number, b: number): void;
 export function signedsession_deserialize(a: number, b: number, c: number): void;
+export function init_logging(a: number): void;
+export function verify_attestation_document(a: number, b: number, c: number, d: number, e: number, f: number, g: number): number;
+export function verify_attestation_signature(a: number, b: number, c: number, d: number, e: number, f: number, g: number): number;
+export function __wbg_verifier_free(a: number, b: number): void;
+export function verifier_new(a: number): number;
+export function verifier_connect(a: number, b: number, c: number): number;
+export function verifier_verify(a: number): number;
 export function __wbg_wbg_rayon_poolbuilder_free(a: number, b: number): void;
 export function wbg_rayon_poolbuilder_numThreads(a: number): number;
 export function wbg_rayon_poolbuilder_receiver(a: number): number;

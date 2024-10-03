@@ -57,18 +57,31 @@ export function VerifyAttributeAttestation(): ReactElement {
 
       try {
         let isValid = false;
-        if (attributes)
-          isValid = await verify_attestation_attributes(
-            attributes,
+        if (attributes) {
+          console.log('verify_attestation_attributes', attributes);
+          // isValid = await verify_attestation_attributes(
+          //   attributes,
+          //   hex_notary_key,
+          // );
+
+          const [attribute, signature] = attributes[0];
+          const attributeHex = Buffer.from(attribute).toString('hex');
+
+          isValid = await verify_attestation_signature(
+            attributeHex,
+            signature,
             hex_notary_key,
+            false,
           );
-        else
+        } else {
+          console.log('verify_attestation_signature', binaryAppData);
           isValid = await verify_attestation_signature(
             binaryAppData,
             signature,
             hex_notary_key,
+            true,
           );
-
+        }
         setIsAttrAttestationValid(isValid);
         setError(null);
       } catch (e: any) {

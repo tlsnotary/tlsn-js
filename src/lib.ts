@@ -61,20 +61,23 @@ export interface Payload {
  * Verify the attestation for each attributes, in case the attestation has several attributes,
  * @returns {boolean} True if ALL of attestation attributes are valid, false otherwise.
  */
-export function verify_attestation_attributes(
+export async function verify_attestation_attributes(
   attributes: any,
   notary_public_key: string,
 ) {
   const [attribute, signature] = attributes[0];
-  console.log('attribute', attribute);
-  console.log('signature', signature);
+
   // Convert attribute to hex string
   const attributeHex = Buffer.from(attribute).toString('hex');
   console.log('attributeHex', attributeHex);
-  return verify_attestation_signature(
+  console.log('signature', signature);
+  console.log('notary_public_key', notary_public_key);
+
+  return await verify_attestation_signature(
     attributeHex,
     signature,
     notary_public_key,
+    false,
   );
 }
 export function decodeAttestation(attestationObject: AttestationObject): {
