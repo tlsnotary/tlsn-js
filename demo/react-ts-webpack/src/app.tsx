@@ -19,8 +19,6 @@ const root = createRoot(container!);
 
 root.render(<App />);
 
-import { ec as EC } from 'elliptic';
-
 function App(): ReactElement {
   const [initialized, setInitialized] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -132,12 +130,18 @@ function App(): ReactElement {
           recv: verifierOutput.transcript.recv,
         });
         const vk = await proof.verifyingKey();
-        const ec = new EC('secp256k1');
-        const pk = ec.keyFromPublic(Buffer.from(vk.data)).getPublic();
-        const der = pk.encode('der' as any, false) as any;
         setResult({
           time: verifierOutput.connection_info.time,
-          verifyingKey: `-----BEGIN PUBLIC KEY-----\n${Buffer.from(der).toString('base64')}\n-----END PUBLIC KEY-----`,
+          verifyingKey: Buffer.from(vk.data).toString('hex'),
+          notaryKey: Buffer.from(
+            notaryKey
+              .replace('-----BEGIN PUBLIC KEY-----', '')
+              .replace('-----END PUBLIC KEY-----', '')
+              .replace(/\n/g, ''),
+            'base64',
+          )
+            .slice(23)
+            .toString('hex'),
           serverName: verifierOutput.server_name,
           sent: transcript.sent(),
           recv: transcript.recv(),

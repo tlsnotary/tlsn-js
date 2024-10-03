@@ -108,10 +108,12 @@ export class Prover {
 
     await prover.setup(await notary.sessionUrl(maxSentData, maxRecvData));
 
+    const headerMap = Prover.getHeaderMap(url, body, headers);
+
     await prover.send_request(websocketProxyUrl + `?token=${hostname}`, {
       uri: url,
       method,
-      headers: headerToMap(headers),
+      headers: headerMap,
       body,
     });
 
@@ -172,19 +174,11 @@ export class Prover {
     };
   }
 
-  async sendRequest(
-    wsProxyUrl: string,
-    request: {
-      url: string;
-      method?: Method;
-      headers?: { [key: string]: string };
-      body?: any;
-    },
-  ): Promise<{
-    status: number;
-    headers: { [key: string]: string };
-  }> {
-    const { url, method = 'GET', headers = {}, body } = request;
+  static getHeaderMap(
+    url: string,
+    body?: any,
+    headers?: { [key: string]: string },
+  ) {
     const hostname = new URL(url).hostname;
     const h: { [name: string]: string } = {
       Host: hostname,
@@ -203,6 +197,25 @@ export class Prover {
       ...h,
       ...headers,
     });
+
+    return headerMap;
+  }
+
+  async sendRequest(
+    wsProxyUrl: string,
+    request: {
+      url: string;
+      method?: Method;
+      headers?: { [key: string]: string };
+      body?: any;
+    },
+  ): Promise<{
+    status: number;
+    headers: { [key: string]: string };
+  }> {
+    const { url, method = 'GET', headers = {}, body } = request;
+
+    const headerMap = Prover.getHeaderMap(url, body, headers);
 
     const resp = await this.#prover.send_request(wsProxyUrl, {
       uri: url,
@@ -226,9 +239,15 @@ export class Prover {
   }
 
   async notarize(
-    commit: Commit,
+    commit?: Commit,
   ): Promise<{ attestation: string; secrets: string }> {
-    const output = await this.#prover.notarize(commit);
+    const transcript = await this.transcript();
+    const output = await this.#prover.notarize(
+      commit || {
+        sent: [{ start: 0, end: transcript.sent.length }],
+        recv: [{ start: 0, end: transcript.recv.length }],
+      },
+    );
     return {
       attestation: arrayToHex(output.attestation.serialize()),
       secrets: arrayToHex(output.secrets.serialize()),
@@ -269,7 +288,7 @@ export class Presentation {
       | {
           attestationHex: string;
           secretsHex: string;
-          reveal: Reveal;
+          reveal?: Reveal;
         }
       | string,
   ) {
@@ -280,10 +299,14 @@ export class Presentation {
         hexToArray(params.attestationHex),
       );
       const secrets = WasmSecrets.deserialize(hexToArray(params.secretsHex));
+      const transcript = secrets.transcript();
       this.#presentation = build_presentation(
         attestation,
         secrets,
-        params.reveal,
+        params.reveal || {
+          sent: [{ start: 0, end: transcript.sent.length }],
+          recv: [{ start: 0, end: transcript.recv.length }],
+        },
       );
     }
   }
@@ -421,6 +444,10 @@ export class Transcript {
     this.#sent = params.sent;
   }
 
+  static processRanges(text: string) {
+    return processTranscript(text);
+  }
+
   recv(redactedSymbol = '*') {
     return this.#recv.reduce((recv: string, num) => {
       recv =
@@ -436,6 +463,13 @@ export class Transcript {
       return sent;
     }, '');
   }
+
+  text = (redactedSymbol = '*') => {
+    return {
+      sent: this.sent(redactedSymbol),
+      recv: this.recv(redactedSymbol),
+    };
+  };
 }
 
 export {
