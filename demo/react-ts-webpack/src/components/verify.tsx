@@ -71,7 +71,7 @@ export function VerifyAttributeAttestation(): ReactElement {
       setAttrAttestations(attributes);
       setDecodedTLSData(decodedAppData);
     } catch (e) {
-      console.log(e);
+      console.log('ahi', e);
       setIsAttrAttestationValid(false);
       return setError('Attestation is invalid');
     }
@@ -258,7 +258,7 @@ other example : twitter
 
 */
 
-export default function CardAttestation({
+function CardAttestation({
   notaryUrl,
   domain,
   attributes,
@@ -273,45 +273,47 @@ export default function CardAttestation({
   const [showDetails, setShowDetails] = useState(false);
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">
-          Attestation for {domain}
-        </CardTitle>
-        <div className="flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-600">
-          <CheckCircle2 className="mr-1 h-3 w-3" />
-          Verified
-        </div>
-      </CardHeader>
-      <CardContent>notary: {notaryUrl}</CardContent>
-      <CardContent>
-        {showDetails && !attributes && <StylizedJSON data={decodedTLSData} />}
-
-        {attributes && (
-          <div className="flex flex-wrap gap-2">
-            {attributes.map((attr: Attribute) => (
-              <div
-                key={attr.attribute_name}
-                className="inline-flex items-center rounded-full bg-green-500 px-2 py-1 text-xs font-medium text-white"
-              >
-                <CheckCircle2 className="mr-1 h-3 w-3" />
-                <span>{attr.attribute_name}</span>
-              </div>
-            ))}
+    <div className="flex justify-center items-center mb-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">
+            Attestation for {domain}
+          </CardTitle>
+          <div className="flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-600">
+            <CheckCircle2 className="mr-1 h-3 w-3" />
+            Verified
           </div>
-        )}
-      </CardContent>
+        </CardHeader>
+        <CardContent>notary: {notaryUrl}</CardContent>
+        <CardContent>
+          {showDetails && !attributes && <StylizedJSON data={decodedTLSData} />}
 
-      {!attributes && (
-        <CardFooter className="flex justify-between">
-          <button
-            className="text-blue-600"
-            onClick={() => setShowDetails(!showDetails)}
-          >
-            {showDetails ? 'Hide' : 'View data'}
-          </button>
-        </CardFooter>
-      )}
-    </Card>
+          {attributes && (
+            <div className="flex flex-wrap gap-2">
+              {attributes.map((attr: Attribute) => (
+                <div
+                  key={attr.attribute_name}
+                  className="inline-flex items-center rounded-full bg-green-500 px-2 py-1 text-xs font-medium text-white"
+                >
+                  <CheckCircle2 className="mr-1 h-3 w-3" />
+                  <span>{attr.attribute_name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+
+        {!attributes && (
+          <CardFooter className="flex justify-between">
+            <button
+              className="text-blue-600"
+              onClick={() => setShowDetails(!showDetails)}
+            >
+              {showDetails ? 'Hide' : 'View data'}
+            </button>
+          </CardFooter>
+        )}
+      </Card>
+    </div>
   );
 }

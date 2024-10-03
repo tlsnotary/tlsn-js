@@ -97,8 +97,6 @@ export async function decode_and_verify(
 
   let isValid = true;
   if (attributes) {
-    console.log('verify_attestation_attributes', attributes);
-
     for (const attribute of attributes) {
       const isValid_ = await verify_signature_function(
         attribute.attribute_hex,
@@ -114,13 +112,16 @@ export async function decode_and_verify(
     }
     return { isValid, decodedAppData, binaryAppData, attributes };
   } else {
-    console.log('verify_attestation_signature', binaryAppData);
-    isValid = await verify_signature_function(
-      binaryAppData!,
-      signature!,
-      hex_notary_key,
-      true,
-    );
+    try {
+      isValid = await verify_signature_function(
+        binaryAppData!,
+        signature!,
+        hex_notary_key,
+        true,
+      );
+    } catch (e) {
+      isValid = false;
+    }
   }
   return { isValid, decodedAppData, binaryAppData, attributes };
 }
