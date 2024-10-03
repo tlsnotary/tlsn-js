@@ -1,6 +1,10 @@
 import React, { ReactElement, useEffect, useState } from 'react';
 import * as Comlink from 'comlink';
-import { parseSignature, AttestationObject, decodeTLSData } from 'tlsn-js';
+import {
+  AttestationObject,
+  decodeAttestation,
+  verify_attestation_attributes,
+} from 'tlsn-js';
 import { CheckCircle, XCircle } from 'lucide-react';
 
 const { init, verify_attestation_signature }: any = Comlink.wrap(
@@ -29,60 +33,53 @@ export function VerifyAttributeAttestation(): ReactElement {
   const verifySignature = async () => {
     if (!attestationObject) return setError('Attestation object is invalid');
 
+    //const notary = NotaryServer.from(`https://notary.eternis.ai`);
+    //const notaryKey = await notary.publicKey();
+    //convert to raw_bytes_hex
+    const hex_notary_key =
+      '0406fdfa148e1916ccc96b40d0149df05825ef54b16b711ccc1b991a4de1c6a12cc3bba705ab1dee116629146a3a0b410e5207fe98481b92d2eb5e872fe721f32a';
+
     let attestationObject_;
     try {
       attestationObject_ = JSON.parse(attestationObject) as AttestationObject;
 
-      if (attestationObject_.attestations) {
-        const attr_attestations = attestationObject_.attestations
-          .split(';')
-          .map((attr: string) => {
-            const colonIndex = attr.indexOf(':');
-            if (colonIndex === -1) return undefined;
+      const decodedAttestation = decodeAttestation(attestationObject_);
 
-            const attribute = attr.slice(0, colonIndex);
-            const signature = parseSignature(attr.slice(colonIndex + 1));
+      const { attributes, binaryAppData, decodedAppData, signature } =
+        decodedAttestation;
 
-            if (attribute !== '') return [attribute, signature];
-            else return undefined;
-          });
-        console.log('attr_attestations', attr_attestations);
-        setAttrAttestations(attr_attestations);
+      if (!binaryAppData) return setError('No application data');
+      if (!signature) return setError('No signature');
+
+      console.log('attributes', attributes);
+      setAttrAttestations(attributes);
+      setDecodedTLSData(decodedAppData);
+
+      try {
+        let isValid = false;
+        if (attributes)
+          isValid = await verify_attestation_attributes(
+            attributes,
+            hex_notary_key,
+          );
+        else
+          isValid = await verify_attestation_signature(
+            binaryAppData,
+            signature,
+            hex_notary_key,
+          );
+
+        setIsAttrAttestationValid(isValid);
+        setError(null);
+      } catch (e: any) {
+        console.log(e);
+        setError('invalid signature');
+        setIsAttrAttestationValid(false);
       }
-      const decodedTLSData = decodeTLSData(attestationObject_.applicationData);
-      setDecodedTLSData(decodedTLSData);
     } catch (e) {
       console.log(e);
       setIsAttrAttestationValid(false);
       return setError('Object is invalid');
-    }
-    const { applicationData, signature } = attestationObject_;
-
-    if (!applicationData) return setError('No application data');
-    if (!signature) return setError('No signature');
-
-    //const notary = NotaryServer.from(`https://notary.eternis.ai`);
-    //const notaryKey = await notary.publicKey();
-    //convert to raw_bytes_hex
-
-    const hex_notary_key =
-      '0406fdfa148e1916ccc96b40d0149df05825ef54b16b711ccc1b991a4de1c6a12cc3bba705ab1dee116629146a3a0b410e5207fe98481b92d2eb5e872fe721f32a';
-
-    const signature_hex = parseSignature(signature);
-
-    try {
-      const isValid = await verify_attestation_signature(
-        applicationData,
-        signature_hex,
-        hex_notary_key,
-      );
-
-      setIsAttrAttestationValid(isValid);
-      setError(null);
-    } catch (e: any) {
-      console.log(e);
-      setError('invalid signature');
-      setIsAttrAttestationValid(false);
     }
   };
 

@@ -58,10 +58,67 @@ export interface Payload {
 }
 
 /**
+ * Verify the attestation for each attributes, in case the attestation has several attributes,
+ * @returns {boolean} True if ALL of attestation attributes are valid, false otherwise.
+ */
+export function verify_attestation_attributes(
+  attributes: any,
+  notary_public_key: string,
+) {
+  const [attribute, signature] = attributes[0];
+  console.log('attribute', attribute);
+  console.log('signature', signature);
+  // Convert attribute to hex string
+  const attributeHex = Buffer.from(attribute).toString('hex');
+  console.log('attributeHex', attributeHex);
+  return verify_attestation_signature(
+    attributeHex,
+    signature,
+    notary_public_key,
+  );
+}
+export function decodeAttestation(attestationObject: AttestationObject): {
+  attributes: any;
+  decodedAppData: {
+    request: string;
+    response_header: string;
+    response_body: string;
+  };
+  signature: string | null;
+  binaryAppData: string | null;
+} {
+  const signature = parseSignature(attestationObject.signature);
+  const binaryAppData = attestationObject.applicationData;
+  const decodedAppData = decodeAppData(attestationObject.applicationData);
+
+  console.log('decodedAppData', decodedAppData);
+  if (!attestationObject.attestations)
+    return { attributes: null, decodedAppData, signature, binaryAppData };
+
+  const attributes = attestationObject.attestations
+    .split(';')
+    .map((attr: string) => {
+      const colonIndex = attr.indexOf(':');
+      if (colonIndex === -1) return undefined;
+
+      const attribute = attr.slice(0, colonIndex);
+      const signature = parseSignature(attr.slice(colonIndex + 1));
+
+      if (attribute !== '') return [attribute, signature];
+      else return undefined;
+    });
+  return {
+    attributes,
+    decodedAppData,
+    signature: signature,
+    binaryAppData,
+  };
+}
+/**
  * Decode the attested bytes tls data which contains request and response
  * @returns {string} The generated nonce.
  */
-export function decodeTLSData(hexString: string) {
+export function decodeAppData(hexString: string) {
   // Remove any whitespace from the hex string
   hexString = hexString.replace(/\s/g, '');
 
@@ -204,8 +261,9 @@ export class Prover {
       headers: headerToMap(headers),
       body,
     });
-
-    return await prover.notarize();
+    const notarized = await prover.notarize();
+    console.log('notarized', notarized);
+    return notarized;
   }
 
   constructor(config: {
