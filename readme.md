@@ -111,11 +111,11 @@ const proofData = await proof.verify({
 
 1. Install [websocat](https://github.com/vi/websocat):
 
-    | tool   | command                       |
-    |--------|-------------------------------|
-    | cargo  | `cargo install websocat`      |
-    | brew   | `brew install websocat`       |
-    | source | https://github.com/vi/websocat|
+    | tool   | command                        |
+    | ------ | ------------------------------ |
+    | cargo  | `cargo install websocat`       |
+    | brew   | `brew install websocat`        |
+    | source | https://github.com/vi/websocat |
 
 2. Run a websocket proxy for `https://swapi.dev`:
 ```sh
@@ -129,9 +129,6 @@ npm install tlsn-js
 ```
 
 ## Development
-
-> [!IMPORTANT]
-> **Note on Rust-to-WASM Compilation**: This project requires compiling Rust into WASM, which needs [`clang`](https://clang.llvm.org/) version 16.0.0 or newer. MacOS users, be aware that Xcode's default `clang` might be older. If you encounter the error `No available targets are compatible with triple "wasm32-unknown-unknown"`, it's likely due to an outdated `clang`. Updating `clang` to a newer version should resolve this issue.
 
 ```
 # make sure you have rust installed
