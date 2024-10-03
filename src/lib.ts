@@ -70,15 +70,8 @@ export type Attribute = {
   signature: string;
 };
 
-/**
- * Verify the attestation for each attributes, in case the attestation has several attributes,
- * @param {Attributes} attributes - The attributes to verify.
- * @param {string} hex_notary_key - The hex representation of the notary public key.
- * @param {function} verify_signature_function - The verify fn initialized with the worker.
- * @returns {boolean} True if ALL of attestation attributes are valid, false otherwise.
- */
-export async function verify_attestation_attributes(
-  attributes: Attributes,
+export async function decode_and_verify(
+  attestationObject: AttestationObject,
   hex_notary_key: string,
   verify_signature_function: (
     attribute_hex: string,
@@ -86,36 +79,52 @@ export async function verify_attestation_attributes(
     notary_public_key: string,
     hash_appdata: boolean,
   ) => Promise<boolean>,
-) {
-  for (const attribute of attributes) {
-    const isValid = await verify_signature_function(
-      attribute.attribute_hex,
-      attribute.signature,
+): Promise<{
+  isValid: boolean;
+  decodedAppData: {
+    request: string;
+    response_header: string;
+    response_body: string;
+  };
+  binaryAppData: string | null;
+  attributes: Attributes | null;
+}> {
+  const { attributes, binaryAppData, decodedAppData, signature } =
+    decodeAttestation(attestationObject);
+
+  if (!binaryAppData) throw new Error('binaryAppData is null');
+  if (!signature) throw new Error('signature is null');
+
+  let isValid = true;
+  if (attributes) {
+    console.log('verify_attestation_attributes', attributes);
+
+    for (const attribute of attributes) {
+      const isValid_ = await verify_signature_function(
+        attribute.attribute_hex,
+        attribute.signature,
+        hex_notary_key,
+        false,
+      );
+
+      if (!isValid_) {
+        isValid = false;
+        break;
+      }
+    }
+    return { isValid, decodedAppData, binaryAppData, attributes };
+  } else {
+    console.log('verify_attestation_signature', binaryAppData);
+    isValid = await verify_signature_function(
+      binaryAppData!,
+      signature!,
       hex_notary_key,
-      false,
+      true,
     );
-
-    if (!isValid) return false;
   }
-
-  return true;
-  // const [attribute, signature] = attributes;
-
-  // // Convert attribute to hex string
-  // const attributeHex = Buffer.from(attribute).toString('hex');
-  // console.log('attributeHex', attributeHex);
-  // console.log('signature', signature);
-  // console.log('notary_public_key', notary_public_key);
-
-  // return await verify_attestation_signature(
-  //   attributeHex,
-  //   signature,
-  //   notary_public_key,
-  //   false,
-  // );
-
-  return true;
+  return { isValid, decodedAppData, binaryAppData, attributes };
 }
+
 export function decodeAttestation(attestationObject: AttestationObject): {
   attributes: Attributes | null;
   decodedAppData: {

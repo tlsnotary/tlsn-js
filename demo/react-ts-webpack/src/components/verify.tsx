@@ -2,16 +2,17 @@ import React, { ReactElement, useEffect, useState } from 'react';
 import * as Comlink from 'comlink';
 import {
   AttestationObject,
-  decodeAttestation,
-  verify_attestation_attributes,
+  decode_and_verify,
   Attributes,
   Attribute,
 } from 'tlsn-js';
 import { CheckCircle, XCircle } from 'lucide-react';
 
-const { init, verify_attestation_signature }: any = Comlink.wrap(
+const worker = Comlink.wrap(
   new Worker(new URL('../utils/worker.ts', import.meta.url)),
 );
+
+const { init, verify_attestation_signature }: any = worker;
 
 export function VerifyAttributeAttestation(): ReactElement {
   useEffect(() => {
@@ -34,7 +35,7 @@ export function VerifyAttributeAttestation(): ReactElement {
     null,
   );
 
-  const verifySignature = async () => {
+  const verifyAttestation = async () => {
     if (!attestationObject) return setError('Attestation object is invalid');
 
     //const notary = NotaryServer.from(`https://notary.eternis.ai`);
@@ -47,52 +48,19 @@ export function VerifyAttributeAttestation(): ReactElement {
     try {
       attestationObject_ = JSON.parse(attestationObject) as AttestationObject;
 
-      const decodedAttestation = decodeAttestation(attestationObject_);
+      const { isValid, decodedAppData, attributes } = await decode_and_verify(
+        attestationObject_,
+        hex_notary_key,
+        verify_attestation_signature,
+      );
 
-      const { attributes, binaryAppData, decodedAppData, signature } =
-        decodedAttestation;
-
-      if (!binaryAppData) return setError('No application data');
-      if (!signature) return setError('No signature');
-
-      console.log('attributes', attributes);
+      setIsAttrAttestationValid(isValid);
       setAttrAttestations(attributes);
       setDecodedTLSData(decodedAppData);
-
-      try {
-        let isValid = false;
-        if (attributes) {
-          console.log('verify_attestation_attributes', attributes);
-          // isValid = await verify_attestation_attributes(
-          //   attributes,
-          //   hex_notary_key,
-          // );
-
-          isValid = await verify_attestation_attributes(
-            attributes,
-            hex_notary_key,
-            verify_attestation_signature,
-          );
-        } else {
-          console.log('verify_attestation_signature', binaryAppData);
-          isValid = await verify_attestation_signature(
-            binaryAppData,
-            signature,
-            hex_notary_key,
-            true,
-          );
-        }
-        setIsAttrAttestationValid(isValid);
-        setError(null);
-      } catch (e: any) {
-        console.log(e);
-        setError('invalid signature');
-        setIsAttrAttestationValid(false);
-      }
     } catch (e) {
       console.log(e);
       setIsAttrAttestationValid(false);
-      return setError('Object is invalid');
+      return setError('Attestation is invalid');
     }
   };
 
@@ -130,7 +98,7 @@ export function VerifyAttributeAttestation(): ReactElement {
 
             <div className="flex justify-center items-center mb-4">
               <button
-                onClick={verifySignature}
+                onClick={verifyAttestation}
                 disabled={!attestationObject}
                 className={`px-4 py-2 ${attestationObject ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 cursor-not-allowed'} text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 flex items-center`}
               >
