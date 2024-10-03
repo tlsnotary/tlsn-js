@@ -4,6 +4,8 @@ import {
   AttestationObject,
   decodeAttestation,
   verify_attestation_attributes,
+  Attributes,
+  Attribute,
 } from 'tlsn-js';
 import { CheckCircle, XCircle } from 'lucide-react';
 
@@ -28,7 +30,9 @@ export function VerifyAttributeAttestation(): ReactElement {
     null,
   );
   const [decodedTLSData, setDecodedTLSData] = useState<null | any>(null);
-  const [attrAttestations, setAttrAttestations] = useState<null | any>(null);
+  const [attrAttestations, setAttrAttestations] = useState<null | Attributes>(
+    null,
+  );
 
   const verifySignature = async () => {
     if (!attestationObject) return setError('Attestation object is invalid');
@@ -64,14 +68,10 @@ export function VerifyAttributeAttestation(): ReactElement {
           //   hex_notary_key,
           // );
 
-          const [attribute, signature] = attributes[0];
-          const attributeHex = Buffer.from(attribute).toString('hex');
-
-          isValid = await verify_attestation_signature(
-            attributeHex,
-            signature,
+          isValid = await verify_attestation_attributes(
+            attributes,
             hex_notary_key,
-            false,
+            verify_attestation_signature,
           );
         } else {
           console.log('verify_attestation_signature', binaryAppData);
@@ -165,11 +165,15 @@ export function VerifyAttributeAttestation(): ReactElement {
                 <h2 className="text-l font-bold">Attribute attestations</h2>
                 <ul>
                   {attrAttestations.map(
-                    (attr: any) =>
+                    (attr: Attribute) =>
                       attr && (
                         <>
-                          <li key={attr[0]}>{attr[0]}</li>
-                          <li key={attr[1]}>signature: {attr[1]}</li>
+                          <li key={attr.attribute_name}>
+                            {attr.attribute_name}
+                          </li>
+                          <li key={attr.signature}>
+                            signature: {attr.signature}
+                          </li>
                         </>
                       ),
                   )}

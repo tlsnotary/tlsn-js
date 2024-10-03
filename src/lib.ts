@@ -57,31 +57,67 @@ export interface Payload {
   nonce: string | null;
 }
 
+export type Attributes = Attribute[];
+
+/**
+ * attribute_hex is the hex binary epresentation of the attribute
+ * attribute_name is the name of the attribute
+ * signature is the signature of the attribute in bytes or attribute_hex
+ */
+export type Attribute = {
+  attribute_name: string;
+  attribute_hex: string;
+  signature: string;
+};
+
 /**
  * Verify the attestation for each attributes, in case the attestation has several attributes,
+ * @param {Attributes} attributes - The attributes to verify.
+ * @param {string} hex_notary_key - The hex representation of the notary public key.
+ * @param {function} verify_signature_function - The verify fn initialized with the worker.
  * @returns {boolean} True if ALL of attestation attributes are valid, false otherwise.
  */
 export async function verify_attestation_attributes(
-  attributes: any,
-  notary_public_key: string,
+  attributes: Attributes,
+  hex_notary_key: string,
+  verify_signature_function: (
+    attribute_hex: string,
+    signature: string,
+    notary_public_key: string,
+    hash_appdata: boolean,
+  ) => Promise<boolean>,
 ) {
-  const [attribute, signature] = attributes[0];
+  for (const attribute of attributes) {
+    const isValid = await verify_signature_function(
+      attribute.attribute_hex,
+      attribute.signature,
+      hex_notary_key,
+      false,
+    );
 
-  // Convert attribute to hex string
-  const attributeHex = Buffer.from(attribute).toString('hex');
-  console.log('attributeHex', attributeHex);
-  console.log('signature', signature);
-  console.log('notary_public_key', notary_public_key);
+    if (!isValid) return false;
+  }
 
-  return await verify_attestation_signature(
-    attributeHex,
-    signature,
-    notary_public_key,
-    false,
-  );
+  return true;
+  // const [attribute, signature] = attributes;
+
+  // // Convert attribute to hex string
+  // const attributeHex = Buffer.from(attribute).toString('hex');
+  // console.log('attributeHex', attributeHex);
+  // console.log('signature', signature);
+  // console.log('notary_public_key', notary_public_key);
+
+  // return await verify_attestation_signature(
+  //   attributeHex,
+  //   signature,
+  //   notary_public_key,
+  //   false,
+  // );
+
+  return true;
 }
 export function decodeAttestation(attestationObject: AttestationObject): {
-  attributes: any;
+  attributes: Attributes | null;
   decodedAppData: {
     request: string;
     response_header: string;
@@ -104,12 +140,14 @@ export function decodeAttestation(attestationObject: AttestationObject): {
       const colonIndex = attr.indexOf(':');
       if (colonIndex === -1) return undefined;
 
-      const attribute = attr.slice(0, colonIndex);
+      const attribute_name = attr.slice(0, colonIndex);
       const signature = parseSignature(attr.slice(colonIndex + 1));
-
-      if (attribute !== '') return [attribute, signature];
+      const attribute_hex = Buffer.from(attribute_name).toString('hex');
+      if (attribute_name !== '' && signature !== null)
+        return { attribute_name, attribute_hex, signature };
       else return undefined;
-    });
+    })
+    .filter((attr) => attr !== undefined);
   return {
     attributes,
     decodedAppData,
