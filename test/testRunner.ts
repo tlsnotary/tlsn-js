@@ -29,9 +29,7 @@ let server: ChildProcess;
 let tlsnServerFixture: ChildProcess;
 const spawnTlsnServerFixture = () => {
   const tlsnServerFixturePath = './utils/tlsn/crates/server-fixture/';
-  // Spawn the server process
-  // tlsnServerFixture = spawn(tlsnServerFixturePath, []);
-  tlsnServerFixture = exec(`../target/release/main`, {
+  tlsnServerFixture = exec(`../../target/release/main`, {
     cwd: tlsnServerFixturePath,
   });
 
