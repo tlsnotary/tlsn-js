@@ -11,3 +11,13 @@ export type ParsedTranscriptData = {
   json?: { [path: string]: CommitData };
   lineBreaks: CommitData[];
 };
+
+export type PresentationJSON = {
+  version: '0.1.0-alpha.7';
+  data: string;
+  meta: {
+    notaryUrl?: string;
+    websocketProxyUrl?: string;
+    pluginUrl?: string;
+  };
+};

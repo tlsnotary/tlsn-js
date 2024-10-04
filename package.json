@@ -1,6 +1,6 @@
 {
   "name": "tlsn-js",
-  "version": "0.1.0-a7.rc.3",
+  "version": "0.1.0-a7.rc.5",
   "description": "",
   "repository": "https://github.com/tlsnotary/tlsn-js",
   "main": "build/lib.js",
@@ -55,6 +55,7 @@
     "serve": "14.2.1",
     "serve-handler": "^6.1.5",
     "stream-browserify": "^3.0.0",
+    "tlsn-wasm": "0.1.0-alpha.7.1",
     "ts-loader": "^6.2.1",
     "ts-mocha": "^10.0.0",
     "ts-node": "^10.9.2",

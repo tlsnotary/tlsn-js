@@ -9,6 +9,7 @@ import {
   NotaryServer,
   Transcript,
 } from 'tlsn-js';
+import { PresentationJSON } from '../../../build/types';
 
 const { init, Prover, Presentation }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
@@ -23,7 +24,8 @@ function App(): ReactElement {
   const [initialized, setInitialized] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<any | null>(null);
-  const [proofHex, setProofHex] = useState<null | string>(null);
+  const [presentationJSON, setPresentationJSON] =
+    useState<null | PresentationJSON>(null);
 
   useEffect(() => {
     (async () => {
@@ -84,19 +86,18 @@ function App(): ReactElement {
     const presentation = (await new Presentation({
       attestationHex: notarizationOutputs.attestation,
       secretsHex: notarizationOutputs.secrets,
+      notaryUrl: notarizationOutputs.notaryUrl,
+      websocketProxyUrl: notarizationOutputs.websocketProxyUrl,
       reveal: commit,
     })) as TPresentation;
 
-    const presentationHex = await presentation.serialize();
-
+    setPresentationJSON(await presentation.json());
     console.timeEnd('proof');
-    setProofHex(presentationHex);
-  }, [setProofHex, setProcessing]);
+  }, [setPresentationJSON, setProcessing]);
 
   const onAltClick = useCallback(async () => {
     setProcessing(true);
-    const proof = await Prover.notarize({
-      id: 'test',
+    const proof = await (Prover.notarize as typeof TProver.notarize)({
       notaryUrl: 'http://localhost:7047',
       websocketProxyUrl: 'ws://localhost:55688',
       url: 'https://swapi.dev/api/people/1',
@@ -114,17 +115,18 @@ function App(): ReactElement {
       },
     });
 
-    setProofHex(proof);
-  }, [setProofHex, setProcessing]);
+    setPresentationJSON(proof);
+  }, [setPresentationJSON, setProcessing]);
 
   useEffect(() => {
     (async () => {
-      if (proofHex) {
-        const proof = (await new Presentation(proofHex)) as TPresentation;
+      if (presentationJSON) {
+        const proof = (await new Presentation(
+          presentationJSON.data,
+        )) as TPresentation;
         const notary = NotaryServer.from(`http://localhost:7047`);
-        const notaryKey = await notary.publicKey();
+        const notaryKey = await notary.publicKey('hex');
         const verifierOutput = await proof.verify();
-        console.log(verifierOutput, notaryKey);
         const transcript = new Transcript({
           sent: verifierOutput.transcript.sent,
           recv: verifierOutput.transcript.recv,
@@ -133,15 +135,7 @@ function App(): ReactElement {
         setResult({
           time: verifierOutput.connection_info.time,
           verifyingKey: Buffer.from(vk.data).toString('hex'),
-          notaryKey: Buffer.from(
-            notaryKey
-              .replace('-----BEGIN PUBLIC KEY-----', '')
-              .replace('-----END PUBLIC KEY-----', '')
-              .replace(/\n/g, ''),
-            'base64',
-          )
-            .slice(23)
-            .toString('hex'),
+          notaryKey: notaryKey,
           serverName: verifierOutput.server_name,
           sent: transcript.sent(),
           recv: transcript.recv(),
@@ -149,7 +143,7 @@ function App(): ReactElement {
         setProcessing(false);
       }
     })();
-  }, [proofHex, setResult]);
+  }, [presentationJSON, setResult]);
 
   return (
     <div>
@@ -171,9 +165,9 @@ function App(): ReactElement {
       </div>
       <div>
         <b>Proof: </b>
-        {!processing && !proofHex ? (
+        {!processing && !presentationJSON ? (
           <i>not started</i>
-        ) : !proofHex ? (
+        ) : !presentationJSON ? (
           <>
             Proving data from swapi...
             <Watch
@@ -192,14 +186,14 @@ function App(): ReactElement {
           <>
             <details>
               <summary>View Proof</summary>
-              <pre>{JSON.stringify(proofHex, null, 2)}</pre>
+              <pre>{JSON.stringify(presentationJSON, null, 2)}</pre>
             </details>
           </>
         )}
       </div>
       <div>
         <b>Verification: </b>
-        {!proofHex ? (
+        {!presentationJSON ? (
           <i>not started</i>
         ) : !result ? (
           <i>verifying</i>
