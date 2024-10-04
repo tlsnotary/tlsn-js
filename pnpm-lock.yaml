@@ -83,6 +83,9 @@ devDependencies:
   stream-browserify:
     specifier: ^3.0.0
     version: 3.0.0
+  tlsn-wasm:
+    specifier: 0.1.0-alpha.7.1
+    version: 0.1.0-alpha.7.1
   ts-loader:
     specifier: ^6.2.1
     version: 6.2.2(typescript@4.9.5)
@@ -7734,6 +7737,10 @@ packages:
     engines: {node: '>=0.6.0'}
     dependencies:
       process: 0.11.10
+    dev: true
+
+  /tlsn-wasm@0.1.0-alpha.7.1:
+    resolution: {integrity: sha512-HO0WwqjXOwj69ECI2qqSLuFD1kQJ4PYge1w0G+LxCUthBi76Pw7ZoBpPV+8s1yQR4xAkZkE7rntTFagCXPbuIg==}
     dev: true
 
   /to-buffer@1.1.1:
