@@ -9,7 +9,7 @@ import {
   NotaryServer,
   Transcript,
 } from 'tlsn-js';
-import { PresentationJSON } from '../../../build/types';
+import { PresentationJSON } from 'tlsn-js/build/types';
 
 const { init, Prover, Presentation }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
