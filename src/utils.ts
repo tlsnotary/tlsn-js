@@ -1,4 +1,5 @@
 import { ParsedTranscriptData } from './types';
+import { Buffer } from 'buffer';
 
 type Stack =
   | {
@@ -405,6 +406,10 @@ export function stringToBuffer(str: string): number[] {
 
 export function arrayToHex(uintArr: Uint8Array): string {
   return Buffer.from(uintArr).toString('hex');
+}
+
+export function hexToArray(hex: string): Uint8Array {
+  return new Uint8Array(Buffer.from(hex, 'hex'));
 }
 
 export function headerToMap(headers: {

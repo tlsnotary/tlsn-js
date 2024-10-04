@@ -4,14 +4,14 @@ import * as Comlink from 'comlink';
 import { Watch } from 'react-loader-spinner';
 import {
   Prover as TProver,
-  NotarizedSession as TNotarizedSession,
-  TlsProof as TTlsProof,
+  Presentation as TPresentation,
   Commit,
   NotaryServer,
-  ProofData,
+  Transcript,
 } from 'tlsn-js';
+import { PresentationJSON } from 'tlsn-js/build/types';
 
-const { init, Prover, NotarizedSession, TlsProof }: any = Comlink.wrap(
+const { init, Prover, Presentation }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
 );
 
@@ -21,15 +21,23 @@ const root = createRoot(container!);
 root.render(<App />);
 
 function App(): ReactElement {
+  const [initialized, setInitialized] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [result, setResult] = useState<ProofData | null>(null);
-  const [proofHex, setProofHex] = useState<null | string>(null);
+  const [result, setResult] = useState<any | null>(null);
+  const [presentationJSON, setPresentationJSON] =
+    useState<null | PresentationJSON>(null);
+
+  useEffect(() => {
+    (async () => {
+      await init({ loggingLevel: 'Info' });
+      setInitialized(true);
+    })();
+  }, []);
 
   const onClick = useCallback(async () => {
     setProcessing(true);
     const notary = NotaryServer.from(`http://localhost:7047`);
     console.time('submit');
-    await init({ loggingLevel: 'Debug' });
     const prover = (await new Prover({
       serverDns: 'swapi.dev',
     })) as TProver;
@@ -71,26 +79,25 @@ function App(): ReactElement {
         ...transcript.ranges.recv.lineBreaks,
       ],
     };
-    console.log(commit);
-    const session = await prover.notarize(commit);
+    const notarizationOutputs = await prover.notarize(commit);
     console.timeEnd('commit');
     console.time('proof');
 
-    const notarizedSession = (await new NotarizedSession(
-      session,
-    )) as TNotarizedSession;
+    const presentation = (await new Presentation({
+      attestationHex: notarizationOutputs.attestation,
+      secretsHex: notarizationOutputs.secrets,
+      notaryUrl: notarizationOutputs.notaryUrl,
+      websocketProxyUrl: notarizationOutputs.websocketProxyUrl,
+      reveal: commit,
+    })) as TPresentation;
 
-    const proofHex = await notarizedSession.proof(commit);
-
+    setPresentationJSON(await presentation.json());
     console.timeEnd('proof');
-    setProofHex(proofHex);
-  }, [setProofHex, setProcessing]);
+  }, [setPresentationJSON, setProcessing]);
 
   const onAltClick = useCallback(async () => {
     setProcessing(true);
-    await init({ loggingLevel: 'Debug' });
-    const proof = await Prover.notarize({
-      id: 'test',
+    const proof = await (Prover.notarize as typeof TProver.notarize)({
       notaryUrl: 'http://localhost:7047',
       websocketProxyUrl: 'ws://localhost:55688',
       url: 'https://swapi.dev/api/people/1',
@@ -108,31 +115,42 @@ function App(): ReactElement {
       },
     });
 
-    setProofHex(proof);
-  }, [setProofHex, setProcessing]);
+    setPresentationJSON(proof);
+  }, [setPresentationJSON, setProcessing]);
 
   useEffect(() => {
     (async () => {
-      if (proofHex) {
-        const proof = (await new TlsProof(proofHex)) as TTlsProof;
+      if (presentationJSON) {
+        const proof = (await new Presentation(
+          presentationJSON.data,
+        )) as TPresentation;
         const notary = NotaryServer.from(`http://localhost:7047`);
-        const notaryKey = await notary.publicKey();
-        const proofData = await proof.verify({
-          typ: 'P256',
-          key: notaryKey,
+        const notaryKey = await notary.publicKey('hex');
+        const verifierOutput = await proof.verify();
+        const transcript = new Transcript({
+          sent: verifierOutput.transcript.sent,
+          recv: verifierOutput.transcript.recv,
         });
-        setResult(proofData);
+        const vk = await proof.verifyingKey();
+        setResult({
+          time: verifierOutput.connection_info.time,
+          verifyingKey: Buffer.from(vk.data).toString('hex'),
+          notaryKey: notaryKey,
+          serverName: verifierOutput.server_name,
+          sent: transcript.sent(),
+          recv: transcript.recv(),
+        });
         setProcessing(false);
       }
     })();
-  }, [proofHex, setResult]);
+  }, [presentationJSON, setResult]);
 
   return (
     <div>
       <div>
         <button
           onClick={!processing ? onClick : undefined}
-          disabled={processing}
+          disabled={processing || !initialized}
         >
           Start Demo (Normal config)
         </button>
@@ -140,16 +158,16 @@ function App(): ReactElement {
       <div>
         <button
           onClick={!processing ? onAltClick : undefined}
-          disabled={processing}
+          disabled={processing || !initialized}
         >
           Start Demo 2 (With helper method)
         </button>
       </div>
       <div>
         <b>Proof: </b>
-        {!processing && !proofHex ? (
+        {!processing && !presentationJSON ? (
           <i>not started</i>
-        ) : !proofHex ? (
+        ) : !presentationJSON ? (
           <>
             Proving data from swapi...
             <Watch
@@ -168,14 +186,14 @@ function App(): ReactElement {
           <>
             <details>
               <summary>View Proof</summary>
-              <pre>{JSON.stringify(proofHex, null, 2)}</pre>
+              <pre>{JSON.stringify(presentationJSON, null, 2)}</pre>
             </details>
           </>
         )}
       </div>
       <div>
         <b>Verification: </b>
-        {!proofHex ? (
+        {!presentationJSON ? (
           <i>not started</i>
         ) : !result ? (
           <i>verifying</i>

@@ -20,9 +20,9 @@ else
 fi
 
 # Checkout the specific tag
-git checkout "v0.1.0-alpha.6"
+git checkout "dev"
 
-for dir in "tlsn/tlsn-server-fixture/" "notary/server"; do
+for dir in "crates/server-fixture/" "crates/notary/server"; do
     # Change to the specific subdirectory
     cd ${dir}
 
