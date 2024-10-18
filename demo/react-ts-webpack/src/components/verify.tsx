@@ -1,11 +1,22 @@
 import React, { ReactElement, useEffect, useState } from 'react';
 import * as Comlink from 'comlink';
-import { parseSignature, AttestationObject, decodeTLSData } from 'tlsn-js';
+import {
+  AttestationObject,
+  decode_and_verify,
+  Attribute,
+  NotarizedData,
+} from 'tlsn-js';
 import { CheckCircle, XCircle } from 'lucide-react';
 
-const { init, verify_attestation_signature }: any = Comlink.wrap(
+import { CheckCircle2 } from 'lucide-react';
+
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from './shadcn';
+
+const worker = Comlink.wrap(
   new Worker(new URL('../utils/worker.ts', import.meta.url)),
 );
+
+const { init, verify_attestation_signature }: any = worker;
 
 export function VerifyAttributeAttestation(): ReactElement {
   useEffect(() => {
@@ -23,66 +34,34 @@ export function VerifyAttributeAttestation(): ReactElement {
   const [attestationObject, setAttestationObject] = useState<string | null>(
     null,
   );
-  const [decodedTLSData, setDecodedTLSData] = useState<null | any>(null);
-  const [attrAttestations, setAttrAttestations] = useState<null | any>(null);
+  const [decodedAttestation, setDecodedAttestation] =
+    useState<AttestationObject | null>(null);
 
-  const verifySignature = async () => {
+  const [notarizedData, setNotarizedData] = useState<NotarizedData | null>(
+    null,
+  );
+
+  const verifyAttestation = async () => {
     if (!attestationObject) return setError('Attestation object is invalid');
 
-    let attestationObject_;
     try {
-      attestationObject_ = JSON.parse(attestationObject) as AttestationObject;
+      const attestationObject_ = JSON.parse(
+        attestationObject,
+      ) as AttestationObject;
 
-      if (attestationObject_.attestations) {
-        const attr_attestations = attestationObject_.attestations
-          .split(';')
-          .map((attr: string) => {
-            const colonIndex = attr.indexOf(':');
-            if (colonIndex === -1) return undefined;
+      setDecodedAttestation(attestationObject_);
 
-            const attribute = attr.slice(0, colonIndex);
-            const signature = parseSignature(attr.slice(colonIndex + 1));
-
-            if (attribute !== '') return [attribute, signature];
-            else return undefined;
-          });
-        console.log('attr_attestations', attr_attestations);
-        setAttrAttestations(attr_attestations);
-      }
-      const decodedTLSData = decodeTLSData(attestationObject_.applicationData);
-      setDecodedTLSData(decodedTLSData);
-    } catch (e) {
-      console.log(e);
-      setIsAttrAttestationValid(false);
-      return setError('Object is invalid');
-    }
-    const { applicationData, signature } = attestationObject_;
-
-    if (!applicationData) return setError('No application data');
-    if (!signature) return setError('No signature');
-
-    //const notary = NotaryServer.from(`https://notary.eternis.ai`);
-    //const notaryKey = await notary.publicKey();
-    //convert to raw_bytes_hex
-
-    const hex_notary_key =
-      '0406fdfa148e1916ccc96b40d0149df05825ef54b16b711ccc1b991a4de1c6a12cc3bba705ab1dee116629146a3a0b410e5207fe98481b92d2eb5e872fe721f32a';
-
-    const signature_hex = parseSignature(signature);
-
-    try {
-      const isValid = await verify_attestation_signature(
-        applicationData,
-        signature_hex,
-        hex_notary_key,
+      const { is_valid, notarized_data } = await decode_and_verify(
+        attestationObject_,
+        verify_attestation_signature,
       );
 
-      setIsAttrAttestationValid(isValid);
-      setError(null);
-    } catch (e: any) {
-      console.log(e);
-      setError('invalid signature');
+      if (!is_valid) return setError('Signature is invalid');
+      setNotarizedData(notarized_data);
+      setIsAttrAttestationValid(is_valid);
+    } catch (e) {
       setIsAttrAttestationValid(false);
+      return setError('Attestation is invalid');
     }
   };
 
@@ -120,7 +99,7 @@ export function VerifyAttributeAttestation(): ReactElement {
 
             <div className="flex justify-center items-center mb-4">
               <button
-                onClick={verifySignature}
+                onClick={verifyAttestation}
                 disabled={!attestationObject}
                 className={`px-4 py-2 ${attestationObject ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 cursor-not-allowed'} text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 flex items-center`}
               >
@@ -129,49 +108,24 @@ export function VerifyAttributeAttestation(): ReactElement {
               </button>
             </div>
 
-            {isAttrAttestationValid !== null && (
+            {isAttrAttestationValid === false && (
               <div
                 className={`mt-4 p-4 rounded-md ${isAttrAttestationValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
               >
                 <div className="flex items-center">
-                  {isAttrAttestationValid ? (
-                    <CheckCircle className="h-5 w-5 mr-2" />
-                  ) : (
-                    <XCircle className="h-5 w-5 mr-2" />
-                  )}
+                  <XCircle className="h-5 w-5 mr-2" />
                   <span className="font-medium">
-                    {isAttrAttestationValid && (
-                      <p>Attribute attestation is valid</p>
-                    )}
-
-                    {<p> {error}</p>}
+                    {<p> Invalid Attestation {error}</p>}
                   </span>
                 </div>
               </div>
             )}
 
-            {attrAttestations && (
-              <div className="mt-2 h-30 overflow-y-30 border border-gray-200 rounded p-4 mb-4">
-                <h2 className="text-l font-bold">Attribute attestations</h2>
-                <ul>
-                  {attrAttestations.map(
-                    (attr: any) =>
-                      attr && (
-                        <>
-                          <li key={attr[0]}>{attr[0]}</li>
-                          <li key={attr[1]}>signature: {attr[1]}</li>
-                        </>
-                      ),
-                  )}
-                </ul>
-              </div>
-            )}
-            {!attrAttestations && decodedTLSData && (
-              <div className="mt-2 h-30 overflow-y-30 border border-gray-200 rounded p-4 mb-4">
-                <h2 className="text-l font-bold">Decoded Application Data</h2>
-
-                <StylizedJSON data={decodedTLSData} />
-              </div>
+            {isAttrAttestationValid && notarizedData && decodedAttestation && (
+              <CardAttestation
+                notaryUrl={decodedAttestation.meta.notaryUrl}
+                notarizedData={notarizedData}
+              />
             )}
           </div>
         </div>
@@ -289,3 +243,62 @@ other example : twitter
 
 
 */
+
+function CardAttestation({
+  notaryUrl,
+  notarizedData,
+}: {
+  notaryUrl: string;
+  notarizedData: NotarizedData;
+}) {
+  console.log('decodedTLSData', notarizedData);
+  const [showDetails, setShowDetails] = useState(false);
+
+  const { attributes, decoded_data } = notarizedData;
+
+  return (
+    <div className="flex justify-center items-center mb-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">
+            Attestation{' '}
+            {decoded_data.hostname ? 'for ' + decoded_data.hostname : ''}
+          </CardTitle>
+          <div className="flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-600">
+            <CheckCircle2 className="mr-1 h-3 w-3" />
+            Verified
+          </div>
+        </CardHeader>
+        <CardContent>notary: {notaryUrl}</CardContent>
+        <CardContent>
+          {showDetails && !attributes && <StylizedJSON data={decoded_data} />}
+
+          {attributes && (
+            <div className="flex flex-wrap gap-2">
+              {attributes.map((attr: Attribute) => (
+                <div
+                  key={attr.attribute_name}
+                  className="inline-flex items-center rounded-full bg-green-500 px-2 py-1 text-xs font-medium text-white"
+                >
+                  <CheckCircle2 className="mr-1 h-3 w-3" />
+                  <span>{attr.attribute_name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+
+        {!attributes && (
+          <CardFooter className="flex justify-between">
+            <button
+              className="text-blue-600"
+              onClick={() => setShowDetails(!showDetails)}
+            >
+              {showDetails ? 'Hide' : 'View data'}
+            </button>
+          </CardFooter>
+        )}
+      </Card>
+    </div>
+  );
+}

@@ -57,6 +57,213 @@ export interface Payload {
   nonce: string | null;
 }
 
+export type Attributes = Attribute[];
+
+/**
+ * Convert the PEM string represetation of a P256 public key to a hex string of its raw bytes
+ * @param pemString - The PEM string to convert
+ * @returns The raw hex string
+ */
+function pemToRawHex(pemString: string) {
+  const base64 = pemString
+    .replace('-----BEGIN PUBLIC KEY-----', '')
+    .replace('-----END PUBLIC KEY-----', '')
+    .replace(/\s/g, '');
+  return Buffer.from(base64, 'base64').toString('hex').slice(-130);
+}
+
+/**
+ * @param attribute_hex is the hex binary epresentation of the attribute
+ * @param attribute_name is the name of the attribute
+ * @param signature is the signature of the attribute in bytes or attribute_hex
+ */
+export type Attribute = {
+  attribute_name: string;
+  attribute_hex: string;
+  signature: string;
+};
+
+export type DecodedData = {
+  hostname: string;
+  request_url: string;
+  request: string; //contain headers
+  response_header: string;
+  response_body: string;
+};
+
+export type NotarizedData = {
+  bytes_data: string;
+  decoded_data: DecodedData;
+  attributes: Attributes | null;
+};
+export async function decode_and_verify(
+  attestationObject: AttestationObject,
+  verify_signature_function: (
+    attribute_hex: string,
+    signature: string,
+    notary_public_key: string,
+    hash_appdata: boolean,
+  ) => Promise<boolean>,
+): Promise<{
+  is_valid: boolean;
+  hex_notary_key: string;
+  notarized_data: NotarizedData;
+}> {
+  const { notarized_data, signature, hex_notary_key } =
+    await decodeAttestation(attestationObject);
+
+  const { attributes, bytes_data } = notarized_data;
+
+  //console.log('attributes', attributes);
+
+  if (!bytes_data) throw new Error('binary_data is null');
+  if (!signature) throw new Error('signature is null');
+
+  let is_valid = true;
+  if (attributes) {
+    for (const attribute of attributes) {
+      const isValid_ = await verify_signature_function(
+        attribute.attribute_hex,
+        attribute.signature,
+        hex_notary_key,
+        false,
+      );
+
+      if (!isValid_) {
+        is_valid = false;
+        break;
+      }
+    }
+    return {
+      is_valid,
+      hex_notary_key,
+      notarized_data,
+    };
+  } else {
+    try {
+      is_valid = await verify_signature_function(
+        bytes_data!,
+        signature!,
+        hex_notary_key,
+        true,
+      );
+    } catch (e) {
+      is_valid = false;
+    }
+  }
+  return {
+    is_valid,
+    hex_notary_key,
+    notarized_data,
+  };
+}
+
+export async function decodeAttestation(
+  attestationObject: AttestationObject,
+): Promise<{
+  signature: string | null;
+  hex_notary_key: string;
+  notarized_data: NotarizedData;
+}> {
+  //console.log('decodeAttestation', attestationObject.applicationData);
+  const signature = parseSignature(attestationObject.signature);
+  const binaryAppData = attestationObject.applicationData;
+  const decodedAppData = decodeAppData(attestationObject.applicationData);
+
+  const { notaryUrl } = attestationObject.meta;
+  const notary = NotaryServer.from(notaryUrl);
+  const notaryKeyPem = await notary.publicKey();
+
+  const hex_notary_key = pemToRawHex(notaryKeyPem);
+
+  const notarized_data = {
+    bytes_data: binaryAppData,
+    decoded_data: decodedAppData,
+    attributes: null,
+  };
+  if (!attestationObject.attestations)
+    return {
+      notarized_data,
+      signature,
+      hex_notary_key,
+    };
+
+  const attributes = attestationObject.attestations
+    .split(';')
+    .map((attr: string) => {
+      const colonIndex = attr.indexOf(':');
+      if (colonIndex === -1) return undefined;
+
+      const attribute_name = attr.slice(0, colonIndex);
+      const signature = parseSignature(attr.slice(colonIndex + 1));
+      const attribute_hex = Buffer.from(attribute_name).toString('hex');
+      if (attribute_name !== '' && signature !== null)
+        return { attribute_name, attribute_hex, signature };
+      else return undefined;
+    })
+    .filter((attr) => attr !== undefined);
+
+  const notarized_data_with_attributes = {
+    bytes_data: binaryAppData,
+    decoded_data: decodedAppData,
+    attributes: attributes,
+  };
+  return {
+    notarized_data: notarized_data_with_attributes,
+    signature: signature,
+    hex_notary_key,
+  };
+}
+/**
+ * Decode the attested bytes tls data which contains request and response
+ * @returns {string} The generated nonce.
+ */
+export function decodeAppData(hexString: string) {
+  hexString = hexString.replace(/\s/g, '');
+
+  let decodedString = '';
+  for (let i = 0; i < hexString.length; i += 2) {
+    decodedString += String.fromCharCode(parseInt(hexString.substr(i, 2), 16));
+  }
+
+  //console.log('decodedString', decodedString);
+
+  const [request, response_header, response_body] =
+    decodedString.split('\r\n\r\n');
+
+  let request_url = '';
+  let hostname = '';
+
+  try {
+    const lines = request.split('\r');
+    request_url = lines.filter((line: string) => line.startsWith('GET'))[0];
+
+    const requestUrlParts = request_url.split(' ');
+    if (requestUrlParts.length >= 2) {
+      request_url = requestUrlParts.slice(0, -1).join(' ').trim();
+    }
+    request_url = request_url.replace('GET', '').trim();
+
+    // Extract host name from URL
+    // Extract hostname from URL using regex
+    const hostnameMatch = request_url.match(
+      /^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n?]+)/im,
+    );
+    hostname = hostnameMatch ? hostnameMatch[1] : '';
+  } catch (e) {
+    console.log('error', e);
+  }
+
+  // Add hostname to the return object
+  return {
+    hostname: hostname ?? '',
+    request_url,
+    request,
+    response_header,
+    response_body,
+  };
+}
+
 /**
  * Decode the attested bytes tls data which contains request and response
  * @returns {string} The generated nonce.
@@ -119,7 +326,6 @@ export async function verify_attestation(
   pcrs: string[],
   timestamp: number = Math.floor(Date.now() / 1000),
 ) {
-  console.log('remote_attestation_base64', remote_attestation_base64);
   return await verify_attestation_document(
     remote_attestation_base64,
     nonce,
@@ -204,8 +410,9 @@ export class Prover {
       headers: headerToMap(headers),
       body,
     });
+    const notarized = await prover.notarize();
 
-    return await prover.notarize();
+    return notarized;
   }
 
   constructor(config: {

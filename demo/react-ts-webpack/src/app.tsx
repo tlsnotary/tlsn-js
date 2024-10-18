@@ -17,7 +17,7 @@ function App(): ReactElement {
     <Router>
       <div>
         <Routes>
-          <Route path="/" element={<Notarization />} />
+          <Route path="/" element={<VerifyAttributeAttestation />} />
           <Route path="/notarize" element={<Notarization />} />
           <Route path="/verify" element={<VerifyAttributeAttestation />} />
         </Routes>

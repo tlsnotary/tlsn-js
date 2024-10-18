@@ -21,8 +21,11 @@ const EXPECTED_PCRS = {
   '2': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
 };
 const notaryUrl = 'https://notary.eternis.ai';
-const websocketUrl = 'ws://localhost:55688';
-const request = requests.dummy;
+const websocketUrl = 'wss://websockify.cluster.eternis.ai:55688';
+//const websocketUrl = 'ws://localhost:55688';
+//const notaryUrl = 'http://localhost:7047';
+
+const request = requests.swapi;
 const { dns, url, method, headers, body } = request;
 
 export function Notarization(): ReactElement {

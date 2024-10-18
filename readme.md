@@ -4,14 +4,14 @@
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [apache-badge]: https://img.shields.io/github/license/saltstack/salt
 
-# tlsn-js
+# Pangea-js
 
-NPM Modules for proving and verifying using TLSNotary in the browser.
+NPM Modules for proving and verifying using pangea attestations in the browser.
 
 The prover requires a [notary-server](https://github.com/tlsnotary/notary-server) and a websocket proxy
 
 > [!IMPORTANT]
-> `tlsn-js` is developed for the usage of TLSNotary **in the Browser**. This module does not work in `nodejs`.
+> `Pangea-js` is developed for the usage **in the Browser**. This module does not work in `nodejs`.
 
 ## License
 This repository is licensed under either of
@@ -25,7 +25,7 @@ at your option.
 ```ts
 // worker.ts
 import * as Comlink from 'comlink';
-import init, { Prover, NotarizedSession, TlsProof } from 'tlsn-js';
+import init, { Prover, NotarizedSession, TlsProof } from '@eternis/tlsn-js';
 
 Comlink.expose({
   init,
@@ -37,7 +37,7 @@ Comlink.expose({
 ```
 ```ts
 // app.ts
-import { NotaryServer } from 'tlsn-js';
+import { NotaryServer } from '@eternis/tlsn-js';
 const { init, Prover, NotarizedSession, TlsProof }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
 );
@@ -125,7 +125,7 @@ websocat --binary -v ws-l:0.0.0.0:55688 tcp:swapi.dev:443
 ## Install as NPM Package
 
 ```
-npm install tlsn-js
+npm install eternis-js
 ```
 
 ## Development
@@ -141,6 +141,18 @@ npm install
 # this serve a page that will execute the example code at http://localhost:3001 
 npm run dev
 ```
+
+## Verify attestation and notarization demo
+
+You can test notarization and verification with the demo web app.
+
+```
+cd demo/react-ts-webpack
+npm i && npm run dev 
+
+```
+
+Endpoint /notarize is for notarization, /verify is for verification.
 
 ## Build for NPM
 
