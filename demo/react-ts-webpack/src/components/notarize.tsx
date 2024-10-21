@@ -91,7 +91,7 @@ export function Notarization(): ReactElement {
 
     const session = await prover.notarize();
 
-    setApplicationData(session.applicationData);
+    setApplicationData(session.application_data);
     setSignature(session.signature);
     setProcessingNotarization(false);
   };

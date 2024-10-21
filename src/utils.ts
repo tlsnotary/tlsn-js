@@ -1,5 +1,6 @@
 import { ParsedTranscriptData } from './types';
 
+export const SEMAPHORE_IDENTITY_HEADER = 'x-semaphore-identity';
 type Stack =
   | {
       type: 'object';

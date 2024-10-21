@@ -18,6 +18,17 @@ import initWasm, {
 import { arrayToHex, expect, headerToMap } from './utils';
 import type { ParsedTranscriptData, ProofData } from './types';
 
+import {
+  AttestationObject,
+  RemoteAttestation,
+  Payload,
+  Attribute,
+  DecodedData,
+  NotaryRequest,
+  NotaryConfig,
+  Provider,
+} from './types';
+import { SEMAPHORE_IDENTITY_HEADER } from './utils';
 let LOGGING_LEVEL: LoggingLevel = 'Info';
 
 function debug(...args: any[]) {
@@ -26,38 +37,16 @@ function debug(...args: any[]) {
   }
 }
 
-export interface AttestationObject {
-  version: string;
-  meta: {
-    notaryUrl: string;
-    websocketProxyUrl: string;
-  };
-  signature: string;
-  signedSession: string;
-  applicationData: string;
-  attestations: string;
-}
-export interface RemoteAttestation {
-  protected: string;
-  payload: string;
-  signature: string;
-  certificate: string;
-  payload_object: Payload;
-}
-
-export interface Payload {
-  module_id: string;
-  timestamp: number;
-  digest: string;
-  pcrs: Map<number, string>;
-  certificate: Uint8Array;
-  cabundle: Uint8Array[];
-  public_key: Buffer;
-  user_data: Uint8Array | null;
-  nonce: string | null;
-}
-
-export type Attributes = Attribute[];
+export type {
+  AttestationObject,
+  RemoteAttestation,
+  Payload,
+  Attribute,
+  DecodedData,
+  NotaryRequest,
+  NotaryConfig,
+  Provider,
+};
 
 /**
  * Convert the PEM string represetation of a P256 public key to a hex string of its raw bytes
@@ -72,30 +61,6 @@ function pemToRawHex(pemString: string) {
   return Buffer.from(base64, 'base64').toString('hex').slice(-130);
 }
 
-/**
- * @param attribute_hex is the hex binary epresentation of the attribute
- * @param attribute_name is the name of the attribute
- * @param signature is the signature of the attribute in bytes or attribute_hex
- */
-export type Attribute = {
-  attribute_name: string;
-  attribute_hex: string;
-  signature: string;
-};
-
-export type DecodedData = {
-  hostname: string;
-  request_url: string;
-  request: string; //contain headers
-  response_header: string;
-  response_body: string;
-};
-
-export type NotarizedData = {
-  bytes_data: string;
-  decoded_data: DecodedData;
-  attributes: Attributes | null;
-};
 export async function decode_and_verify(
   attestationObject: AttestationObject,
   verify_signature_function: (
@@ -107,23 +72,27 @@ export async function decode_and_verify(
 ): Promise<{
   is_valid: boolean;
   hex_notary_key: string;
-  notarized_data: NotarizedData;
+  decodedAttestation: AttestationObject;
 }> {
-  const { notarized_data, signature, hex_notary_key } =
-    await decodeAttestation(attestationObject);
+  const { signature, application_data, attributes } = attestationObject;
 
-  const { attributes, bytes_data } = notarized_data;
+  const decodedAttestation: AttestationObject = {
+    ...attestationObject,
+    application_data_decoded: decodeAppData(attestationObject.application_data),
+  };
 
-  //console.log('attributes', attributes);
+  const hex_notary_key = await getHexNotaryKey(
+    attestationObject.meta?.notaryUrl ?? '',
+  );
 
-  if (!bytes_data) throw new Error('binary_data is null');
-  if (!signature) throw new Error('signature is null');
+  if (!application_data) throw new Error('binary_data is null');
+  if (!attestationObject.signature) throw new Error('signature is null');
 
   let is_valid = true;
   if (attributes) {
     for (const attribute of attributes) {
       const isValid_ = await verify_signature_function(
-        attribute.attribute_hex,
+        attribute.attribute_hex ?? '',
         attribute.signature,
         hex_notary_key,
         false,
@@ -137,12 +106,12 @@ export async function decode_and_verify(
     return {
       is_valid,
       hex_notary_key,
-      notarized_data,
+      decodedAttestation,
     };
   } else {
     try {
       is_valid = await verify_signature_function(
-        bytes_data!,
+        application_data!,
         signature!,
         hex_notary_key,
         true,
@@ -154,68 +123,17 @@ export async function decode_and_verify(
   return {
     is_valid,
     hex_notary_key,
-    notarized_data,
+    decodedAttestation,
   };
 }
 
-export async function decodeAttestation(
-  attestationObject: AttestationObject,
-): Promise<{
-  signature: string | null;
-  hex_notary_key: string;
-  notarized_data: NotarizedData;
-}> {
-  //console.log('decodeAttestation', attestationObject.applicationData);
-  const signature = parseSignature(attestationObject.signature);
-  const binaryAppData = attestationObject.applicationData;
-  const decodedAppData = decodeAppData(attestationObject.applicationData);
-
-  const { notaryUrl } = attestationObject.meta;
+export async function getHexNotaryKey(notaryUrl: string) {
   const notary = NotaryServer.from(notaryUrl);
-  const notaryKeyPem = await notary.publicKey();
-
-  const hex_notary_key = pemToRawHex(notaryKeyPem);
-
-  const notarized_data = {
-    bytes_data: binaryAppData,
-    decoded_data: decodedAppData,
-    attributes: null,
-  };
-  if (!attestationObject.attestations)
-    return {
-      notarized_data,
-      signature,
-      hex_notary_key,
-    };
-
-  const attributes = attestationObject.attestations
-    .split(';')
-    .map((attr: string) => {
-      const colonIndex = attr.indexOf(':');
-      if (colonIndex === -1) return undefined;
-
-      const attribute_name = attr.slice(0, colonIndex);
-      const signature = parseSignature(attr.slice(colonIndex + 1));
-      const attribute_hex = Buffer.from(attribute_name).toString('hex');
-      if (attribute_name !== '' && signature !== null)
-        return { attribute_name, attribute_hex, signature };
-      else return undefined;
-    })
-    .filter((attr) => attr !== undefined);
-
-  const notarized_data_with_attributes = {
-    bytes_data: binaryAppData,
-    decoded_data: decodedAppData,
-    attributes: attributes,
-  };
-  return {
-    notarized_data: notarized_data_with_attributes,
-    signature: signature,
-    hex_notary_key,
-  };
+  return pemToRawHex(await notary.publicKey());
 }
+
 /**
- * Decode the attested bytes tls data which contains request and response
+ * Decode the signed  bytes tls data which contains request and response
  * @returns {string} The generated nonce.
  */
 export function decodeAppData(hexString: string) {
@@ -226,32 +144,47 @@ export function decodeAppData(hexString: string) {
     decodedString += String.fromCharCode(parseInt(hexString.substr(i, 2), 16));
   }
 
-  //console.log('decodedString', decodedString);
-
   const [request, response_header, response_body] =
     decodedString.split('\r\n\r\n');
 
   let request_url = '';
   let hostname = '';
-
+  let semaphore_identity_commitment = '';
+  const lines = request.split('\r');
   try {
-    const lines = request.split('\r');
-    request_url = lines.filter((line: string) => line.startsWith('GET'))[0];
+    request_url = lines.filter(
+      (line: string) => line.startsWith('GET') || line.startsWith('POST'),
+    )[0];
 
     const requestUrlParts = request_url.split(' ');
     if (requestUrlParts.length >= 2) {
       request_url = requestUrlParts.slice(0, -1).join(' ').trim();
     }
-    request_url = request_url.replace('GET', '').trim();
+    request_url = request_url.replace('GET', '').replace('POST', '').trim();
+  } catch (e) {
+    console.log('decodeAppData: error', e);
+  }
+  try {
+    semaphore_identity_commitment = lines.filter((line: string) =>
+      line.includes(SEMAPHORE_IDENTITY_HEADER),
+    )[0];
 
-    // Extract host name from URL
-    // Extract hostname from URL using regex
+    if (semaphore_identity_commitment) {
+      semaphore_identity_commitment = semaphore_identity_commitment
+        .split(':')[1]
+        .trim();
+    }
+  } catch (e) {
+    console.log('decodeAppData: error', e);
+  }
+
+  try {
     const hostnameMatch = request_url.match(
       /^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n?]+)/im,
     );
     hostname = hostnameMatch ? hostnameMatch[1] : '';
   } catch (e) {
-    console.log('error', e);
+    console.log('decodeAppData: error', e);
   }
 
   // Add hostname to the return object
@@ -261,31 +194,7 @@ export function decodeAppData(hexString: string) {
     request,
     response_header,
     response_body,
-  };
-}
-
-/**
- * Decode the attested bytes tls data which contains request and response
- * @returns {string} The generated nonce.
- */
-export function decodeTLSData(hexString: string) {
-  // Remove any whitespace from the hex string
-  hexString = hexString.replace(/\s/g, '');
-
-  // Decode the hex string to a regular string
-  let decodedString = '';
-  for (let i = 0; i < hexString.length; i += 2) {
-    decodedString += String.fromCharCode(parseInt(hexString.substr(i, 2), 16));
-  }
-
-  // Split the decoded string into request and response
-  const [request, response_header, response_body] =
-    decodedString.split('\r\n\r\n');
-
-  return {
-    request,
-    response_header,
-    response_body,
+    semaphore_identity_commitment,
   };
 }
 
@@ -303,22 +212,12 @@ export function generateNonce() {
 
 export { verify_attestation_signature };
 
-//input example:"P256(ecdsa::Signature<NistP256>(252C196D7265E1CD53F3F9E7F36465F95A04297F3A4CF7DA9DD0DDBB0FBCC9717299A49F0582E09D17BA140F392232715EF2E87A7FD4F9567D9826DEF5B01CC3))";
-
 export function parseSignature(input: string) {
-  // Regular expression to match the hex signature
   const regex = /\(([\dA-Fa-f]+)\)/;
 
-  // Extract the hex signature
   const match = input.match(regex);
 
-  if (match && match[1]) {
-    // Return the extracted hex signature
-    return match[1];
-  } else {
-    // Return null if no valid signature is found
-    return null;
-  }
+  return match && match[1] ? match[1] : null;
 }
 export async function verify_attestation(
   remote_attestation_base64: string,
@@ -450,6 +349,7 @@ export class Prover {
       headers?: { [key: string]: string };
       body?: any;
     },
+    semaphoreIdentity?: string,
   ): Promise<{
     status: number;
     headers: { [key: string]: string };
@@ -458,6 +358,7 @@ export class Prover {
     const { url, method = 'GET', headers = {}, body } = request;
     const hostname = new URL(url).hostname;
     const headerMap = headerToMap({
+      [SEMAPHORE_IDENTITY_HEADER]: semaphoreIdentity ?? '',
       Host: hostname,
       Connection: 'close',
       ...headers,
@@ -484,22 +385,18 @@ export class Prover {
     };
   }
 
-  async notarize(): Promise<{
-    signedSession: string;
-    signature: string;
-    attestation: string;
-    applicationData: string;
-  }> {
+  async notarize(): Promise<AttestationObject> {
     const signedSessionString = await this.#prover.notarize();
 
-    const signedSession = signedSessionString.split('\r\n');
+    const signedSession = JSON.parse(signedSessionString);
 
-    return {
-      signature: signedSession[0],
-      signedSession: '',
-      attestation: signedSession[1],
-      applicationData: signedSession[2],
-    };
+    signedSession.attributes = signedSession.attributes.map(
+      (attributes: string) => JSON.parse(attributes),
+    );
+
+    //console.log('signedSession', signedSession);
+
+    return signedSession;
   }
 }
 
