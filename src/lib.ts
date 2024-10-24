@@ -274,9 +274,6 @@ export class Prover {
     return this.#prover.reveal(reveal);
   }
 
-  async reveal(reveal: Reveal): Promise<void> {
-    await this.#prover.reveal(reveal);
-  }
 }
 
 export class Verifier {

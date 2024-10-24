@@ -3,13 +3,14 @@ import { createRoot } from 'react-dom/client';
 import * as Comlink from 'comlink';
 import { Watch } from 'react-loader-spinner';
 import {
-  Prover as TProver
+  Prover as TProver,
 } from 'tlsn-js';
+import { type Method } from 'tlsn-wasm';
 
 const { init, Prover, NotarizedSession, TlsProof }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
 );
-import { Method } from 'tlsn-js/wasm/pkg';
+
 const container = document.getElementById('root');
 const root = createRoot(container!);
 
@@ -26,17 +27,18 @@ function App(): ReactElement {
     let url = "https://swapi.dev/api/people/1";
     let method: Method = 'GET';
     let headers = {
-      'secret': "TLSNotary's private key"
+      'secret': "TLSNotary's private key",
+      'Content-Type': 'application/json',
     };
-    let body = null;
-    // let websocketProxyUrl = 'wss://notary.pse.dev/proxy?token=swapi.dev';
+    let body = {};
+    // let websocketProxyUrl = 'wss://notary.pse.dev/proxy';
     let websocketProxyUrl = 'ws://localhost:55688';
     let verifierProxyUrl = 'ws://localhost:9816/verify';
     const hostname = new URL(url).hostname;
 
     console.time('setup');
 
-    await init({ loggingLevel: 'Debug' });
+    await init({ loggingLevel: 'Info' });
 
     console.log("Setting up Prover for", hostname)
     const prover = await new Prover({ serverDns: hostname }) as TProver;
@@ -65,12 +67,15 @@ function App(): ReactElement {
         transcript.ranges.sent.info!,
         transcript.ranges.sent.headers!['connection'],
         transcript.ranges.sent.headers!['host'],
+        transcript.ranges.sent.headers!['content-type'],
+        transcript.ranges.sent.headers!['content-length'],
         ...transcript.ranges.sent.lineBreaks,
       ],
       recv: [
-        transcript.ranges.recv.info,
+        transcript.ranges.recv.info!,
         transcript.ranges.recv.headers['server'],
         transcript.ranges.recv.headers['date'],
+        transcript.ranges.recv.headers['content-type'],
         transcript.ranges.recv.json!['name'],
         transcript.ranges.recv.json!['eye_color'],
         transcript.ranges.recv.json!['gender'],

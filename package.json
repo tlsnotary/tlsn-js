@@ -8,7 +8,6 @@
   "files": [
     "build/",
     "src/",
-    "wasm/pkg/*",
     "readme.md"
   ],
   "scripts": {
