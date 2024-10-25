@@ -1,6 +1,6 @@
 {
   "name": "tlsn-js",
-  "version": "v0.1.0-alpha.6.2",
+  "version": "0.1.0-alpha.7.1",
   "description": "",
   "repository": "https://github.com/tlsnotary/tlsn-js",
   "main": "build/lib.js",
@@ -19,9 +19,7 @@
     "build:tlsn-binaries": "sh utils/build-tlsn-binaries.sh",
     "build:lib": "NODE_ENV=production concurrently npm:build:src npm:build:types",
     "build": "npm run build:lib",
-    "update:wasm": "sh utils/check-wasm.sh -f",
     "watch:dev": "webpack --config webpack.web.dev.config.js --watch",
-    "predev": "sh utils/check-wasm.sh",
     "dev": "concurrently npm:watch:dev npm:serve:test",
     "lint:eslint": "eslint . --fix",
     "lint:tsc": "tsc --noEmit",
@@ -53,7 +51,7 @@
     "node-loader": "^0.6.0",
     "prettier": "^3.0.2",
     "process": "^0.11.10",
-    "puppeteer": "^21.10.0",
+    "puppeteer": "^23.5.0",
     "serve": "14.2.1",
     "serve-handler": "^6.1.5",
     "stream-browserify": "^3.0.0",
@@ -71,5 +69,8 @@
   "license": "ISC",
   "engines": {
     "node": ">= 16.20.2"
+  },
+  "dependencies": {
+    "tlsn-wasm": "^0.1.0-alpha.7.2"
   }
 }

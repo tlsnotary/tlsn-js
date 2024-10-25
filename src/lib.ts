@@ -3,9 +3,8 @@ import initWasm, {
   init_logging,
   LoggingLevel,
   LoggingConfig,
-  NotarizedSession as WasmNotarizedSession,
-  Transcript,
-  TlsProof as WasmTlsProof,
+  Attestation as WasmAttestation,
+  Secrets as WasmSecrets,
   type Commit,
   type Reveal,
   Verifier as WasmVerifier,
@@ -13,11 +12,21 @@ import initWasm, {
   type ProverConfig,
   type Method,
   VerifierConfig,
-  VerifierData,
-  NotaryPublicKey,
-} from '../wasm/pkg/tlsn_wasm';
-import { arrayToHex, processTranscript, expect, headerToMap } from './utils';
-import type { ParsedTranscriptData, ProofData } from './types';
+  VerifierOutput,
+  VerifyingKey,
+  Presentation as WasmPresentation,
+  build_presentation,
+  ConnectionInfo,
+  PartialTranscript,
+} from 'tlsn-wasm';
+import {
+  arrayToHex,
+  processTranscript,
+  expect,
+  headerToMap,
+  hexToArray,
+} from './utils';
+import { ParsedTranscriptData, PresentationJSON } from './types';
 
 let LOGGING_LEVEL: LoggingLevel = 'Info';
 
@@ -58,6 +67,8 @@ export default async function init(config?: {
 export class Prover {
   #prover: WasmProver;
   #config: ProverConfig;
+  #verifierUrl?: string;
+  #websocketProxyUrl?: string;
 
   static async notarize(options: {
     url: string;
@@ -70,36 +81,41 @@ export class Prover {
     body?: any;
     maxSentData?: number;
     maxRecvData?: number;
-    id: string;
+    maxRecvDataOnline?: number;
+    deferDecryptionFromStart?: boolean;
     commit?: Commit;
-  }) {
+  }): Promise<PresentationJSON> {
     const {
       url,
       method = 'GET',
       headers = {},
       body,
-      maxSentData,
-      maxRecvData,
+      maxSentData = 1024,
+      maxRecvData = 1024,
+      maxRecvDataOnline,
+      deferDecryptionFromStart,
       notaryUrl,
       websocketProxyUrl,
-      id,
       commit: _commit,
     } = options;
     const hostname = new URL(url).hostname;
     const notary = NotaryServer.from(notaryUrl);
     const prover = new WasmProver({
-      id,
-      server_dns: hostname,
+      server_name: hostname,
       max_sent_data: maxSentData,
       max_recv_data: maxRecvData,
+      max_recv_data_online: maxRecvDataOnline,
+      defer_decryption_from_start: deferDecryptionFromStart,
     });
 
     await prover.setup(await notary.sessionUrl(maxSentData, maxRecvData));
 
+    const headerMap = Prover.getHeaderMap(url, body, headers);
+
     await prover.send_request(websocketProxyUrl + `?token=${hostname}`, {
       uri: url,
       method,
-      headers: headerToMap(headers),
+      headers: headerMap,
       body,
     });
 
@@ -110,30 +126,35 @@ export class Prover {
       recv: [{ start: 0, end: transcript.recv.length }],
     };
 
-    const session = await prover.notarize(commit);
+    const { attestation, secrets } = await prover.notarize(commit);
 
-    const tlsProof = await session.proof(commit);
+    const presentation = build_presentation(attestation, secrets, commit);
 
-    return tlsProof.serialize();
+    return {
+      version: '0.1.0-alpha.7',
+      data: arrayToHex(presentation.serialize()),
+      meta: {
+        notaryUrl: notaryUrl,
+        websocketProxyUrl: websocketProxyUrl,
+      },
+    };
   }
 
   constructor(config: {
-    id?: string;
     serverDns: string;
     maxSentData?: number;
     maxRecvData?: number;
+    maxRecvDataOnline?: number;
+    deferDecryptionFromStart?: boolean;
   }) {
     this.#config = {
-      id: config.id || String(Date.now()),
-      server_dns: config.serverDns,
-      max_recv_data: config.maxRecvData,
-      max_sent_data: config.maxSentData,
+      server_name: config.serverDns,
+      max_recv_data: config.maxRecvData || 1024,
+      max_sent_data: config.maxSentData || 1024,
+      max_recv_data_online: config.maxRecvDataOnline,
+      defer_decryption_from_start: config.deferDecryptionFromStart,
     };
     this.#prover = new WasmProver(this.#config);
-  }
-
-  get id() {
-    return this.#config.id;
   }
 
   async free() {
@@ -141,6 +162,7 @@ export class Prover {
   }
 
   async setup(verifierUrl: string): Promise<void> {
+    this.#verifierUrl = verifierUrl;
     return this.#prover.setup(verifierUrl);
   }
 
@@ -162,6 +184,33 @@ export class Prover {
     };
   }
 
+  static getHeaderMap(
+    url: string,
+    body?: any,
+    headers?: { [key: string]: string },
+  ) {
+    const hostname = new URL(url).hostname;
+    const h: { [name: string]: string } = {
+      Host: hostname,
+      Connection: 'close',
+    };
+
+    if (typeof body === 'string') {
+      h['Content-Length'] = body.length.toString();
+    } else if (typeof body === 'object') {
+      h['Content-Length'] = JSON.stringify(body).length.toString();
+    } else if (typeof body === 'number') {
+      h['Content-Length'] = body.toString().length.toString();
+    }
+
+    const headerMap = headerToMap({
+      ...h,
+      ...headers,
+    });
+
+    return headerMap;
+  }
+
   async sendRequest(
     wsProxyUrl: string,
     request: {
@@ -174,13 +223,10 @@ export class Prover {
     status: number;
     headers: { [key: string]: string };
   }> {
+    this.#websocketProxyUrl = wsProxyUrl;
     const { url, method = 'GET', headers = {}, body } = request;
-    const hostname = new URL(url).hostname;
-    const headerMap = headerToMap({
-      Host: hostname,
-      Connection: 'close',
-      ...headers,
-    });
+
+    const headerMap = Prover.getHeaderMap(url, body, headers);
 
     const resp = await this.#prover.send_request(wsProxyUrl, {
       uri: url,
@@ -188,6 +234,7 @@ export class Prover {
       headers: headerMap,
       body,
     });
+
     debug('prover.sendRequest', resp);
 
     return {
@@ -202,9 +249,29 @@ export class Prover {
     };
   }
 
-  async notarize(commit: Commit): Promise<string> {
-    const notarizedSession = await this.#prover.notarize(commit);
-    return arrayToHex(notarizedSession.serialize());
+  async notarize(commit?: Commit): Promise<{
+    attestation: string;
+    secrets: string;
+    notaryUrl?: string;
+    websocketProxyUrl?: string;
+  }> {
+    const transcript = await this.transcript();
+    const output = await this.#prover.notarize(
+      commit || {
+        sent: [{ start: 0, end: transcript.sent.length }],
+        recv: [{ start: 0, end: transcript.recv.length }],
+      },
+    );
+    return {
+      attestation: arrayToHex(output.attestation.serialize()),
+      secrets: arrayToHex(output.secrets.serialize()),
+      notaryUrl: this.#verifierUrl,
+      websocketProxyUrl: this.#websocketProxyUrl,
+    };
+  }
+
+  async reveal(reveal: Reveal) {
+    return this.#prover.reveal(reveal);
   }
 
   async reveal(reveal: Reveal): Promise<void> {
@@ -216,16 +283,15 @@ export class Verifier {
   #config: VerifierConfig;
   #verifier: WasmVerifier;
 
-  constructor(config: VerifierConfig) {
-    this.#config = config;
+  constructor(config: { maxSentData?: number; maxRecvData?: number }) {
+    this.#config = {
+      max_recv_data: config.maxRecvData || 1024,
+      max_sent_data: config.maxSentData || 1024,
+    };
     this.#verifier = new WasmVerifier(this.#config);
   }
 
-  get id() {
-    return this.#config.id;
-  }
-
-  async verify(): Promise<VerifierData> {
+  async verify(): Promise<VerifierOutput> {
     return this.#verifier.verify();
   }
 
@@ -234,68 +300,123 @@ export class Verifier {
   }
 }
 
-export class NotarizedSession {
-  #session: WasmNotarizedSession;
+export class Presentation {
+  #presentation: WasmPresentation;
+  #notaryUrl?: string;
+  #websocketProxyUrl?: string;
 
-  constructor(serializedSessionHex: string) {
-    this.#session = WasmNotarizedSession.deserialize(
-      new Uint8Array(Buffer.from(serializedSessionHex, 'hex')),
-    );
+  constructor(
+    params:
+      | {
+          attestationHex: string;
+          secretsHex: string;
+          notaryUrl?: string;
+          websocketProxyUrl?: string;
+          reveal?: Reveal;
+        }
+      | string,
+  ) {
+    if (typeof params === 'string') {
+      this.#presentation = WasmPresentation.deserialize(hexToArray(params));
+    } else {
+      const attestation = WasmAttestation.deserialize(
+        hexToArray(params.attestationHex),
+      );
+      const secrets = WasmSecrets.deserialize(hexToArray(params.secretsHex));
+      const transcript = secrets.transcript();
+      this.#presentation = build_presentation(
+        attestation,
+        secrets,
+        params.reveal || {
+          sent: [{ start: 0, end: transcript.sent.length }],
+          recv: [{ start: 0, end: transcript.recv.length }],
+        },
+      );
+      this.#websocketProxyUrl = params.websocketProxyUrl;
+      this.#notaryUrl = params.notaryUrl;
+    }
   }
 
   async free() {
-    return this.#session.free();
-  }
-
-  async proof(reveal: Reveal) {
-    const proof = this.#session.proof(reveal);
-    console.log(proof);
-    return arrayToHex(proof.serialize());
+    return this.#presentation.free();
   }
 
   async serialize() {
-    return arrayToHex(this.#session.serialize());
+    return arrayToHex(this.#presentation.serialize());
+  }
+
+  async verifyingKey() {
+    return this.#presentation.verifying_key();
+  }
+
+  async json(): Promise<PresentationJSON> {
+    return {
+      version: '0.1.0-alpha.7',
+      data: await this.serialize(),
+      meta: {
+        notaryUrl: this.#notaryUrl,
+        websocketProxyUrl: this.#websocketProxyUrl,
+      },
+    };
+  }
+
+  async verify(): Promise<VerifierOutput> {
+    const {
+      server_name = '',
+      connection_info,
+      transcript = {
+        sent: [],
+        recv: [],
+        recv_authed: [],
+        sent_authed: [],
+      },
+    } = this.#presentation.verify();
+
+    return {
+      server_name: server_name,
+      connection_info,
+      transcript,
+    };
   }
 }
 
-export class TlsProof {
-  #proof: WasmTlsProof;
+export class Attestation {
+  #attestation: WasmAttestation;
 
-  constructor(serializedProofHex: string) {
-    this.#proof = WasmTlsProof.deserialize(
-      new Uint8Array(Buffer.from(serializedProofHex, 'hex')),
-    );
+  constructor(attestationHex: string) {
+    this.#attestation = WasmAttestation.deserialize(hexToArray(attestationHex));
   }
 
   async free() {
-    return this.#proof.free();
+    return this.#attestation.free();
+  }
+
+  async verifyingKey() {
+    return this.#attestation.verifying_key();
   }
 
   async serialize() {
-    return arrayToHex(this.#proof.serialize());
+    return this.#attestation.serialize();
+  }
+}
+
+export class Secrets {
+  #secrets: WasmSecrets;
+
+  constructor(secretsHex: string) {
+    this.#secrets = WasmSecrets.deserialize(hexToArray(secretsHex));
   }
 
-  async verify(
-    notaryPublicKey: NotaryPublicKey,
-    redactedSymbol = '*',
-  ): Promise<ProofData> {
-    const { received, received_auth_ranges, sent, ...rest } =
-      this.#proof.verify(notaryPublicKey);
+  async free() {
+    return this.#secrets.free();
+  }
 
-    return {
-      ...rest,
-      recv_auth_ranges: received_auth_ranges,
-      recv: received.reduce((recv: string, num) => {
-        recv =
-          recv + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
-        return recv;
-      }, ''),
-      sent: sent.reduce((sent: string, num) => {
-        sent =
-          sent + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
-        return sent;
-      }, ''),
-    };
+  async serialize() {
+    return this.#secrets.serialize();
+  }
+
+  async transcript() {
+    return this.#secrets.transcript();
   }
 }
 
@@ -314,14 +435,27 @@ export class NotaryServer {
     return this.#url;
   }
 
-  async publicKey(): Promise<string> {
+  async publicKey(encoding: 'pem' | 'hex' = 'hex'): Promise<string> {
     const res = await fetch(this.#url + '/info');
     const { publicKey } = await res.json();
     expect(
       typeof publicKey === 'string' && !!publicKey.length,
       'invalid public key',
     );
-    return publicKey!;
+
+    if (encoding === 'pem') {
+      return publicKey!;
+    }
+
+    return Buffer.from(
+      publicKey!
+        .replace('-----BEGIN PUBLIC KEY-----', '')
+        .replace('-----END PUBLIC KEY-----', '')
+        .replace(/\n/g, ''),
+      'base64',
+    )
+      .slice(23)
+      .toString('hex');
   }
 
   async sessionUrl(
@@ -351,13 +485,53 @@ export class NotaryServer {
   }
 }
 
+export class Transcript {
+  #sent: number[];
+  #recv: number[];
+
+  constructor(params: { sent: number[]; recv: number[] }) {
+    this.#recv = params.recv;
+    this.#sent = params.sent;
+  }
+
+  static processRanges(text: string) {
+    return processTranscript(text);
+  }
+
+  recv(redactedSymbol = '*') {
+    return this.#recv.reduce((recv: string, num) => {
+      recv =
+        recv + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
+      return recv;
+    }, '');
+  }
+
+  sent(redactedSymbol = '*') {
+    return this.#sent.reduce((sent: string, num) => {
+      sent =
+        sent + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
+      return sent;
+    }, '');
+  }
+
+  text = (redactedSymbol = '*') => {
+    return {
+      sent: this.sent(redactedSymbol),
+      recv: this.recv(redactedSymbol),
+    };
+  };
+}
+
 export {
   type ParsedTranscriptData,
-  type ProofData,
   type LoggingLevel,
   type LoggingConfig,
-  type Transcript,
   type Commit,
   type Reveal,
   type ProverConfig,
+  type VerifierConfig,
+  type VerifyingKey,
+  type VerifierOutput,
+  type ConnectionInfo,
+  type PartialTranscript,
 };

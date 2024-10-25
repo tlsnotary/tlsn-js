@@ -10,7 +10,7 @@ const timeout = 300000;
 
 // puppeteer options
 let opts: PuppeteerLaunchOptions = {
-  headless: !!process.env.HEADLESS ? 'new' : false,
+  headless: !!process.env.HEADLESS ? true : false,
   slowMo: 100,
   timeout: timeout,
 };
@@ -28,10 +28,8 @@ let server: ChildProcess;
 
 let tlsnServerFixture: ChildProcess;
 const spawnTlsnServerFixture = () => {
-  const tlsnServerFixturePath = './utils/tlsn/tlsn/tlsn-server-fixture/';
-  // Spawn the server process
-  // tlsnServerFixture = spawn(tlsnServerFixturePath, []);
-  tlsnServerFixture = exec(`../target/release/main`, {
+  const tlsnServerFixturePath = './utils/tlsn/crates/server-fixture/';
+  tlsnServerFixture = exec(`../../target/release/main`, {
     cwd: tlsnServerFixturePath,
   });
 
@@ -46,8 +44,9 @@ const spawnTlsnServerFixture = () => {
 
 let localNotaryServer: ChildProcess;
 const spawnLocalNotaryServer = async () => {
-  const localNotaryServerPath = './utils/tlsn/notary/server';
-  localNotaryServer = exec(`../target/release/notary-server`, {
+  const localNotaryServerPath = './utils/tlsn/crates/notary/server';
+  console.log(localNotaryServerPath);
+  localNotaryServer = exec(`../../../target/release/notary-server`, {
     cwd: localNotaryServerPath,
   });
   localNotaryServer.stdout?.on('data', (data) => {
@@ -74,7 +73,7 @@ const spawnLocalNotaryServer = async () => {
 
 const configureNotarySerer = () => {
   try {
-    const configPath = './utils/tlsn/notary/server/config/config.yaml';
+    const configPath = './utils/tlsn/crates/notary/server/config/config.yaml';
     const fileContents = fs.readFileSync(configPath, 'utf8');
     const data = yaml.load(fileContents) as any;
     data.tls.enabled = false;
