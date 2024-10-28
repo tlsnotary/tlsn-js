@@ -75,7 +75,6 @@ export type NotaryRequest = {
   notaryUrl: string;
   websocketProxyUrl: string;
   timestamp: number;
-  type: string;
 };
 
 type HttpMethod =
@@ -86,7 +85,6 @@ type HttpMethod =
   | 'HEAD'
   | 'OPTIONS'
   | 'PATCH';
-type TransportMechanism = 'xmlhttprequest' | 'main_frame';
 type ResponseType = 'json' | 'text' | 'xml' | 'html';
 
 export interface Provider {
@@ -99,7 +97,6 @@ export interface Provider {
   urlRegex: string; // e.g. ^https://api\.x\.com/1\.1/account/settings\.json(\?.*)?$
   targetUrl: string; // URL to redirect user before notarization. e.g. https://www.x.com/home
   method: HttpMethod; // e.g. GET
-  transport?: TransportMechanism; //NOTE: LEGACY, type of request, is not used anymore. e.g. xmlhttprequest
   responseType: ResponseType;
 
   actionSelectors?: string[]; // url to redirect user before notarization. e.g. ["a[href^='/user/'][href$='/']"] or ["https://www.x.com/home"]
