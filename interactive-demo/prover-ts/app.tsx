@@ -19,7 +19,6 @@ root.render(<App />);
 function App(): ReactElement {
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<String | null>(null);
-  const [proofHex, setProofHex] = useState<null | string>(null);
 
   const onClick = useCallback(async () => {
     setProcessing(true);
@@ -99,8 +98,7 @@ function App(): ReactElement {
     <div>
       <h1>TLSNotary interactive prover demo</h1>
       <div>
-        Before clicking the start button, make sure the <i>interactive verifier</i> is running: <pre>cd interactive-demo/verifier; cargo run --release</pre>
-        You also need a websocket proxy.
+        Before clicking the start button, make sure the <i>interactive verifier</i> and the <i>web socket proxy</i> are running. Check the README for the details.
       </div>
 
       <br />
