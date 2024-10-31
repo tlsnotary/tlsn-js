@@ -20,6 +20,8 @@
     "build": "npm run build:lib",
     "watch:dev": "webpack --config webpack.web.dev.config.js --watch",
     "dev": "concurrently npm:watch:dev npm:serve:test",
+    "demo": "zellij --layout interactive-demo/zellij.kdl a interactive-demo || zellij --layout interactive-demo/zellij.kdl -s interactive-demo",
+    "zzdemo": "zellij kill-session interactive-demo",
     "lint:eslint": "eslint . --fix",
     "lint:tsc": "tsc --noEmit",
     "lint": "concurrently npm:lint:tsc npm:lint:eslint",

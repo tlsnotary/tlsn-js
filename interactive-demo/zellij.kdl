@@ -1,0 +1,22 @@
+layout {
+	pane {
+		pane split_direction="vertical" {
+			pane name="verifier" command="bash" {
+				args "-c" "cargo run --manifest-path ./interactive-demo/verifier-rs/Cargo.toml; ${SHELL-bash}"
+			}
+		}
+		pane split_direction="vertical" {
+			pane name="prover" command="bash" {
+				args "-c" "cargo run --manifest-path ./interactive-demo/prover-rs/Cargo.toml; ${SHELL-bash}"
+			}
+		}
+		pane split_direction="vertical" {
+			pane name="shell" command="bash" {
+				args "-c" "npm i && npm run build && npm link && cd ./interactive-demo/prover-ts && npm i && npm link && npm run dev; ${SHELL-bash}"
+			}
+			pane name="proxy" command="bash" {
+				args "-c" "cargo install wstcp  && wstcp --bind-addr 127.0.0.1:55688 swapi.dev:443; ${SHELL-bash}"
+			}
+		}
+	}
+}
