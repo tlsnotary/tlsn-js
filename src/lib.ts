@@ -56,9 +56,9 @@ export default async function init(config?: {
   });
 
   // 6422528 ~= 6.12 mb
-  debug('res.memory=', res.memory);
-  debug('res.memory.buffer.length=', res.memory.buffer.byteLength);
-  debug('DEBUG', 'initialize thread pool');
+  debug('res.memory', res.memory);
+  debug('res.memory.buffer.length', res.memory.buffer.byteLength);
+  debug('initialize thread pool');
 
   await initThreadPool(hardwareConcurrency);
   debug('initialized thread pool');
@@ -273,6 +273,7 @@ export class Prover {
   async reveal(reveal: Reveal) {
     return this.#prover.reveal(reveal);
   }
+
 }
 
 export class Verifier {

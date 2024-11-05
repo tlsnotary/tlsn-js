@@ -1,0 +1,6 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "interactive-demo/verifier-rs/Cargo.toml",
+        "interactive-demo/prover-rs/Cargo.toml"
+    ],
+}
