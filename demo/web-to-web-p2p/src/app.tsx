@@ -80,6 +80,8 @@ function App(): ReactElement {
     addProverLog('setting up prover');
     const proverSetup = prover.setup('ws://localhost:3001?id=prover');
 
+    await new Promise((r) => setTimeout(r, 2000));
+
     addVerifierLog('verifiying with prover');
     const verified = verifier.verify();
 
@@ -101,7 +103,11 @@ function App(): ReactElement {
     addProverLog('request sent');
     const transcript = await prover.transcript();
     console.log(transcript);
-    addProverLog('response received (see console)');
+    addProverLog('response received');
+    addProverLog('transcript.sent');
+    addProverLog(transcript.sent);
+    addProverLog('transcript.recv');
+    addProverLog(transcript.recv);
 
     const commit: Commit = {
       sent: [
@@ -126,24 +132,33 @@ function App(): ReactElement {
 
     const result = await verified;
     addVerifierLog('proof completed');
-    console.log(result);
+
+    const t = new Transcript({
+      sent: result.transcript.sent,
+      recv: result.transcript.recv,
+    });
+
+    addVerifierLog('transcript.sent');
+    addVerifierLog(t.sent());
+    addVerifierLog('transcript.recv');
+    addVerifierLog(t.recv());
   }, [ready]);
 
   return (
     <div className="w-screen h-screen grid grid-rows-2 grid-cols-2 p-2 gap-2">
       <div className="flex flex-col items-center border border-slate-300 bg-slate-50 rounded row-span-1 col-span-1 p-4 gap-2">
         <div className="font-semibold">Prover</div>
-        <div className="flex flex-col text-sm bg-white border border-slate-300 w-full flex-grow cursor-text py-1">
+        <div className="flex flex-col text-sm bg-white border border-slate-300 w-full flex-grow cursor-text py-1 overflow-y-auto">
           {proverMessages.map((m) => (
-            <span className="px-2 py-1 text-slate-600">{m}</span>
+            <span className="px-2 py-1 text-slate-600 break-all">{m}</span>
           ))}
         </div>
       </div>
       <div className="flex flex-col items-center border border-slate-300 bg-slate-100 rounded row-span-1 col-span-1 p-4 gap-2">
         <div className="font-semibold">Verifier</div>
-        <div className="flex flex-col text-sm bg-white border border-slate-300 w-full flex-grow cursor-text py-1">
+        <div className="flex flex-col text-sm bg-white border border-slate-300 w-full flex-grow cursor-text py-1 overflow-y-auto">
           {verifierMessages.map((m) => (
-            <span className="px-1 py-0.5 text-slate-600">{m}</span>
+            <span className="px-1 py-0.5 text-slate-600 break-all">{m}</span>
           ))}
         </div>
       </div>
