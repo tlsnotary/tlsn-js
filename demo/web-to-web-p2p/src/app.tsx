@@ -1,24 +1,16 @@
-import React, {
-  ReactElement,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
+import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Comlink from 'comlink';
 import {
   Prover as TProver,
   Verifier as TVerifier,
-  Presentation as TPresentation,
   Commit,
-  NotaryServer,
   Transcript,
 } from 'tlsn-js';
-import { PresentationJSON } from 'tlsn-js/build/types';
 import './app.scss';
+import WebscoketStream from './stream';
 
-const { init, Prover, Presentation, Verifier }: any = Comlink.wrap(
+const { init, Prover, Verifier }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
 );
 
@@ -40,6 +32,37 @@ function App(): ReactElement {
     (async () => {
       await init({ loggingLevel: 'Debug' });
       setReady(true);
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      // Set up stream for prover
+      (async () => {
+        const proverStream = new WebscoketStream(
+          'ws://localhost:3001?id=prover',
+        );
+        const reader = await proverStream.reader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            console.log('stream finished');
+            break;
+          }
+          console.log(`Received data from stream:`, await value.text());
+        }
+      })();
+
+      // Set up stream for verifier
+      (async () => {
+        const verifierStream = new WebscoketStream(
+          'ws://localhost:3001?id=verifier',
+        );
+        const writer = await verifierStream.writer();
+        writer.write('Hello');
+        writer.write('World!');
+        writer.close();
+      })();
     })();
   }, []);
 
@@ -102,7 +125,7 @@ function App(): ReactElement {
     });
     addProverLog('request sent');
     const transcript = await prover.transcript();
-    console.log(transcript);
+
     addProverLog('response received');
     addProverLog('transcript.sent');
     addProverLog(transcript.sent);
