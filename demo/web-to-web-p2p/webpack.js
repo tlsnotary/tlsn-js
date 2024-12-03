@@ -134,6 +134,9 @@ var options = {
   //  - https://github.com/GoogleChromeLabs/wasm-bindgen-rayon#setting-up
   //  - https://web.dev/i18n/en/coop-coep/
   devServer: {
+    port: 3456,
+    host: 'localhost',
+    hot: true,
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',

@@ -1,3 +1,5 @@
+// This file runs a WebSocket server which enables a web prover and web verifier to connect to each other
+
 const express = require('express');
 const { createServer } = require('http');
 const { WebSocketServer } = require('ws');

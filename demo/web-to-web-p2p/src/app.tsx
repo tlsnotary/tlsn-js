@@ -8,7 +8,7 @@ import {
   Transcript,
 } from 'tlsn-js';
 import './app.scss';
-import WebscoketStream from './stream';
+import WebSocketStream from './stream';
 
 const { init, Prover, Verifier }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
@@ -19,8 +19,13 @@ const root = createRoot(container!);
 
 root.render(<App />);
 
-let pLogs: string[] = [];
-let vLogs: string[] = [];
+let proverLogs: string[] = [];
+let verifierLogs: string[] = [];
+
+const p2pProxyUrl = "ws://localhost:3001";
+const serverDns = 'swapi.dev';
+const webSocketProxy = `wss://notary.pse.dev/proxy?token=${serverDns}`;
+const requestUrl = `https://swapi.dev/api/people/1`;
 
 function App(): ReactElement {
   const [ready, setReady] = useState(false);
@@ -28,6 +33,7 @@ function App(): ReactElement {
   const [verifierMessages, setVerifierMessages] = useState<string[]>([]);
   const [started, setStarted] = useState(false);
 
+  // Initialize TLSNotary
   useEffect(() => {
     (async () => {
       await init({ loggingLevel: 'Debug' });
@@ -35,12 +41,14 @@ function App(): ReactElement {
     })();
   }, []);
 
+  // Set up streams for prover and verifier
+  // This is just for demo purposes. In the future we want to pass in the stream to the
+  // prover instead of using the websocket url.
   useEffect(() => {
     (async () => {
-      // Set up stream for prover
       (async () => {
-        const proverStream = new WebscoketStream(
-          'ws://localhost:3001?id=prover',
+        const proverStream = new WebSocketStream(
+          `${p2pProxyUrl}?id=prover`,
         );
         const reader = await proverStream.reader();
         while (true) {
@@ -55,8 +63,8 @@ function App(): ReactElement {
 
       // Set up stream for verifier
       (async () => {
-        const verifierStream = new WebscoketStream(
-          'ws://localhost:3001?id=verifier',
+        const verifierStream = new WebSocketStream(
+          `${p2pProxyUrl}?id=verifier`,
         );
         const writer = await verifierStream.writer();
         writer.write('Hello');
@@ -67,71 +75,86 @@ function App(): ReactElement {
   }, []);
 
   const addProverLog = useCallback((log: string) => {
-    pLogs = pLogs.concat(`${new Date().toLocaleTimeString()} - ${log}`);
-    setProverMessages(pLogs);
+    proverLogs = proverLogs.concat(`${new Date().toLocaleTimeString()} - ${log}`);
+    setProverMessages(proverLogs);
   }, []);
 
   const addVerifierLog = useCallback((log: string) => {
-    vLogs = vLogs.concat(`${new Date().toLocaleTimeString()} - ${log}`);
-    setVerifierMessages(vLogs);
+    verifierLogs = verifierLogs.concat(`${new Date().toLocaleTimeString()} - ${log}`);
+    setVerifierMessages(verifierLogs);
   }, []);
 
   const start = useCallback(async () => {
     if (!ready) return;
     setStarted(true);
-    addProverLog('instantiate Prover class');
+    addProverLog('Instantiate Prover class');
     const prover: TProver = await new Prover({
-      id: 'demo',
-      serverDns: 'swapi.dev',
-      maxSentData: 4096,
-      maxRecvData: 16384,
+      serverDns: serverDns,
     });
     addProverLog('Prover class instantiated');
 
-    addVerifierLog('instantiate Verifier class');
-    const verifier: TVerifier = await new Verifier({
-      id: 'demo',
-      maxSentData: 4096,
-      maxRecvData: 16384,
-    });
+    addVerifierLog('Instantiate Verifier class');
+    const verifier: TVerifier = await new Verifier({});
     addVerifierLog('Verifier class instantiated');
 
-    addVerifierLog('connecting verifier');
-    await verifier.connect('ws://localhost:3001?id=verifier');
-    addVerifierLog('finished connecting verifier');
+    addVerifierLog('Connect verifier to p2p proxy');
+    // TODO tlsn-wasm: we want to pass in the stream here instead of the websocket url
+    // The stream is both readable and writable (duplex)
+    try {
+      await verifier.connect(`${p2pProxyUrl}?id=verifier`);
+    } catch (e: any) {
+      addVerifierLog('Error connecting verifier to p2p proxy');
+      addVerifierLog(e.message);
+      return;
+    }
+    addVerifierLog('Verifier connected to p2p proxy');
 
-    addProverLog('setting up prover');
-    const proverSetup = prover.setup('ws://localhost:3001?id=prover');
+    addProverLog('Set up prover and connect to p2p proxy');
+    // TODO: we also want to pass in the stream here
+    const proverSetup = prover.setup(`${p2pProxyUrl}?id=prover`);
+    addProverLog('Prover connected to p2p proxy');
 
+    // Wait for prover to finish setting up websocket
+    // TODO: Make the setup better and avoid this wait
     await new Promise((r) => setTimeout(r, 2000));
 
-    addVerifierLog('verifiying with prover');
+    addVerifierLog('Start verifier');
+    // This needs to be called before we send the request
+    // This starts the verifier and makes it wait for the prover to send the request
     const verified = verifier.verify();
 
     await proverSetup;
-    addProverLog('finished setting up prover');
+    addProverLog('Finished prover setup');
 
-    addProverLog('sending request');
-    await prover.sendRequest(`wss://notary.pse.dev/proxy?token=swapi.dev`, {
-      url: 'https://swapi.dev/api/people/1',
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: {
-        hello: 'world',
-        one: 1,
-      },
-    });
-    addProverLog('request sent');
+    addProverLog('Send request');
+    try {
+      await prover.sendRequest(webSocketProxy, {
+        url: requestUrl,
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: {
+          hello: 'world',
+          one: 1,
+        },
+      });
+    } catch (e: any) {
+      addProverLog(`Error sending request to ${requestUrl}`);
+      addProverLog(e.message);
+      return;
+    }
+    addProverLog('Request sent');
     const transcript = await prover.transcript();
 
-    addProverLog('response received');
-    addProverLog('transcript.sent');
+    addProverLog('Response received');
+    addProverLog('Transcript sent');
     addProverLog(transcript.sent);
-    addProverLog('transcript.recv');
+    addProverLog('Transcript received');
     addProverLog(transcript.recv);
 
+    addProverLog('Revealing data to verifier');
+    // Prover only reveals parts the transcript to the verifier
     const commit: Commit = {
       sent: [
         transcript.ranges.sent.info!,
@@ -148,23 +171,20 @@ function App(): ReactElement {
         ...transcript.ranges.recv.lineBreaks,
       ],
     };
-
-    addProverLog('revealing to verifier');
     await prover.reveal(commit);
-    addProverLog('revealed to verifier');
+    addProverLog('Data revealed to verifier');
 
     const result = await verified;
-    addVerifierLog('proof completed');
+    addVerifierLog('Verification completed');
 
     const t = new Transcript({
       sent: result.transcript.sent,
       recv: result.transcript.recv,
     });
 
-    addVerifierLog('transcript.sent');
-    addVerifierLog(t.sent());
-    addVerifierLog('transcript.recv');
-    addVerifierLog(t.recv());
+    addVerifierLog('Verified data:');
+    addVerifierLog(`transcript.sent: ${t.sent()}`);
+    addVerifierLog(`transcript.recv: ${t.recv()}`);
   }, [ready]);
 
   return (
@@ -172,16 +192,16 @@ function App(): ReactElement {
       <div className="flex flex-col items-center border border-slate-300 bg-slate-50 rounded row-span-1 col-span-1 p-4 gap-2">
         <div className="font-semibold">Prover</div>
         <div className="flex flex-col text-sm bg-white border border-slate-300 w-full flex-grow cursor-text py-1 overflow-y-auto">
-          {proverMessages.map((m) => (
-            <span className="px-2 py-1 text-slate-600 break-all">{m}</span>
+          {proverMessages.map((m, index) => (
+            <span key={index} className="px-2 py-1 text-slate-600 break-all">{m}</span>
           ))}
         </div>
       </div>
       <div className="flex flex-col items-center border border-slate-300 bg-slate-100 rounded row-span-1 col-span-1 p-4 gap-2">
         <div className="font-semibold">Verifier</div>
         <div className="flex flex-col text-sm bg-white border border-slate-300 w-full flex-grow cursor-text py-1 overflow-y-auto">
-          {verifierMessages.map((m) => (
-            <span className="px-1 py-0.5 text-slate-600 break-all">{m}</span>
+          {verifierMessages.map((m, index) => (
+            <span key={index} className="px-1 py-0.5 text-slate-600 break-all">{m}</span>
           ))}
         </div>
       </div>

@@ -1,4 +1,4 @@
-export default class WebscoketStream {
+export default class WebSocketStream {
   client: WebSocket;
   readable: Promise<ReadableStream>;
   writable: Promise<WritableStream>;
