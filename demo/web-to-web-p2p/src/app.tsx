@@ -1,5 +1,6 @@
 import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Watch } from 'react-loader-spinner';
 import * as Comlink from 'comlink';
 import {
   Prover as TProver,
@@ -207,10 +208,25 @@ function App(): ReactElement {
       </div>
       <div className="flex flex-row justify-center row-span-1 col-span-2">
         <Button className="h-fit" disabled={!ready || started} onClick={start}>
-          Start Demo
+          <div>
+            {ready && !started ? (
+              <>Start Demo</>
+            ) : (
+              <Watch
+                visible={true}
+                height="40"
+                width="40"
+                radius="48"
+                color="#000000"
+                ariaLabel="watch-loading"
+                wrapperStyle={{}}
+                wrapperClass=""
+              />
+            )}
+          </div>
         </Button>
       </div>
-    </div>
+    </div >
   );
 }
 
