@@ -23,7 +23,7 @@ root.render(<App />);
 let proverLogs: string[] = [];
 let verifierLogs: string[] = [];
 
-const p2pProxyUrl = "ws://localhost:3001";
+const p2pProxyUrl = 'ws://localhost:3001';
 const serverDns = 'swapi.dev';
 const webSocketProxy = `wss://notary.pse.dev/proxy?token=${serverDns}`;
 const requestUrl = `https://swapi.dev/api/people/1`;
@@ -48,9 +48,7 @@ function App(): ReactElement {
   useEffect(() => {
     (async () => {
       (async () => {
-        const proverStream = new WebSocketStream(
-          `${p2pProxyUrl}?id=prover`,
-        );
+        const proverStream = new WebSocketStream(`${p2pProxyUrl}?id=prover`);
         const reader = await proverStream.reader();
         while (true) {
           const { done, value } = await reader.read();
@@ -76,12 +74,16 @@ function App(): ReactElement {
   }, []);
 
   const addProverLog = useCallback((log: string) => {
-    proverLogs = proverLogs.concat(`${new Date().toLocaleTimeString()} - ${log}`);
+    proverLogs = proverLogs.concat(
+      `${new Date().toLocaleTimeString()} - ${log}`,
+    );
     setProverMessages(proverLogs);
   }, []);
 
   const addVerifierLog = useCallback((log: string) => {
-    verifierLogs = verifierLogs.concat(`${new Date().toLocaleTimeString()} - ${log}`);
+    verifierLogs = verifierLogs.concat(
+      `${new Date().toLocaleTimeString()} - ${log}`,
+    );
     setVerifierMessages(verifierLogs);
   }, []);
 
@@ -190,18 +192,26 @@ function App(): ReactElement {
   }, [ready]);
 
   return (
-    <div>
-      <div style={{ width: '100%', padding: '10px', backgroundColor: '#f0f0f0', marginBottom: '20px' }}>
+    <div className="w-screen h-screen flex flex-col overflow-hidden">
+      <div className="w-full p-2.5 bg-slate-200 mb-5 flex-shrink-0">
         <h1>Web-to-Web P2P Demo</h1>
-        <p>This demo showcases peer-to-peer communication between a web prover and a web verifier using TLSNotary. The prover fetches data from <a href="https://swapi.dev" target="_blank" rel="noopener noreferrer">swapi.dev</a> and proves it to the verifier.</p>
+        <p>
+          This demo showcases peer-to-peer communication between a web prover
+          and a web verifier using TLSNotary. The prover fetches data from{' '}
+          <a href="https://swapi.dev" target="_blank" rel="noopener noreferrer">
+            swapi.dev
+          </a>{' '}
+          and proves it to the verifier.
+        </p>
       </div>
-
-      <div className="w-screen h-screen grid grid-rows-2 grid-cols-2 p-2 gap-2">
+      <div className="grid grid-rows-2 grid-cols-2 p-2 gap-2 flex-grow">
         <div className="flex flex-col items-center border border-slate-300 bg-slate-50 rounded row-span-1 col-span-1 p-4 gap-2">
           <div className="font-semibold">Prover</div>
           <div className="flex flex-col text-sm bg-white border border-slate-300 w-full flex-grow cursor-text py-1 overflow-y-auto">
             {proverMessages.map((m, index) => (
-              <span key={index} className="px-2 py-1 text-slate-600 break-all">{m}</span>
+              <span key={index} className="px-2 py-1 text-slate-600 break-all">
+                {m}
+              </span>
             ))}
           </div>
         </div>
@@ -209,12 +219,21 @@ function App(): ReactElement {
           <div className="font-semibold">Verifier</div>
           <div className="flex flex-col text-sm bg-white border border-slate-300 w-full flex-grow cursor-text py-1 overflow-y-auto">
             {verifierMessages.map((m, index) => (
-              <span key={index} className="px-1 py-0.5 text-slate-600 break-all">{m}</span>
+              <span
+                key={index}
+                className="px-1 py-0.5 text-slate-600 break-all"
+              >
+                {m}
+              </span>
             ))}
           </div>
         </div>
         <div className="flex flex-row justify-center row-span-1 col-span-2">
-          <Button className="h-fit" disabled={!ready || started} onClick={start}>
+          <Button
+            className="h-fit"
+            disabled={!ready || started}
+            onClick={start}
+          >
             <div>
               {ready && !started ? (
                 <>Start Demo</>
@@ -233,7 +252,7 @@ function App(): ReactElement {
             </div>
           </Button>
         </div>
-      </div >
+      </div>
     </div>
   );
 }
