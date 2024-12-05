@@ -27,7 +27,7 @@ var options = {
   ],
   mode: 'development',
   entry: {
-    app: path.join(__dirname, 'app.tsx'),
+    app: path.join(__dirname, 'src', 'app.tsx'),
   },
   output: {
     filename: '[name].bundle.js',
@@ -52,6 +52,9 @@ var options = {
         exclude: /node_modules/,
         use: [
           {
+            loader: 'source-map-loader',
+          },
+          {
             loader: require.resolve('ts-loader'),
           },
         ],
@@ -68,6 +71,29 @@ var options = {
         ],
         exclude: /node_modules/,
       },
+      {
+        // look for .css or .scss files
+        test: /\.(css|scss)$/,
+        // in the `web` directory
+        use: [
+          {
+            loader: 'style-loader',
+          },
+          {
+            loader: 'css-loader',
+            options: { importLoaders: 1 },
+          },
+          {
+            loader: 'postcss-loader',
+          },
+          {
+            loader: 'sass-loader',
+            options: {
+              sourceMap: true,
+            },
+          },
+        ],
+      },
     ],
   },
   resolve: {
@@ -75,6 +101,11 @@ var options = {
     extensions: fileExtensions
       .map((extension) => '.' + extension)
       .concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
+    fallback: {
+      crypto: require.resolve('crypto-browserify'),
+      stream: require.resolve('stream-browserify'),
+      vm: require.resolve('vm-browserify'),
+    },
   },
   plugins: [
     new CopyWebpackPlugin({
@@ -86,15 +117,13 @@ var options = {
         },
       ],
     }),
-    new CopyWebpackPlugin({
-      patterns: [
-        { from: '../README.md', to: 'README.md' },
-      ],
-    }),
     new HtmlWebpackPlugin({
       template: path.join(__dirname, 'index.ejs'),
       filename: 'index.html',
       cache: false,
+    }),
+    new webpack.ProvidePlugin({
+      process: 'process/browser',
     }),
     new webpack.ProvidePlugin({
       Buffer: ['buffer', 'Buffer'],
@@ -105,12 +134,15 @@ var options = {
   //  - https://github.com/GoogleChromeLabs/wasm-bindgen-rayon#setting-up
   //  - https://web.dev/i18n/en/coop-coep/
   devServer: {
-    port: 3000,
+    port: 3456,
     host: 'localhost',
     hot: true,
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
+    },
+    client: {
+      overlay: false,
     },
   },
 };

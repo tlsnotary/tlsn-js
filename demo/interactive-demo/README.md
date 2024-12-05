@@ -28,7 +28,7 @@ wstcp --bind-addr 127.0.0.1:55688 swapi.dev:443
         npm run build
         npm link
         ```
-    2. Build demo  prover-ts
+    2. Build demo prover-ts
         ```bash
         cd prover-ts
         npm i
