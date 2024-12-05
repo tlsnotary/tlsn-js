@@ -35,11 +35,4 @@ wstcp --bind-addr 127.0.0.1:55688 swapi.dev:443
         npm link
         npm run dev
         ```
-    3. Open <http://localhost:8080/> and click **Start Prover**
-
-## Troubleshooting
-
-* `Failed to connect to the server. CloseEvent...`:
-  * Did you start the Verifier?
-  * Did you start the Websocket Proxy?
-  * Is the Server online?
+    3. Open <http://localhost:3456/> and click **Start Prover**
