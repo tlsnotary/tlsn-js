@@ -25,6 +25,7 @@ import {
   expect,
   headerToMap,
   hexToArray,
+  replaceZeroBytesWithSymbol,
 } from './utils';
 import { ParsedTranscriptData, PresentationJSON } from './types';
 
@@ -305,12 +306,12 @@ export class Presentation {
   constructor(
     params:
       | {
-          attestationHex: string;
-          secretsHex: string;
-          notaryUrl?: string;
-          websocketProxyUrl?: string;
-          reveal?: Reveal;
-        }
+        attestationHex: string;
+        secretsHex: string;
+        notaryUrl?: string;
+        websocketProxyUrl?: string;
+        reveal?: Reveal;
+      }
       | string,
   ) {
     if (typeof params === 'string') {
@@ -496,19 +497,11 @@ export class Transcript {
   }
 
   recv(redactedSymbol = '*') {
-    return this.#recv.reduce((recv: string, num) => {
-      recv =
-        recv + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
-      return recv;
-    }, '');
+    return Buffer.from(replaceZeroBytesWithSymbol(this.#recv, redactedSymbol)).toString();
   }
 
   sent(redactedSymbol = '*') {
-    return this.#sent.reduce((sent: string, num) => {
-      sent =
-        sent + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
-      return sent;
-    }, '');
+    return Buffer.from(replaceZeroBytesWithSymbol(this.#sent, redactedSymbol)).toString();
   }
 
   text = (redactedSymbol = '*') => {
