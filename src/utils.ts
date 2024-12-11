@@ -3,56 +3,56 @@ import { Buffer } from 'buffer';
 
 type Stack =
   | {
-      type: 'object';
-      symbol: string;
-      range: [number, number];
-      id: number;
-    }
+    type: 'object';
+    symbol: string;
+    range: [number, number];
+    id: number;
+  }
   | {
-      type: 'array';
-      symbol: string;
-      range: [number, number];
-      data: string;
-      id: number;
-    }
+    type: 'array';
+    symbol: string;
+    range: [number, number];
+    data: string;
+    id: number;
+  }
   | {
-      type: 'object_key';
-      symbol: string;
-      range: [number, number];
-      data: string;
-      path: string;
-      id: number;
-      objectId: number;
-    }
+    type: 'object_key';
+    symbol: string;
+    range: [number, number];
+    data: string;
+    path: string;
+    id: number;
+    objectId: number;
+  }
   | {
-      type: 'object_value';
-      symbol: string;
-      range: [number, number];
-      data: string;
-      id: number;
-      keyId: number;
-      objectId: number;
-    }
+    type: 'object_value';
+    symbol: string;
+    range: [number, number];
+    data: string;
+    id: number;
+    keyId: number;
+    objectId: number;
+  }
   | {
-      type: 'object_value_string';
-      symbol: string;
-      range: [number, number];
-      data: string;
-      path: string;
-      id: number;
-      objectId: number;
-      valueId: number;
-    }
+    type: 'object_value_string';
+    symbol: string;
+    range: [number, number];
+    data: string;
+    path: string;
+    id: number;
+    objectId: number;
+    valueId: number;
+  }
   | {
-      type: 'object_value_number';
-      symbol: string;
-      range: [number, number];
-      data: string;
-      path: string;
-      id: number;
-      objectId: number;
-      valueId: number;
-    };
+    type: 'object_value_number';
+    symbol: string;
+    range: [number, number];
+    data: string;
+    path: string;
+    id: number;
+    objectId: number;
+    valueId: number;
+  };
 
 type Commitment = {
   name?: string;
@@ -290,6 +290,22 @@ export function processJSON(str: string): Commitment[] {
     start,
     end,
   }));
+}
+
+export function replaceZeroBytesWithSymbol(buf: number[], symbol: string) {
+  const redactedSymbolBytes = [...Buffer.from(symbol, 'utf-8')];
+
+  let transformedBuffer: number[] = []
+
+  buf.forEach((num) => {
+    if (num === 0) {
+      transformedBuffer = transformedBuffer.concat(redactedSymbolBytes);
+    } else {
+      transformedBuffer.push(num);
+    }
+  })
+
+  return transformedBuffer
 }
 
 export function processTranscript(transcript: string): ParsedTranscriptData {
