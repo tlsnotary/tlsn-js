@@ -77,9 +77,9 @@ export function CodeHashCallout({ codeHash }: { codeHash: string }) {
         </div>
       </div>
       <AlertDescription>
-        <code className="relative font-mono text-xs truncate rounded">
+        <div className="relative overflow-x-auto font-mono text-xs truncate rounded text-ellipsis">
           {codeHash}
-        </code>
+        </div>
       </AlertDescription>
     </Alert>
   );
