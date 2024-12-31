@@ -125,11 +125,12 @@ export function VerifyNFT(): ReactElement {
             </div>
 
             {resultVerify !== null && (
-              <div className="p-4 mt-8 mb-4 border border-slate-200 rounded-xl">
-                <Subtitle title="Verification Result" />
-                <div className="flex mt-2">
+              <div
+                className={`p-4 mt-8 mb-4 rounded-xl ${resultVerify ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}
+              >
+                <div className="flex">
                   {!resultVerify ? (
-                    <div className="flex flex-col gap-2 text-red-800">
+                    <div className="flex flex-col gap-2">
                       <div className="flex flex-row items-start gap-1">
                         <XCircleIcon className="w-5 h-5 mt-[2px]" />
                         <div>
@@ -141,7 +142,7 @@ export function VerifyNFT(): ReactElement {
                       </div>
                     </div>
                   ) : (
-                    <ul className="flex flex-col gap-1 text-green-600">
+                    <ul className="flex flex-col gap-1">
                       <li className="flex items-center gap-1">
                         <CheckCircleIcon className="w-5 h-5" /> Code hash
                         matches open-source implementation
