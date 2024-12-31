@@ -119,7 +119,7 @@ export function VerifyNFT(): ReactElement {
                     Verifying...
                   </>
                 ) : (
-                  <>Verify Attestation</>
+                  <>Verify attestation</>
                 )}
               </Button>
             </div>
