@@ -7,8 +7,11 @@ import * as Comlink from 'comlink';
 // import FAQ from './faq';
 
 import { ArrowPathIcon } from '@heroicons/react/24/solid';
+import { Github } from 'lucide-react';
 
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+
+import { Link } from 'react-router-dom';
 
 const { init, verify_code_attestation }: any = Comlink.wrap(
   new Worker(new URL('../utils/worker.ts', import.meta.url)),
@@ -69,13 +72,13 @@ export function VerifyNFT(): ReactElement {
     <main className="px-2 py-12 sm:px-4 text-slate-500">
       <div className="max-w-md mx-auto overflow-hidden md:max-w-2xl">
         <Header />
-        <div className="flex flex-col gap-6 p-4 mt-2 mb-8 overflow-y-auto border sm:p-8 rounded-3xl">
+        <div className="flex flex-col gap-6 p-4 mb-8 overflow-y-auto border sm:p-6 rounded-3xl">
           <section className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
               <h1 className="text-2xl font-bold text-center text-slate-900">
                 Verify NFT launch fairness
               </h1>
-              <p className="text-lg text-center text-balance">
+              <p className="text-lg leading-tight text-center text-balance">
                 This verifies that Freysa launched the NFT collection herself
                 from an AWS Nitro TEE
               </p>
@@ -104,13 +107,12 @@ export function VerifyNFT(): ReactElement {
             />
           </section>
 
-          <section className="p-2">
-            <div className="flex items-center justify-center mb-4">
+          <section>
+            <div className="flex justify-between w-full">
               <Button
                 onClick={verify_attestation_document}
                 disabled={processingVerification}
                 variant="primary"
-                size="lg"
                 // className="flex items-center px-4 py-2 mx-auto text-white bg-blue-700 rounded hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {processingVerification ? (
@@ -122,11 +124,32 @@ export function VerifyNFT(): ReactElement {
                   <>Verify attestation</>
                 )}
               </Button>
+              <div className="flex justify-center gap-4 sm:flex-row">
+                <Button asChild variant="secondary">
+                  <Link
+                    to="https://github.com/EternisAI/nitriding-agent-eternis"
+                    target="_blank"
+                  >
+                    <Github className="w-4 h-4" />
+                    Codebase
+                  </Link>
+                </Button>
+
+                <Button asChild variant="secondary">
+                  <Link
+                    to="https://github.com/EternisAI/nitriding-agent-eternis"
+                    target="_blank"
+                  >
+                    <Github className="w-4 h-4" />
+                    Verifier code
+                  </Link>
+                </Button>
+              </div>
             </div>
 
             {resultVerify !== null && (
               <div
-                className={`p-4 mt-8 mb-4 rounded-xl ${resultVerify ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}
+                className={`p-4 mt-6 rounded-xl ${resultVerify ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}
               >
                 <div className="flex">
                   {!resultVerify ? (
@@ -162,9 +185,6 @@ export function VerifyNFT(): ReactElement {
             )}
           </section>
         </div>
-        {/* <section>
-          <FAQ />
-        </section> */}
       </div>
     </main>
   );
