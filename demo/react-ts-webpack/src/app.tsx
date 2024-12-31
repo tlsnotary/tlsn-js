@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 
 import { Notarization } from './components/notarize';
 import { VerifyAttributeAttestation } from './components/verify';
+import { VerifyNFT } from './components/verify-nft';
 
 const container = document.getElementById('root');
 const root = createRoot(container!);
@@ -20,6 +21,7 @@ function App(): ReactElement {
           <Route path="/" element={<VerifyAttributeAttestation />} />
           <Route path="/notarize" element={<Notarization />} />
           <Route path="/verify" element={<VerifyAttributeAttestation />} />
+          <Route path="/verify-nft" element={<VerifyNFT />} />
         </Routes>
       </div>
     </Router>

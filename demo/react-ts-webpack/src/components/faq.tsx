@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-export function FAQ() {
+export default function FAQ() {
   return (
     <div className="container flex flex-col mx-auto border rounded-3xl border-slate-200">
       <article className="p-6 prose">
@@ -24,7 +24,7 @@ export function FAQ() {
           <li>
             Clone the{' '}
             <Link
-              to="https://github.com/EternisAI/nitriding-agent-eternis"
+              to="" // TODO: add link
               className="text-blue-500"
             >
               agent codebase
@@ -35,18 +35,21 @@ export function FAQ() {
           <li>Verify that the PCRs contain the expected code hash</li>
         </ol>
 
-        <h3 className="text-base">What is the verification process?</h3>
-        <p>
+        <h2 className="mb-2 text-2xl font-bold">
+          What is the verification process ?
+        </h2>
+        <div className="">
+          {' '}
           This involves several steps including verifying the aws certificate,
           code hash and expiration. Check the{' '}
           <Link
-            to="https://github.com/EternisAI/nitriding-agent-eternis"
+            to="" // TODO: add link
             className="text-blue-500"
           >
             verifier codebase
           </Link>{' '}
           for more details.
-        </p>
+        </div>
       </article>
     </div>
   );
