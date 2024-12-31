@@ -4,7 +4,7 @@ import { Subtitle } from './subtitle';
 import { CodeHashCallout } from './alert';
 import { Header } from './header';
 import * as Comlink from 'comlink';
-// import FAQ from './faq';
+import { FAQ } from './faq';
 
 import { ArrowPathIcon } from '@heroicons/react/24/solid';
 import { Github } from 'lucide-react';
@@ -183,6 +183,9 @@ export function VerifyNFT(): ReactElement {
             )}
           </section>
         </div>
+        <section>
+          <FAQ />
+        </section>
       </div>
     </main>
   );
