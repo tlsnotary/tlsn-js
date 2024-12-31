@@ -73,16 +73,14 @@ export function VerifyNFT(): ReactElement {
       <div className="max-w-md mx-auto overflow-hidden md:max-w-2xl">
         <Header />
         <div className="flex flex-col gap-6 p-4 mb-8 overflow-y-auto border sm:p-6 rounded-3xl">
-          <section className="flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-              <h1 className="text-2xl font-bold text-center text-slate-900">
-                Verify NFT launch fairness
-              </h1>
-              <p className="text-lg leading-tight text-center text-balance">
-                This verifies that Freysa launched the NFT collection herself
-                from an AWS Nitro TEE
-              </p>
-            </div>
+          <section className="flex flex-col gap-2">
+            <h1 className="text-2xl font-bold text-center text-slate-900">
+              Verify NFT launch fairness
+            </h1>
+            <p className="text-lg leading-tight text-center text-balance">
+              This verifies that Freysa launched the NFT collection herself from
+              an AWS Nitro TEE
+            </p>
           </section>
           <CodeHashCallout codeHash={EXPECTED_PCRS[2]} />
 
