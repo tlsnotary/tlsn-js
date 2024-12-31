@@ -69,7 +69,7 @@ export function VerifyNFT(): ReactElement {
     <main className="px-2 py-12 sm:px-4 text-slate-500">
       <div className="max-w-md mx-auto overflow-hidden md:max-w-2xl">
         <Header />
-        <div className="flex flex-col gap-6 p-8 mt-2 mb-8 overflow-y-auto border rounded-3xl">
+        <div className="flex flex-col gap-6 p-4 mt-2 mb-8 overflow-y-auto border sm:p-8 rounded-3xl">
           <section className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
               <h1 className="text-2xl font-bold text-center text-slate-900">
