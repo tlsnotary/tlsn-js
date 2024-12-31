@@ -73,7 +73,7 @@ export function VerifyNFT(): ReactElement {
           <section className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
               <h1 className="text-2xl font-bold text-center text-slate-900">
-                Verify NFT Launch Fairness
+                Verify NFT launch fairness
               </h1>
               <p className="text-lg text-center text-balance">
                 This verifies that Freysa launched the NFT collection herself
