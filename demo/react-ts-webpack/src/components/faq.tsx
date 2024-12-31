@@ -35,11 +35,8 @@ export default function FAQ() {
           <li>Verify that the PCRs contain the expected code hash</li>
         </ol>
 
-        <h2 className="mb-2 text-2xl font-bold">
-          What is the verification process ?
-        </h2>
-        <div className="">
-          {' '}
+        <h3 className="text-base">What is the verification process ?</h3>
+        <p>
           This involves several steps including verifying the aws certificate,
           code hash and expiration. Check the{' '}
           <Link
@@ -49,7 +46,7 @@ export default function FAQ() {
             verifier codebase
           </Link>{' '}
           for more details.
-        </div>
+        </p>
       </article>
     </div>
   );

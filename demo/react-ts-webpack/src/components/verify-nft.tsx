@@ -4,25 +4,22 @@ import { Subtitle } from './subtitle';
 import { CodeHashCallout } from './alert';
 import { Header } from './header';
 import * as Comlink from 'comlink';
-import { FAQ } from './faq';
+import FAQ from './faq';
 
 import { ArrowPathIcon } from '@heroicons/react/24/solid';
 import { Github } from 'lucide-react';
 
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-
 import { Link } from 'react-router-dom';
 
 const { init, verify_code_attestation }: any = Comlink.wrap(
   new Worker(new URL('../utils/worker.ts', import.meta.url)),
 );
 
-const nonce = '0000000000000000000000000000000000000000';
+const NONCE = '0000000000000000000000000000000000000000';
 
-const EXPECTED_PCRS = {
-  '1': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-  '2': 'vG3KQ5NWQwXFGMI5XE4qxfwRhrQJChCX8Mh72lcVfrv75Ruq4eL49rbufvpwHiyS',
-};
+const EXPECTED_PCR =
+  'vG3KQ5NWQwXFGMI5XE4qxfwRhrQJChCX8Mh72lcVfrv75Ruq4eL49rbufvpwHiyS';
 
 export function VerifyNFT(): ReactElement {
   const [processingVerification, setProcessingVerification] = useState(false);
@@ -41,19 +38,19 @@ export function VerifyNFT(): ReactElement {
     }
     const codeAttestation_ = codeAttestation.replace(/\\n/g, '').trim();
 
-    console.log('codeAttestation_', codeAttestation_);
+    //console.log('codeAttestation_', codeAttestation_);
     setProcessingVerification(true);
 
     try {
       const resultVerify = await verify_code_attestation(
         codeAttestation_,
-        nonce,
-        EXPECTED_PCRS,
+        NONCE,
+        EXPECTED_PCR,
         Math.floor(Date.now() / 1000),
       );
-
       setResultVerify(resultVerify);
     } catch (e) {
+      console.log('error', e);
       setResultVerify(false);
       setError((e as Error).message);
     } finally {
@@ -82,7 +79,7 @@ export function VerifyNFT(): ReactElement {
               an AWS Nitro TEE
             </p>
           </section>
-          <CodeHashCallout codeHash={EXPECTED_PCRS[2]} />
+          <CodeHashCallout codeHash={EXPECTED_PCR} />
 
           <section className="flex flex-col gap-2 ">
             <div className="pl-4">
