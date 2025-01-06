@@ -27,7 +27,7 @@ var options = {
   ],
   mode: 'development',
   entry: {
-    app: path.join(__dirname, '/src/app.tsx'),
+    app: path.join(__dirname, 'src', 'app.tsx'),
   },
   output: {
     filename: '[name].bundle.js',
