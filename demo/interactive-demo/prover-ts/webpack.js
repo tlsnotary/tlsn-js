@@ -43,6 +43,27 @@ var options = {
         exclude: /node_modules/,
       },
       {
+        test: /\.(css|scss)$/,
+        use: [
+          {
+            loader: 'style-loader',
+          },
+          {
+            loader: 'css-loader',
+            options: { importLoaders: 1 },
+          },
+          {
+            loader: 'postcss-loader',
+          },
+          {
+            loader: 'sass-loader',
+            options: {
+              sourceMap: true,
+            },
+          },
+        ],
+      },
+      {
         test: /\.html$/,
         loader: 'html-loader',
         exclude: /node_modules/,

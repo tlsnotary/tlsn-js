@@ -1,9 +1,10 @@
-import React, { ReactElement, useCallback, useState } from 'react';
+import React, { ReactElement, useCallback, useState, useRef, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Comlink from 'comlink';
 import { Watch } from 'react-loader-spinner';
 import { Prover as TProver } from 'tlsn-js';
 import { type Method } from 'tlsn-wasm';
+import './index.scss';
 
 const { init, Prover }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
@@ -121,43 +122,61 @@ function App(): ReactElement {
 
   }, [setResult, setProcessing]);
 
+
   return (
-    <div>
-      <h1>TLSNotary interactive prover demo</h1>
-      <div>
-        Before clicking the start button, make sure the{' '}
-        <i>interactive verifier</i> and the <i>web socket proxy</i> are running.
-        Check the <a href="README.md">README</a> for the details.
+    <div className="flex flex-col items-center justify-center w-full min-h-screen bg-gray-50 p-4">
+      <h1 className="text-4xl font-bold text-slate-500 mb-2">TLSNotary</h1>
+      <span className="text-lg text-gray-600 mb-4">Interactive Prover Demo</span>
+
+      <div className="text-center text-gray-700 mb-6">
+        Before clicking the <span className="font-semibold">Start</span> button, make sure the{' '}
+        <i>interactive verifier</i> and the <i>web socket proxy</i> are running. Check the{' '}
+        <a
+          href="README.md"
+          className="text-blue-600 hover:underline"
+        >
+          README
+        </a>{' '}
+        for the details.
       </div>
 
-      <br />
-      <button onClick={!processing ? onClick : undefined} disabled={processing}>
+      <button
+        onClick={!processing ? onClick : undefined}
+        disabled={processing}
+        className={`px-6 py-2 rounded-lg font-medium text-white
+          ${processing ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}
+        `}
+      >
         Start Prover
       </button>
-      <br />
-      <div>
-        <b>Proof: </b>
+
+      <div className="mt-6 w-full max-w-3xl text-center">
+        <b className="text-lg font-medium text-gray-800">Proof: </b>
         {!processing && !result ? (
-          <i>not started yet</i>
+          <i className="text-gray-500">Not started yet</i>
         ) : !result ? (
-          <>
-            Proving data from swapi...
+          <div className="flex flex-col items-center justify-center">
+            <p className="text-gray-700 mb-2">Proving data from swapi...</p>
             <Watch
               visible={true}
               height="40"
               width="40"
               radius="48"
-              color="#000000"
+              color="#4A5568"
               ariaLabel="watch-loading"
               wrapperStyle={{}}
               wrapperClass=""
             />
-            Open <i>Developer tools</i> to follow progress
-          </>
+            <p className="text-sm text-gray-500 mt-2">
+              Open <i>Developer Tools</i> to follow progress
+            </p>
+          </div>
         ) : (
-          <>
-            <pre>{JSON.stringify(result, null, 2)}</pre>
-          </>
+          <div className="bg-gray-100 border border-gray-300 p-4 rounded-lg mt-4">
+            <pre className="text-left text-sm text-gray-800 whitespace-pre-wrap overflow-auto">
+              {JSON.stringify(result, null, 2)}
+            </pre>
+          </div>
         )}
       </div>
     </div>
