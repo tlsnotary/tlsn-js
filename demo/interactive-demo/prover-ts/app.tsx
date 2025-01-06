@@ -1,10 +1,10 @@
-import React, { ReactElement, useCallback, useState, useRef, useEffect } from 'react';
+import React, { ReactElement, useCallback, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Comlink from 'comlink';
 import { Watch } from 'react-loader-spinner';
 import { Prover as TProver } from 'tlsn-js';
 import { type Method } from 'tlsn-wasm';
-import './index.scss';
+import './app.scss';
 
 const { init, Prover }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
