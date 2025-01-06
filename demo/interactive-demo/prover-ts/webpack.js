@@ -113,9 +113,7 @@ var options = {
       ],
     }),
     new CopyWebpackPlugin({
-      patterns: [
-        { from: '../README.md', to: 'README.md' },
-      ],
+      patterns: [{ from: '../README.md', to: 'README.md' }],
     }),
     new HtmlWebpackPlugin({
       template: path.join(__dirname, 'index.ejs'),

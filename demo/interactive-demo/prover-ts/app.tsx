@@ -99,7 +99,6 @@ function App(): ReactElement {
       console.log('Start reveal:', reveal);
       await prover.reveal(reveal);
       console.timeEnd('reveal');
-
     } catch (error) {
       console.dir(error);
       console.error('Error during data reveal:', error);
@@ -115,26 +114,25 @@ function App(): ReactElement {
       received: transcript.recv,
     });
 
-    setResult('Unredacted data successfully revealed to Verifier. Check the Verifier\'s console output to see what exactly was shared and revealed.');
+    setResult(
+      "Unredacted data successfully revealed to Verifier. Check the Verifier's console output to see what exactly was shared and revealed.",
+    );
 
     setProcessing(false);
-
-
   }, [setResult, setProcessing]);
-
 
   return (
     <div className="flex flex-col items-center justify-center w-full min-h-screen bg-gray-50 p-4">
       <h1 className="text-4xl font-bold text-slate-500 mb-2">TLSNotary</h1>
-      <span className="text-lg text-gray-600 mb-4">Interactive Prover Demo</span>
+      <span className="text-lg text-gray-600 mb-4">
+        Interactive Prover Demo
+      </span>
 
       <div className="text-center text-gray-700 mb-6">
-        Before clicking the <span className="font-semibold">Start</span> button, make sure the{' '}
-        <i>interactive verifier</i> and the <i>web socket proxy</i> are running. Check the{' '}
-        <a
-          href="README.md"
-          className="text-blue-600 hover:underline"
-        >
+        Before clicking the <span className="font-semibold">Start</span> button,
+        make sure the <i>interactive verifier</i> and the{' '}
+        <i>web socket proxy</i> are running. Check the{' '}
+        <a href="README.md" className="text-blue-600 hover:underline">
           README
         </a>{' '}
         for the details.

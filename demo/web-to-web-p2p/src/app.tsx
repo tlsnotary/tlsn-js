@@ -197,8 +197,8 @@ function App(): ReactElement {
       <div className="w-full p-4 bg-slate-800 text-white flex-shrink-0 shadow-md">
         <h1 className="text-xl font-bold">Web-to-Web P2P Demo</h1>
         <p className="text-sm mt-1">
-          This demo showcases peer-to-peer communication between a web prover and
-          a web verifier using TLSNotary. The prover fetches data from{' '}
+          This demo showcases peer-to-peer communication between a web prover
+          and a web verifier using TLSNotary. The prover fetches data from{' '}
           <a
             href="https://swapi.dev"
             target="_blank"

@@ -273,7 +273,6 @@ export class Prover {
   async reveal(reveal: Reveal) {
     return this.#prover.reveal(reveal);
   }
-
 }
 
 export class Verifier {
