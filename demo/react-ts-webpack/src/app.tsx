@@ -179,11 +179,15 @@ function App(): ReactElement {
           ) : !presentationJSON ? (
             <div className="flex flex-col items-start space-y-2">
               <span>Proving data from swapi...</span>
-              <span className="text-slate-500">Open <i>Developer tools</i> to follow progress</span>
+              <span className="text-slate-500">
+                Open <i>Developer tools</i> to follow progress
+              </span>
             </div>
           ) : (
             <details className="bg-slate-50 border border-slate-200 rounded p-2">
-              <summary className="cursor-pointer text-slate-600">View Proof</summary>
+              <summary className="cursor-pointer text-slate-600">
+                View Proof
+              </summary>
               <pre className="mt-2 p-2 bg-slate-100 rounded text-sm text-slate-800">
                 {JSON.stringify(presentationJSON, null, 2)}
               </pre>
@@ -210,7 +214,7 @@ function App(): ReactElement {
             height="40"
             width="40"
             radius="48"
-            color="#1E293B" // Slate-800 color
+            color="#1E293B"
             ariaLabel="watch-loading"
             wrapperStyle={{}}
             wrapperClass=""
@@ -219,6 +223,4 @@ function App(): ReactElement {
       )}
     </div>
   );
-
-
 }

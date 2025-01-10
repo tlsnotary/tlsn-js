@@ -193,7 +193,6 @@ function App(): ReactElement {
 
   return (
     <div className="w-screen h-screen flex flex-col bg-slate-100 overflow-hidden">
-      {/* Header */}
       <div className="w-full p-4 bg-slate-800 text-white flex-shrink-0 shadow-md">
         <h1 className="text-xl font-bold">Web-to-Web P2P Demo</h1>
         <p className="text-sm mt-1">
@@ -211,9 +210,7 @@ function App(): ReactElement {
         </p>
       </div>
 
-      {/* Main Content */}
       <div className="grid grid-rows-2 grid-cols-2 gap-4 p-4 flex-grow">
-        {/* Prover Section */}
         <div className="flex flex-col items-center border border-slate-300 bg-white rounded-lg shadow-md row-span-1 col-span-1 p-4 gap-2">
           <div className="font-semibold text-slate-700 text-lg">Prover</div>
           <div className="flex flex-col text-sm bg-slate-50 border border-slate-200 w-full flex-grow py-2 overflow-y-auto rounded">
@@ -228,7 +225,6 @@ function App(): ReactElement {
           </div>
         </div>
 
-        {/* Verifier Section */}
         <div className="flex flex-col items-center border border-slate-300 bg-white rounded-lg shadow-md row-span-1 col-span-1 p-4 gap-2">
           <div className="font-semibold text-slate-700 text-lg">Verifier</div>
           <div className="flex flex-col text-sm bg-slate-50 border border-slate-200 w-full flex-grow py-2 overflow-y-auto rounded">
@@ -243,7 +239,6 @@ function App(): ReactElement {
           </div>
         </div>
 
-        {/* Start Button Section */}
         <div className="flex flex-row justify-center items-center row-span-1 col-span-2">
           <Button
             className="bg-slate-800 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-slate-700 disabled:opacity-50"
