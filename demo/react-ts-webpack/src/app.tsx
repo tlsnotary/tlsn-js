@@ -10,6 +10,7 @@ import {
   Transcript,
 } from 'tlsn-js';
 import { PresentationJSON } from 'tlsn-js/build/types';
+import './app.scss';
 
 const { init, Prover, Presentation }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
@@ -146,61 +147,78 @@ function App(): ReactElement {
   }, [presentationJSON, setResult]);
 
   return (
-    <div>
-      <div>
+    <div className="bg-slate-100 min-h-screen p-6 text-slate-800 flex flex-col items-center">
+      <h1 className="text-2xl font-bold mb-6 text-slate-700">
+        TLSNotary React TypeScript Demo{' '}
+      </h1>
+      <div className="mb-4">
         <button
           onClick={!processing ? onClick : undefined}
           disabled={processing || !initialized}
+          className={`px-4 py-2 rounded-md text-white shadow-md font-semibold
+            ${processing || !initialized ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}`}
         >
           Start Demo (Normal config)
         </button>
       </div>
-      <div>
+      <div className="mb-4">
         <button
           onClick={!processing ? onAltClick : undefined}
           disabled={processing || !initialized}
+          className={`px-4 py-2 rounded-md text-white shadow-md font-semibold
+            ${processing || !initialized ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}`}
         >
           Start Demo 2 (With helper method)
         </button>
       </div>
-      <div>
-        <b>Proof: </b>
-        {!processing && !presentationJSON ? (
-          <i>not started</i>
-        ) : !presentationJSON ? (
-          <>
-            Proving data from swapi...
-            <Watch
-              visible={true}
-              height="40"
-              width="40"
-              radius="48"
-              color="#000000"
-              ariaLabel="watch-loading"
-              wrapperStyle={{}}
-              wrapperClass=""
-            />
-            Open <i>Developer tools</i> to follow progress
-          </>
-        ) : (
-          <>
-            <details>
-              <summary>View Proof</summary>
-              <pre>{JSON.stringify(presentationJSON, null, 2)}</pre>
+      <div className="flex flex-col sm:flex-row gap-6 w-full max-w-4xl">
+        <div className="flex-1 bg-slate-50 border border-slate-200 rounded p-4">
+          <b className="text-slate-600">Proof: </b>
+          {!processing && !presentationJSON ? (
+            <i className="text-slate-500">not started</i>
+          ) : !presentationJSON ? (
+            <div className="flex flex-col items-start space-y-2">
+              <span>Proving data from swapi...</span>
+              <span className="text-slate-500">Open <i>Developer tools</i> to follow progress</span>
+            </div>
+          ) : (
+            <details className="bg-slate-50 border border-slate-200 rounded p-2">
+              <summary className="cursor-pointer text-slate-600">View Proof</summary>
+              <pre className="mt-2 p-2 bg-slate-100 rounded text-sm text-slate-800">
+                {JSON.stringify(presentationJSON, null, 2)}
+              </pre>
             </details>
-          </>
-        )}
+          )}
+        </div>
+        <div className="flex-1 bg-slate-50 border border-slate-200 rounded p-4">
+          <b className="text-slate-600">Verification: </b>
+          {!presentationJSON ? (
+            <i className="text-slate-500">not started</i>
+          ) : !result ? (
+            <i className="text-slate-500">verifying</i>
+          ) : (
+            <pre className="mt-2 p-2 bg-slate-100 rounded text-sm text-slate-800">
+              {JSON.stringify(result, null, 2)}
+            </pre>
+          )}
+        </div>
       </div>
-      <div>
-        <b>Verification: </b>
-        {!presentationJSON ? (
-          <i>not started</i>
-        ) : !result ? (
-          <i>verifying</i>
-        ) : (
-          <pre>{JSON.stringify(result, null, 2)}</pre>
-        )}
-      </div>
+      {processing && (
+        <div className="mt-6 flex justify-center items-center">
+          <Watch
+            visible={true}
+            height="40"
+            width="40"
+            radius="48"
+            color="#1E293B" // Slate-800 color
+            ariaLabel="watch-loading"
+            wrapperStyle={{}}
+            wrapperClass=""
+          />
+        </div>
+      )}
     </div>
   );
+
+
 }

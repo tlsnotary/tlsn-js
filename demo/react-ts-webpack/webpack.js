@@ -71,6 +71,29 @@ var options = {
         ],
         exclude: /node_modules/,
       },
+      {
+        // look for .css or .scss files
+        test: /\.(css|scss)$/,
+        // in the `web` directory
+        use: [
+          {
+            loader: 'style-loader',
+          },
+          {
+            loader: 'css-loader',
+            options: { importLoaders: 1 },
+          },
+          {
+            loader: 'postcss-loader',
+          },
+          {
+            loader: 'sass-loader',
+            options: {
+              sourceMap: true,
+            },
+          },
+        ],
+      },
     ],
   },
   resolve: {
@@ -111,9 +134,15 @@ var options = {
   //  - https://github.com/GoogleChromeLabs/wasm-bindgen-rayon#setting-up
   //  - https://web.dev/i18n/en/coop-coep/
   devServer: {
+    port: 8080,
+    host: 'localhost',
+    hot: true,
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
+    },
+    client: {
+      overlay: false,
     },
   },
 };

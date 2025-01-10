@@ -27,7 +27,7 @@ var options = {
   ],
   mode: 'development',
   entry: {
-    app: path.join(__dirname, 'app.tsx'),
+    app: path.join(__dirname, 'src', 'app.tsx'),
   },
   output: {
     filename: '[name].bundle.js',
@@ -101,6 +101,11 @@ var options = {
     extensions: fileExtensions
       .map((extension) => '.' + extension)
       .concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
+    fallback: {
+      crypto: require.resolve('crypto-browserify'),
+      stream: require.resolve('stream-browserify'),
+      vm: require.resolve('vm-browserify'),
+    },
   },
   plugins: [
     new CopyWebpackPlugin({
@@ -111,9 +116,6 @@ var options = {
           force: true,
         },
       ],
-    }),
-    new CopyWebpackPlugin({
-      patterns: [{ from: '../README.md', to: 'README.md' }],
     }),
     new HtmlWebpackPlugin({
       template: path.join(__dirname, 'index.ejs'),
@@ -132,12 +134,15 @@ var options = {
   //  - https://github.com/GoogleChromeLabs/wasm-bindgen-rayon#setting-up
   //  - https://web.dev/i18n/en/coop-coep/
   devServer: {
-    port: 3456,
+    port: 8080,
     host: 'localhost',
     hot: true,
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
+    },
+    client: {
+      overlay: false,
     },
   },
 };

@@ -20,7 +20,7 @@
     "jsx": "react"
   },
   "include": [
-    "app.tsx",
-    "worker.ts"
+    "src/app.tsx",
+    "src/worker.ts"
   ]
 }
