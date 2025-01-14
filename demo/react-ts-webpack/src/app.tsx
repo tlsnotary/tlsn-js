@@ -162,7 +162,7 @@ function App(): ReactElement {
       <h1 className="text-2xl font-bold mb-6 text-slate-700">
         TLSNotary React TypeScript Demo{' '}
       </h1>
-      <div className="mb-4 max-w-2xl">
+      <div className="mb-4 text-base font-light max-w-2xl">
         <p>
           This demo showcases how to use TLSNotary in a React/TypeScript app with the tlsn-js library.
           We will fetch JSON data from the Star Wars API, notarize the TLS request using TLSNotary,
@@ -198,7 +198,7 @@ function App(): ReactElement {
       </div>
 
       <div className="mb-4">
-        <p className="mb-2">
+        <p className="mb-2 text-base font-light">
           There are two versions of the demo: one with a normal config and one with a helper method.
         </p>
         <div className="flex justify-center gap-4">
