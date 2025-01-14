@@ -15,6 +15,11 @@ const root = createRoot(container!);
 
 root.render(<App />);
 
+const serverUrl = 'https://swapi.dev/api/people/1';
+// let websocketProxyUrl = 'wss://notary.pse.dev/proxy';
+const websocketProxyUrl = 'ws://localhost:55688';
+const verifierProxyUrl = 'ws://localhost:9816/verify';
+
 function App(): ReactElement {
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -22,16 +27,14 @@ function App(): ReactElement {
   const onClick = useCallback(async () => {
     setProcessing(true);
 
-    const url = 'https://swapi.dev/api/people/1';
+    const url = serverUrl;
     const method: Method = 'GET';
     const headers = {
       secret: "TLSNotary's private key",
       'Content-Type': 'application/json',
     };
     const body = {};
-    // let websocketProxyUrl = 'wss://notary.pse.dev/proxy';
-    const websocketProxyUrl = 'ws://localhost:55688';
-    const verifierProxyUrl = 'ws://localhost:9816/verify';
+
     const hostname = new URL(url).hostname;
 
     let prover: TProver;
@@ -129,13 +132,38 @@ function App(): ReactElement {
       </span>
 
       <div className="text-center text-gray-700 mb-6">
-        Before clicking the <span className="font-semibold">Start</span> button,
-        make sure the <i>interactive verifier</i> and the{' '}
-        <i>web socket proxy</i> are running. Check the{' '}
-        <a href="README.md" className="text-blue-600 hover:underline">
-          README
-        </a>{' '}
-        for the details.
+        <p>
+          Before clicking the <span className="font-semibold">Start</span> button,
+          make sure the <i>interactive verifier</i> and the{' '}
+          <i>web socket proxy</i> are running.</p>
+        <p>Check the{' '}
+          <a href="README.md" className="text-blue-600 hover:underline">
+            README
+          </a>{' '}
+          for the details.
+        </p>
+        <table className="text-left table-auto w-full mt-4">
+          <thead>
+            <tr>
+              <th className="px-4 py-2 text-left">Demo Settings</th>
+              <th className="px-4 py-2 text-left">URL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="border px-4 py-2">Server</td>
+              <td className="border px-4 py-2">{serverUrl}</td>
+            </tr>
+            <tr>
+              <td className="border px-4 py-2">Verifier</td>
+              <td className="border px-4 py-2">{verifierProxyUrl}</td>
+            </tr>
+            <tr>
+              <td className="border px-4 py-2">WebSocket Proxy</td>
+              <td className="border px-4 py-2">{websocketProxyUrl}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <button
