@@ -1,4 +1,4 @@
-import puppeteer, { Browser, Page, PuppeteerLaunchOptions } from 'puppeteer';
+import puppeteer, { Browser, LaunchOptions, Page } from 'puppeteer';
 import { describe, it, before, after } from 'mocha';
 const assert = require('assert');
 import { exec, ChildProcess } from 'node:child_process';
@@ -9,10 +9,11 @@ const yaml = require('js-yaml');
 const timeout = 300000;
 
 // puppeteer options
-let opts: PuppeteerLaunchOptions = {
+let opts: LaunchOptions = {
   headless: !!process.env.HEADLESS ? true : false,
   slowMo: 100,
   timeout: timeout,
+  args: ['--no-sandbox', '--disable-setuid-sandbox'],
 };
 
 if (process.env.CHROME_PATH) {
@@ -121,8 +122,12 @@ after(async function () {
     server.kill();
     console.log('* Stopped Test Web Server ✅');
 
-    await page.close();
-    await browser.close();
+    if (page) {
+      await page.close();
+    }
+    if (browser) {
+      await browser.close();
+    }
     const childProcess = browser.process();
     if (childProcess) {
       childProcess.kill(9);
