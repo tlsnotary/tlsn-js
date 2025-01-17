@@ -108,8 +108,6 @@ before(async function () {
   await page.goto('http://127.0.0.1:3001');
 });
 
-let success = true
-
 // close browser and reset global variables
 after(async function () {
   console.log('Cleaning up:');
@@ -135,8 +133,8 @@ after(async function () {
       }
       console.log('* Closed browser ✅');
 
-      let tests = this.test?.parent?.suites.flatMap(suite => suite.tests);
-      let failed = tests!.some(test => test.state === 'failed');
+      const tests = this.test?.parent?.suites.flatMap((suite) => suite.tests);
+      const failed = tests!.some((test) => test.state === 'failed');
       process.exit(failed ? 1 : 0);
     }
     process.exit(1);
@@ -151,7 +149,11 @@ describe('tlsn-js test suite', function () {
     const [id] = file.split('.');
     it(`Test ID: ${id}`, async function () {
       const content = await check(id);
-      assert.strictEqual(content, 'OK', `Test ID: ${id} - Expected 'OK' but got '${content}'`);
+      assert.strictEqual(
+        content,
+        'OK',
+        `Test ID: ${id} - Expected 'OK' but got '${content}'`,
+      );
     });
   });
 });
