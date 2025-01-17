@@ -108,6 +108,8 @@ before(async function () {
   await page.goto('http://127.0.0.1:3001');
 });
 
+let success = true
+
 // close browser and reset global variables
 after(async function () {
   console.log('Cleaning up:');
@@ -127,14 +129,20 @@ after(async function () {
     }
     if (browser) {
       await browser.close();
+      const childProcess = browser.process();
+      if (childProcess) {
+        childProcess.kill(9);
+      }
+      console.log('* Closed browser ✅');
+
+      let tests = this.test?.parent?.suites.flatMap(suite => suite.tests);
+      let failed = tests!.some(test => test.state === 'failed');
+      process.exit(failed ? 1 : 0);
     }
-    const childProcess = browser.process();
-    if (childProcess) {
-      childProcess.kill(9);
-    }
-    console.log('* Closed browser ✅');
+    process.exit(1);
   } catch (e) {
     console.error(e);
+    process.exit(1);
   }
 });
 
