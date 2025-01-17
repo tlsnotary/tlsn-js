@@ -29,8 +29,13 @@ let server: ChildProcess;
 let tlsnServerFixture: ChildProcess;
 const spawnTlsnServerFixture = () => {
   const tlsnServerFixturePath = './utils/tlsn/crates/server-fixture/';
-  tlsnServerFixture = exec(`../../target/release/main`, {
+  tlsnServerFixture = exec(`../../target/release/tlsn-server-fixture`, {
     cwd: tlsnServerFixturePath,
+  });
+
+  tlsnServerFixture.on('error', (error) => {
+    console.error(`Failed to start TLSN Server Fixture: ${error}`);
+    process.exit(1);
   });
 
   tlsnServerFixture.stdout?.on('data', (data) => {
@@ -48,6 +53,10 @@ const spawnLocalNotaryServer = async () => {
   console.log(localNotaryServerPath);
   localNotaryServer = exec(`../../../target/release/notary-server`, {
     cwd: localNotaryServerPath,
+  });
+  localNotaryServer.on('error', (error) => {
+    console.error(`Failed to start Notary server: ${error}`);
+    process.exit(1);
   });
   localNotaryServer.stdout?.on('data', (data) => {
     console.log(`Server: ${data}`);
@@ -71,7 +80,7 @@ const spawnLocalNotaryServer = async () => {
   }
 };
 
-const configureNotarySerer = () => {
+const configureNotaryServer = () => {
   try {
     const configPath = './utils/tlsn/crates/notary/server/config/config.yaml';
     const fileContents = fs.readFileSync(configPath, 'utf8');
@@ -91,7 +100,7 @@ before(async function () {
   server = exec('serve  --config ../serve.json ./test-build -l 3001');
 
   spawnTlsnServerFixture();
-  configureNotarySerer();
+  configureNotaryServer(); //TODO: After alpha.8: remove this and add as argument to notary server
   await spawnLocalNotaryServer();
   browser = await puppeteer.launch(opts);
   page = await browser.newPage();
@@ -119,10 +128,8 @@ after(async function () {
       childProcess.kill(9);
     }
     console.log('* Closed browser ✅');
-    process.exit(0);
   } catch (e) {
     console.error(e);
-    process.exit(0);
   }
 });
 
@@ -131,18 +138,9 @@ describe('tlsn-js test suite', function () {
     const [id] = file.split('.');
     it(`Test ID: ${id}`, async function () {
       const content = await check(id);
-      assert(content === 'OK');
+      assert.strictEqual(content, 'OK', `Test ID: ${id} - Expected 'OK' but got '${content}'`);
     });
   });
-  // it('should prove and verify data from the local tlsn-server-fixture', async function () {
-  //   const content = await check('full-integration-swapi');
-  //   assert(content === 'OK');
-  // });
-  //
-  // it('should verify', async function () {
-  //   const content = await check('simple-verify');
-  //   assert(content === 'OK');
-  // });
 });
 
 async function check(testId: string): Promise<string> {

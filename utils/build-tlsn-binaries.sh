@@ -1,6 +1,8 @@
 #!/bin/bash
 # Run tlsn Server fixture
 
+set -e # Exit on error
+
 # Set the directory to the location of the script
 cd "$(dirname "$0")"
 
