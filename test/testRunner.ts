@@ -1,4 +1,4 @@
-import puppeteer, { Browser, Page, PuppeteerLaunchOptions } from 'puppeteer';
+import puppeteer, { Browser, LaunchOptions, Page } from 'puppeteer';
 import { describe, it, before, after } from 'mocha';
 const assert = require('assert');
 import { exec, ChildProcess } from 'node:child_process';
@@ -9,10 +9,11 @@ const yaml = require('js-yaml');
 const timeout = 300000;
 
 // puppeteer options
-let opts: PuppeteerLaunchOptions = {
+let opts: LaunchOptions = {
   headless: !!process.env.HEADLESS ? true : false,
   slowMo: 100,
   timeout: timeout,
+  args: ['--no-sandbox', '--disable-setuid-sandbox'],
 };
 
 if (process.env.CHROME_PATH) {
@@ -29,8 +30,13 @@ let server: ChildProcess;
 let tlsnServerFixture: ChildProcess;
 const spawnTlsnServerFixture = () => {
   const tlsnServerFixturePath = './utils/tlsn/crates/server-fixture/';
-  tlsnServerFixture = exec(`../../target/release/main`, {
+  tlsnServerFixture = exec(`../../target/release/tlsn-server-fixture`, {
     cwd: tlsnServerFixturePath,
+  });
+
+  tlsnServerFixture.on('error', (error) => {
+    console.error(`Failed to start TLSN Server Fixture: ${error}`);
+    process.exit(1);
   });
 
   tlsnServerFixture.stdout?.on('data', (data) => {
@@ -48,6 +54,10 @@ const spawnLocalNotaryServer = async () => {
   console.log(localNotaryServerPath);
   localNotaryServer = exec(`../../../target/release/notary-server`, {
     cwd: localNotaryServerPath,
+  });
+  localNotaryServer.on('error', (error) => {
+    console.error(`Failed to start Notary server: ${error}`);
+    process.exit(1);
   });
   localNotaryServer.stdout?.on('data', (data) => {
     console.log(`Server: ${data}`);
@@ -71,7 +81,7 @@ const spawnLocalNotaryServer = async () => {
   }
 };
 
-const configureNotarySerer = () => {
+const configureNotaryServer = () => {
   try {
     const configPath = './utils/tlsn/crates/notary/server/config/config.yaml';
     const fileContents = fs.readFileSync(configPath, 'utf8');
@@ -91,7 +101,7 @@ before(async function () {
   server = exec('serve  --config ../serve.json ./test-build -l 3001');
 
   spawnTlsnServerFixture();
-  configureNotarySerer();
+  configureNotaryServer(); //TODO: After alpha.8: remove this and add as argument to notary server
   await spawnLocalNotaryServer();
   browser = await puppeteer.launch(opts);
   page = await browser.newPage();
@@ -112,17 +122,25 @@ after(async function () {
     server.kill();
     console.log('* Stopped Test Web Server ✅');
 
-    await page.close();
-    await browser.close();
-    const childProcess = browser.process();
-    if (childProcess) {
-      childProcess.kill(9);
+    if (page) {
+      await page.close();
     }
-    console.log('* Closed browser ✅');
-    process.exit(0);
+    if (browser) {
+      await browser.close();
+      const childProcess = browser.process();
+      if (childProcess) {
+        childProcess.kill(9);
+      }
+      console.log('* Closed browser ✅');
+
+      const tests = this.test?.parent?.suites.flatMap((suite) => suite.tests);
+      const failed = tests!.some((test) => test.state === 'failed');
+      process.exit(failed ? 1 : 0);
+    }
+    process.exit(1);
   } catch (e) {
     console.error(e);
-    process.exit(0);
+    process.exit(1);
   }
 });
 
@@ -131,18 +149,13 @@ describe('tlsn-js test suite', function () {
     const [id] = file.split('.');
     it(`Test ID: ${id}`, async function () {
       const content = await check(id);
-      assert(content === 'OK');
+      assert.strictEqual(
+        content,
+        'OK',
+        `Test ID: ${id} - Expected 'OK' but got '${content}'`,
+      );
     });
   });
-  // it('should prove and verify data from the local tlsn-server-fixture', async function () {
-  //   const content = await check('full-integration-swapi');
-  //   assert(content === 'OK');
-  // });
-  //
-  // it('should verify', async function () {
-  //   const content = await check('simple-verify');
-  //   assert(content === 'OK');
-  // });
 });
 
 async function check(testId: string): Promise<string> {

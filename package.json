@@ -15,7 +15,7 @@
     "serve:test": "serve  --config ../serve.json ./test-build -l 3001",
     "build:src": "webpack --config webpack.build.config.js",
     "build:types": "tsc --project tsconfig.compile.json",
-    "build:tlsn-binaries": "sh utils/build-tlsn-binaries.sh",
+    "build:tlsn-binaries": "sh utils/build-tlsn-binaries.sh v0.1.0-alpha.7",
     "build:lib": "NODE_ENV=production concurrently npm:build:src npm:build:types",
     "build": "npm run build:lib",
     "watch:dev": "webpack --config webpack.web.dev.config.js --watch",
@@ -28,7 +28,6 @@
     "test:only": "npm run build:test && npm run run:test"
   },
   "devDependencies": {
-    "@types/expect": "^24.3.0",
     "@types/mocha": "^10.0.6",
     "@types/serve-handler": "^6.1.4",
     "browserify": "^17.0.0",
@@ -50,7 +49,7 @@
     "node-loader": "^0.6.0",
     "prettier": "^3.0.2",
     "process": "^0.11.10",
-    "puppeteer": "^23.5.0",
+    "puppeteer": "^24.1.0",
     "serve": "14.2.1",
     "serve-handler": "^6.1.5",
     "stream-browserify": "^3.0.0",
