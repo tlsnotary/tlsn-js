@@ -10,6 +10,7 @@ import {
   Transcript,
 } from 'tlsn-js';
 import { PresentationJSON } from 'tlsn-js/build/types';
+import './app.scss';
 
 const { init, Prover, Presentation }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
@@ -20,6 +21,14 @@ const root = createRoot(container!);
 
 root.render(<App />);
 
+const local = true; // Toggle between local and remote notary
+const notaryUrl = local ? 'http://localhost:7047' : 'https://notary.pse.dev/v0.1.0-alpha.7';
+const websocketProxyUrl = local ? 'ws://localhost:55688' : 'wss://notary.pse.dev/proxy?token=swapi.dev';
+const loggingLevel = 'Info'; // https://github.com/tlsnotary/tlsn/blob/main/crates/wasm/src/log.rs#L8
+
+const serverUrl = 'https://swapi.dev/api/people/1';
+const serverDns = 'swapi.dev';
+
 function App(): ReactElement {
   const [initialized, setInitialized] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -29,22 +38,24 @@ function App(): ReactElement {
 
   useEffect(() => {
     (async () => {
-      await init({ loggingLevel: 'Info' });
+      await init({ loggingLevel: loggingLevel });
       setInitialized(true);
     })();
   }, []);
 
   const onClick = useCallback(async () => {
     setProcessing(true);
-    const notary = NotaryServer.from(`http://localhost:7047`);
+    const notary = NotaryServer.from(notaryUrl);
     console.time('submit');
     const prover = (await new Prover({
-      serverDns: 'swapi.dev',
+      serverDns: serverDns,
+      maxRecvData: 2048,
     })) as TProver;
 
     await prover.setup(await notary.sessionUrl());
-    const resp = await prover.sendRequest('ws://localhost:55688', {
-      url: 'https://swapi.dev/api/people/1',
+
+    const resp = await prover.sendRequest(websocketProxyUrl, {
+      url: serverUrl,
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -98,13 +109,14 @@ function App(): ReactElement {
   const onAltClick = useCallback(async () => {
     setProcessing(true);
     const proof = await (Prover.notarize as typeof TProver.notarize)({
-      notaryUrl: 'http://localhost:7047',
-      websocketProxyUrl: 'ws://localhost:55688',
-      url: 'https://swapi.dev/api/people/1',
+      notaryUrl: notaryUrl,
+      websocketProxyUrl: websocketProxyUrl,
+      url: serverUrl,
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
+
       body: {
         hello: 'world',
         one: 1,
@@ -124,7 +136,7 @@ function App(): ReactElement {
         const proof = (await new Presentation(
           presentationJSON.data,
         )) as TPresentation;
-        const notary = NotaryServer.from(`http://localhost:7047`);
+        const notary = NotaryServer.from(notaryUrl);
         const notaryKey = await notary.publicKey('hex');
         const verifierOutput = await proof.verify();
         const transcript = new Transcript({
@@ -146,60 +158,117 @@ function App(): ReactElement {
   }, [presentationJSON, setResult]);
 
   return (
-    <div>
-      <div>
-        <button
-          onClick={!processing ? onClick : undefined}
-          disabled={processing || !initialized}
-        >
-          Start Demo (Normal config)
-        </button>
+    <div className="bg-slate-100 min-h-screen p-6 text-slate-800 flex flex-col items-center">
+      <h1 className="text-2xl font-bold mb-6 text-slate-700">
+        TLSNotary React TypeScript Demo{' '}
+      </h1>
+      <div className="mb-4 text-base font-light max-w-2xl">
+        <p>
+          This demo showcases how to use TLSNotary in a React/TypeScript app with the tlsn-js library.
+          We will fetch JSON data from the Star Wars API, notarize the TLS request using TLSNotary,
+          and verify the proof. The demo runs entirely in the browser.
+        </p>
+        <p>
+          <a href="https://docs.tlsnotary.org/quick_start/tlsn-js.html" className="text-blue-500 hover:underline">
+            More info
+          </a>
+        </p>
+        <table className="table-auto w-full mt-4">
+          <thead>
+            <tr>
+              <th className="px-4 py-2 text-left">Demo Settings</th>
+              <th className="px-4 py-2 text-left">URL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="border px-4 py-2">Server</td>
+              <td className="border px-4 py-2">{serverUrl}</td>
+            </tr>
+            <tr>
+              <td className="border px-4 py-2">Notary Server</td>
+              <td className="border px-4 py-2">{notaryUrl}</td>
+            </tr>
+            <tr>
+              <td className="border px-4 py-2">WebSocket Proxy</td>
+              <td className="border px-4 py-2">{websocketProxyUrl}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div>
-        <button
-          onClick={!processing ? onAltClick : undefined}
-          disabled={processing || !initialized}
-        >
-          Start Demo 2 (With helper method)
-        </button>
+
+      <div className="mb-4">
+        <p className="mb-2 text-base font-light">
+          There are two versions of the demo: one with a normal config and one with a helper method.
+        </p>
+        <div className="flex justify-center gap-4">
+          <button
+            onClick={!processing ? onClick : undefined}
+            disabled={processing || !initialized}
+            className={`px-4 py-2 rounded-md text-white shadow-md font-semibold
+          ${processing || !initialized ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}`}
+          >
+            Start Demo (Normal config)
+          </button>
+          <button
+            onClick={!processing ? onAltClick : undefined}
+            disabled={processing || !initialized}
+            className={`px-4 py-2 rounded-md text-white shadow-md font-semibold
+          ${processing || !initialized ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}`}
+          >
+            Start Demo 2 (With helper method)
+          </button>
+        </div>
       </div>
-      <div>
-        <b>Proof: </b>
-        {!processing && !presentationJSON ? (
-          <i>not started</i>
-        ) : !presentationJSON ? (
-          <>
-            Proving data from swapi...
-            <Watch
-              visible={true}
-              height="40"
-              width="40"
-              radius="48"
-              color="#000000"
-              ariaLabel="watch-loading"
-              wrapperStyle={{}}
-              wrapperClass=""
-            />
-            Open <i>Developer tools</i> to follow progress
-          </>
-        ) : (
-          <>
-            <details>
-              <summary>View Proof</summary>
-              <pre>{JSON.stringify(presentationJSON, null, 2)}</pre>
+      {processing && (
+        <div className="mt-6 flex justify-center items-center">
+          <Watch
+            visible={true}
+            height="40"
+            width="40"
+            radius="48"
+            color="#1E293B"
+            ariaLabel="watch-loading"
+            wrapperStyle={{}}
+            wrapperClass=""
+          />
+        </div>
+      )}
+      <div className="flex flex-col sm:flex-row gap-6 w-full max-w-4xl">
+        <div className="flex-1 bg-slate-50 border border-slate-200 rounded p-4">
+          <b className="text-slate-600">Proof: </b>
+          {!processing && !presentationJSON ? (
+            <i className="text-slate-500">not started</i>
+          ) : !presentationJSON ? (
+            <div className="flex flex-col items-start space-y-2">
+              <span>Proving data from {serverDns}...</span>
+              <span className="text-slate-500">
+                Open <i>Developer tools</i> to follow progress
+              </span>
+            </div>
+          ) : (
+            <details className="bg-slate-50 border border-slate-200 rounded p-2">
+              <summary className="cursor-pointer text-slate-600">
+                View Proof
+              </summary>
+              <pre className="mt-2 p-2 bg-slate-100 rounded text-sm text-slate-800">
+                {JSON.stringify(presentationJSON, null, 2)}
+              </pre>
             </details>
-          </>
-        )}
-      </div>
-      <div>
-        <b>Verification: </b>
-        {!presentationJSON ? (
-          <i>not started</i>
-        ) : !result ? (
-          <i>verifying</i>
-        ) : (
-          <pre>{JSON.stringify(result, null, 2)}</pre>
-        )}
+          )}
+        </div>
+        <div className="flex-1 bg-slate-50 border border-slate-200 rounded p-4">
+          <b className="text-slate-600">Verification: </b>
+          {!presentationJSON ? (
+            <i className="text-slate-500">not started</i>
+          ) : !result ? (
+            <i className="text-slate-500">verifying</i>
+          ) : (
+            <pre className="mt-2 p-2 bg-slate-100 rounded text-sm text-slate-800">
+              {JSON.stringify(result, null, 2)}
+            </pre>
+          )}
+        </div>
       </div>
     </div>
   );

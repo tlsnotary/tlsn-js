@@ -134,7 +134,7 @@ var options = {
   //  - https://github.com/GoogleChromeLabs/wasm-bindgen-rayon#setting-up
   //  - https://web.dev/i18n/en/coop-coep/
   devServer: {
-    port: 3456,
+    port: 8080,
     host: 'localhost',
     hot: true,
     headers: {

@@ -192,49 +192,60 @@ function App(): ReactElement {
   }, [ready]);
 
   return (
-    <div className="w-screen h-screen flex flex-col overflow-hidden">
-      <div className="w-full p-2.5 bg-slate-200 mb-5 flex-shrink-0">
-        <h1>Web-to-Web P2P Demo</h1>
-        <p>
+    <div className="w-screen h-screen flex flex-col bg-slate-100 overflow-hidden">
+      <div className="w-full p-4 bg-slate-800 text-white flex-shrink-0 shadow-md">
+        <h1 className="text-xl font-bold">Web-to-Web P2P Demo</h1>
+        <p className="text-sm mt-1">
           This demo showcases peer-to-peer communication between a web prover
           and a web verifier using TLSNotary. The prover fetches data from{' '}
-          <a href="https://swapi.dev" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://swapi.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline text-blue-400 hover:text-blue-300"
+          >
             swapi.dev
           </a>{' '}
           and proves it to the verifier.
         </p>
       </div>
-      <div className="grid grid-rows-2 grid-cols-2 p-2 gap-2 flex-grow">
-        <div className="flex flex-col items-center border border-slate-300 bg-slate-50 rounded row-span-1 col-span-1 p-4 gap-2">
-          <div className="font-semibold">Prover</div>
-          <div className="flex flex-col text-sm bg-white border border-slate-300 w-full flex-grow cursor-text py-1 overflow-y-auto">
+
+      <div className="grid grid-rows-2 grid-cols-2 gap-4 p-4 flex-grow">
+        <div className="flex flex-col items-center border border-slate-300 bg-white rounded-lg shadow-md row-span-1 col-span-1 p-4 gap-2">
+          <div className="font-semibold text-slate-700 text-lg">Prover</div>
+          <div className="flex flex-col text-sm bg-slate-50 border border-slate-200 w-full flex-grow py-2 overflow-y-auto rounded">
             {proverMessages.map((m, index) => (
-              <span key={index} className="px-2 py-1 text-slate-600 break-all">
-                {m}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-col items-center border border-slate-300 bg-slate-100 rounded row-span-1 col-span-1 p-4 gap-2">
-          <div className="font-semibold">Verifier</div>
-          <div className="flex flex-col text-sm bg-white border border-slate-300 w-full flex-grow cursor-text py-1 overflow-y-auto">
-            {verifierMessages.map((m, index) => (
               <span
                 key={index}
-                className="px-1 py-0.5 text-slate-600 break-all"
+                className="px-3 py-1 text-slate-600 break-words"
               >
                 {m}
               </span>
             ))}
           </div>
         </div>
-        <div className="flex flex-row justify-center row-span-1 col-span-2">
+
+        <div className="flex flex-col items-center border border-slate-300 bg-white rounded-lg shadow-md row-span-1 col-span-1 p-4 gap-2">
+          <div className="font-semibold text-slate-700 text-lg">Verifier</div>
+          <div className="flex flex-col text-sm bg-slate-50 border border-slate-200 w-full flex-grow py-2 overflow-y-auto rounded">
+            {verifierMessages.map((m, index) => (
+              <span
+                key={index}
+                className="px-3 py-1 text-slate-600 break-words"
+              >
+                {m}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-row justify-center items-center row-span-1 col-span-2">
           <Button
-            className="h-fit"
+            className="bg-slate-800 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-slate-700 disabled:opacity-50"
             disabled={!ready || started}
             onClick={start}
           >
-            <div>
+            <div className="flex items-center">
               {ready && !started ? (
                 <>Start Demo</>
               ) : (
@@ -243,10 +254,8 @@ function App(): ReactElement {
                   height="40"
                   width="40"
                   radius="48"
-                  color="#000000"
+                  color="#ffffff"
                   ariaLabel="watch-loading"
-                  wrapperStyle={{}}
-                  wrapperClass=""
                 />
               )}
             </div>
