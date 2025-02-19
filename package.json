@@ -23,9 +23,10 @@
     "lint:eslint": "eslint . --fix",
     "lint:tsc": "tsc --noEmit",
     "lint": "concurrently npm:lint:tsc npm:lint:eslint",
-    "run:test": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\"}' mocha -r ts-node/register 'test/testRunner.ts'",
-    "test": "npm run build:tlsn-binaries && npm run build:test && npm run run:test",
-    "test:only": "npm run build:test && npm run run:test"
+    "run:spec": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\"}' mocha -r ts-node/register 'test/specs/*.ts'",
+    "run:e2e": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\"}' mocha -r ts-node/register 'test/testRunner.ts'",
+    "test": "npm run build:tlsn-binaries && npm run build:test && npm run run:e2e",
+    "test:only": "npm run build:test && npm run run:e2e"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
@@ -69,6 +70,7 @@
     "node": ">= 16.20.2"
   },
   "dependencies": {
+    "http-parser-js": "^0.5.9",
     "tlsn-wasm": "^0.1.0-alpha.7.2"
   }
 }

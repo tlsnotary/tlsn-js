@@ -145,7 +145,7 @@ after(async function () {
 });
 
 describe('tlsn-js test suite', function () {
-  fs.readdirSync(path.join(__dirname, 'specs')).forEach((file) => {
+  fs.readdirSync(path.join(__dirname, 'e2e')).forEach((file) => {
     const [id] = file.split('.');
     it(`Test ID: ${id}`, async function () {
       const content = await check(id);
