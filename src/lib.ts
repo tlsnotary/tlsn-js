@@ -19,14 +19,10 @@ import initWasm, {
   ConnectionInfo,
   PartialTranscript,
 } from 'tlsn-wasm';
-import {
-  arrayToHex,
-  processTranscript,
-  expect,
-  headerToMap,
-  hexToArray,
-} from './utils';
+import { arrayToHex, expect, headerToMap, hexToArray } from './utils';
 import { ParsedTranscriptData, PresentationJSON } from './types';
+import { Buffer } from 'buffer';
+import { Transcript } from './transcript';
 
 let LOGGING_LEVEL: LoggingLevel = 'Info';
 
@@ -166,22 +162,9 @@ export class Prover {
     return this.#prover.setup(verifierUrl);
   }
 
-  async transcript(): Promise<{
-    sent: string;
-    recv: string;
-    ranges: { recv: ParsedTranscriptData; sent: ParsedTranscriptData };
-  }> {
+  async transcript(): Promise<Transcript> {
     const transcript = this.#prover.transcript();
-    const recv = Buffer.from(transcript.recv).toString();
-    const sent = Buffer.from(transcript.sent).toString();
-    return {
-      recv,
-      sent,
-      ranges: {
-        recv: processTranscript(recv),
-        sent: processTranscript(sent),
-      },
-    };
+    return new Transcript({ sent: transcript.sent, recv: transcript.recv });
   }
 
   static getHeaderMap(
@@ -479,43 +462,6 @@ export class NotaryServer {
     const pathname = url.pathname;
     return `${protocol}://${url.host}${pathname === '/' ? '' : pathname}/notarize?sessionId=${sessionId!}`;
   }
-}
-
-export class Transcript {
-  #sent: number[];
-  #recv: number[];
-
-  constructor(params: { sent: number[]; recv: number[] }) {
-    this.#recv = params.recv;
-    this.#sent = params.sent;
-  }
-
-  static processRanges(text: string) {
-    return processTranscript(text);
-  }
-
-  recv(redactedSymbol = '*') {
-    return this.#recv.reduce((recv: string, num) => {
-      recv =
-        recv + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
-      return recv;
-    }, '');
-  }
-
-  sent(redactedSymbol = '*') {
-    return this.#sent.reduce((sent: string, num) => {
-      sent =
-        sent + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
-      return sent;
-    }, '');
-  }
-
-  text = (redactedSymbol = '*') => {
-    return {
-      sent: this.sent(redactedSymbol),
-      recv: this.recv(redactedSymbol),
-    };
-  };
 }
 
 export {

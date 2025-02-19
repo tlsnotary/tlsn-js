@@ -37,8 +37,8 @@ module.exports = [
     target: 'web',
     mode: isProd ? 'production' : 'development',
     entry: {
-      'full-integration-swapi.spec': path.join(__dirname, 'test', 'specs', 'full-integration-swapi.spec.ts'),
-      'simple-verify': path.join(__dirname, 'test', 'specs', 'simple-verify.spec.ts'),
+      'full-integration-swapi.spec': path.join(__dirname, 'test', 'e2e', 'full-integration-swapi.spec.ts'),
+      'simple-verify': path.join(__dirname, 'test', 'e2e', 'simple-verify.spec.ts'),
     },
     output: {
       path: __dirname + '/test-build',
