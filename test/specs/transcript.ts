@@ -1,27 +1,34 @@
 import { describe, it } from 'mocha';
 import * as assert from 'assert';
-import Transcript from '../../src/transcript';
-import { HTTPParser } from 'http-parser-js';
+import { Transcript } from '../../src/transcript';
+// import { HTTPParser } from 'http-parser-js';
+
 describe('Transcript parsing', () => {
   it('should parse transcript correctly', async () => {
     const transcript = new Transcript({ sent: swapiSent, recv: swapiRecv });
-    const parser = new HTTPParser(HTTPParser.REQUEST);
-    const bodyChunks: Buffer[] = [];
-    let headerInfo = null;
+    // const parser = new HTTPParser(HTTPParser.REQUEST);
+    // const bodyChunks: Buffer[] = [];
+    // let headerInfo = null;
 
-    parser.onBody = (t) => {
-      bodyChunks.push(t);
-    };
+    // parser.onBody = (t) => {
+    //   bodyChunks.push(t);
+    // };
 
-    parser.onHeadersComplete = (req) => {
-      headerInfo = req;
-    };
+    // parser.onHeadersComplete = (req) => {
+    //   headerInfo = req;
+    // };
 
-    parser.execute(Buffer.from(swapiSent));
-    parser.finish();
-    console.log(bodyChunks, headerInfo);
-    console.log(transcript.sent());
-    assert.strictEqual(true, true, 'test');
+    // parser.execute(Buffer.from(swapiSent));
+    // parser.finish();
+    // console.log(bodyChunks, headerInfo);
+    assert.strictEqual(
+      Buffer.from(transcript.raw.sent).toString('utf-8'),
+      'GET https://swapi.dev/api/people/1 HTTP/1.1\r\nconnection: close\r\ncontent-length: 25\r\ncontent-type: application/json\r\nhost: swapi.dev\r\n\r\n{"hello":"world","one":1}',
+    );
+    assert.strictEqual(
+      Buffer.from(transcript.raw.recv).toString('utf-8'),
+      'HTTP/1.1 200 OK\r\nServer: nginx/1.16.1\r\nDate: Fri, 07 Feb 2025 07:37:11 GMT\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nConnection: close\r\nVary: Accept, Cookie\r\nX-Frame-Options: SAMEORIGIN\r\nETag: \"ee398610435c328f4d0a4e1b0d2f7bbc\"\r\nAllow: GET, HEAD, OPTIONS\r\nStrict-Transport-Security: max-age=15768000\r\n\r\n287\r\n{\"name\":\"Luke Skywalker\",\"height\":\"172\",\"mass\":\"77\",\"hair_color\":\"blond\",\"skin_color\":\"fair\",\"eye_color\":\"blue\",\"birth_year\":\"19BBY\",\"gender\":\"male\",\"homeworld\":\"https://swapi.dev/api/planets/1/\",\"films\":[\"https://swapi.dev/api/films/1/\",\"https://swapi.dev/api/films/2/\",\"https://swapi.dev/api/films/3/\",\"https://swapi.dev/api/films/6/\"],\"species\":[],\"vehicles\":[\"https://swapi.dev/api/vehicles/14/\",\"https://swapi.dev/api/vehicles/30/\"],\"starships\":[\"https://swapi.dev/api/starships/12/\",\"https://swapi.dev/api/starships/22/\"],\"created\":\"2014-12-09T13:50:51.644000Z\",\"edited\":\"2014-12-20T21:17:56.891000Z\",\"url\":\"https://swapi.dev/api/people/1/\"}\r\n0\r\n\r\n',
+    );
   });
 });
 

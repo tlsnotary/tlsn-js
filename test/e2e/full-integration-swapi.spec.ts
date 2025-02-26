@@ -33,6 +33,15 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     });
     const transcript = await prover.transcript();
     console.log({ transcript });
+
+    const sent = Buffer.from(transcript.raw.sent).toString('utf-8');
+    const recv = Buffer.from(transcript.raw.recv).toString('utf-8');
+
+    const secretRanges = Buffer.from(transcript.raw.sent).indexOf(
+      Buffer.from('secret: test_secret'),
+    );
+    console.log({ secretRanges });
+
     const commit = {
       sent: [
         ...Object.entries(transcript.ranges.sent.headers)

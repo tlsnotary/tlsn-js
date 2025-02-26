@@ -20,13 +20,13 @@ import initWasm, {
   PartialTranscript,
 } from 'tlsn-wasm';
 import { arrayToHex, expect, headerToMap, hexToArray } from './utils';
-import { ParsedTranscriptData, PresentationJSON } from './types';
+import { PresentationJSON } from './types';
 import { Buffer } from 'buffer';
-import { Transcript } from './transcript';
+import { Transcript, subtractRanges, mapStringToRange } from './transcript';
 
 let LOGGING_LEVEL: LoggingLevel = 'Info';
 
-function debug(...args: any[]) {
+function debug(...args: unknown[]) {
   if (['Debug', 'Trace'].includes(LOGGING_LEVEL)) {
     console.log('tlsn-js DEBUG', ...args);
   }
@@ -74,7 +74,7 @@ export class Prover {
     headers?: {
       [name: string]: string;
     };
-    body?: any;
+    body?: unknown;
     maxSentData?: number;
     maxRecvData?: number;
     maxRecvDataOnline?: number;
@@ -162,14 +162,14 @@ export class Prover {
     return this.#prover.setup(verifierUrl);
   }
 
-  async transcript(): Promise<Transcript> {
+  async transcript(): Promise<{ sent: number[]; recv: number[] }> {
     const transcript = this.#prover.transcript();
-    return new Transcript({ sent: transcript.sent, recv: transcript.recv });
+    return { sent: transcript.sent, recv: transcript.recv };
   }
 
   static getHeaderMap(
     url: string,
-    body?: any,
+    body?: unknown,
     headers?: { [key: string]: string },
   ) {
     const hostname = new URL(url).hostname;
@@ -200,7 +200,7 @@ export class Prover {
       url: string;
       method?: Method;
       headers?: { [key: string]: string };
-      body?: any;
+      body?: unknown;
     },
   ): Promise<{
     status: number;
@@ -465,7 +465,6 @@ export class NotaryServer {
 }
 
 export {
-  type ParsedTranscriptData,
   type LoggingLevel,
   type LoggingConfig,
   type Commit,
@@ -476,4 +475,7 @@ export {
   type VerifierOutput,
   type ConnectionInfo,
   type PartialTranscript,
+  Transcript,
+  mapStringToRange,
+  subtractRanges,
 };

@@ -1,5 +1,4 @@
 import { Buffer } from 'buffer';
-import { HTTPParser } from 'http-parser-js';
 
 export class Transcript {
   #sent: number[];
@@ -14,38 +13,6 @@ export class Transcript {
     return {
       recv: this.#recv,
       sent: this.#sent,
-    };
-  }
-
-  parseRecv() {}
-
-  parseSent() {
-    const parser = new HTTPParser(HTTPParser.REQUEST);
-    const sent = Buffer.from(this.#sent);
-    const body: Buffer[] = [];
-    let complete = false;
-    let headers: string[] = [];
-
-    parser.onBody = (t) => {
-      body.push(t);
-    };
-
-    parser.onHeadersComplete = (res) => {
-      headers = res.headers;
-    };
-
-    parser.onMessageComplete = () => {
-      complete = true;
-    };
-
-    parser.execute(sent);
-    parser.finish();
-
-    if (!complete) throw new Error('Could not parse REQUEST');
-
-    return {
-      headers,
-      body,
     };
   }
 
@@ -71,4 +38,66 @@ export class Transcript {
       recv: this.recv(redactedSymbol),
     };
   };
+}
+
+export function subtractRanges(
+  ranges: { start: number; end: number },
+  negatives: { start: number; end: number }[],
+): { start: number; end: number }[] {
+  const returnVal: { start: number; end: number }[] = [ranges];
+
+  negatives
+    .sort((a, b) => (a.start < b.start ? -1 : 1))
+    .forEach(({ start, end }) => {
+      const last = returnVal.pop()!;
+
+      if (start < last.start || end > last.end) {
+        console.error('invalid ranges');
+        return;
+      }
+
+      if (start === last.start && end === last.end) {
+        return;
+      }
+
+      if (start === last.start && end < last.end) {
+        returnVal.push({ start: end, end: last.end });
+        return;
+      }
+
+      if (start > last.start && end < last.end) {
+        returnVal.push({ start: last.start, end: start });
+        returnVal.push({ start: end, end: last.end });
+        return;
+      }
+
+      if (start > last.start && end === last.end) {
+        returnVal.push({ start: last.start, end: start });
+        return;
+      }
+    });
+
+  return returnVal;
+}
+
+export function mapStringToRange(secrets: string[], text: string) {
+  return secrets
+    .map((secret: string) => {
+      const byteIdx = indexOfString(text, secret);
+      return byteIdx > -1
+        ? {
+            start: byteIdx,
+            end: byteIdx + bytesSize(secret),
+          }
+        : null;
+    })
+    .filter((data: any) => !!data) as { start: number; end: number }[];
+}
+
+function indexOfString(str: string, substr: string): number {
+  return Buffer.from(str).indexOf(Buffer.from(substr));
+}
+
+function bytesSize(str: string): number {
+  return Buffer.from(str).byteLength;
 }

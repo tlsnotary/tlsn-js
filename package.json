@@ -33,7 +33,7 @@
     "@types/serve-handler": "^6.1.4",
     "browserify": "^17.0.0",
     "buffer": "^6.0.3",
-    "comlink": "^4.4.1",
+    "comlink": "4.4.1",
     "concurrently": "^5.1.0",
     "constants-browserify": "^1.0.0",
     "copy-webpack-plugin": "^5.0.5",
@@ -70,7 +70,6 @@
     "node": ">= 16.20.2"
   },
   "dependencies": {
-    "http-parser-js": "^0.5.9",
     "tlsn-wasm": "^0.1.0-alpha.7.2"
   }
 }

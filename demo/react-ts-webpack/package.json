@@ -14,6 +14,7 @@
     "css-loader": "^7.1.2",
     "postcss": "^8.4.49",
     "postcss-loader": "^8.1.1",
+    "http-parser-js": "^0.5.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-loader-spinner": "^6.1.6",
