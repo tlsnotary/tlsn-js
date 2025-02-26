@@ -1,6 +1,5 @@
 import initWasm, {
-  initThreadPool,
-  init_logging,
+  initialize,
   LoggingLevel,
   LoggingConfig,
   Attestation as WasmAttestation,
@@ -49,19 +48,15 @@ export default async function init(config?: {
 
   const res = await initWasm();
 
-  init_logging({
+  await initialize({
     level: loggingLevel,
     crate_filters: undefined,
     span_events: undefined,
-  });
+  }, navigator.hardwareConcurrency);
 
-  // 6422528 ~= 6.12 mb
   debug('res.memory', res.memory);
   debug('res.memory.buffer.length', res.memory.buffer.byteLength);
-  debug('initialize thread pool');
-
-  await initThreadPool(hardwareConcurrency);
-  debug('initialized thread pool');
+  debug('thread_count', navigator.hardwareConcurrency);
 }
 
 export class Prover {
@@ -304,12 +299,12 @@ export class Presentation {
   constructor(
     params:
       | {
-          attestationHex: string;
-          secretsHex: string;
-          notaryUrl?: string;
-          websocketProxyUrl?: string;
-          reveal?: Reveal;
-        }
+        attestationHex: string;
+        secretsHex: string;
+        notaryUrl?: string;
+        websocketProxyUrl?: string;
+        reveal?: Reveal;
+      }
       | string,
   ) {
     if (typeof params === 'string') {

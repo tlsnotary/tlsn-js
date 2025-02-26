@@ -69,6 +69,6 @@
     "node": ">= 16.20.2"
   },
   "dependencies": {
-    "tlsn-wasm": "^0.1.0-alpha.7.2"
+    "tlsn-wasm": "../tlsn/crates/wasm/pkg"
   }
 }
