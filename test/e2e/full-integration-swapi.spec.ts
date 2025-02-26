@@ -6,6 +6,8 @@ import {
 import * as Comlink from 'comlink';
 import { Transcript } from '../../src/lib';
 import { assert } from '../utils';
+import { HTTPParser } from 'http-parser-js';
+import { Commit, mapStringToRange, subtractRanges } from '../../build/lib';
 
 const { init, Prover, Presentation }: any = Comlink.wrap(
   // @ts-ignore
@@ -32,31 +34,41 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
       },
     });
     const transcript = await prover.transcript();
-    console.log({ transcript });
+    const { sent, recv } = transcript;
+    const {
+      info: recvInfo,
+      headers: recvHeaders,
+      body: recvBody,
+    } = parseHttpMessage(Buffer.from(recv), 'response');
 
-    const sent = Buffer.from(transcript.raw.sent).toString('utf-8');
-    const recv = Buffer.from(transcript.raw.recv).toString('utf-8');
+    const body = JSON.parse(recvBody[0].toString());
 
-    const secretRanges = Buffer.from(transcript.raw.sent).indexOf(
-      Buffer.from('secret: test_secret'),
-    );
-    console.log({ secretRanges });
-
-    const commit = {
-      sent: [
-        ...Object.entries(transcript.ranges.sent.headers)
-          .filter(([k]) => k !== 'secret')
-          .map(([, v]) => v),
-        transcript.ranges.sent.info,
-        ...transcript.ranges.sent.lineBreaks,
-      ],
+    const commit: Commit = {
+      sent: subtractRanges(
+        { start: 0, end: sent.length },
+        mapStringToRange(
+          ['secret: test_secret'],
+          Buffer.from(sent).toString('utf-8'),
+        ),
+      ),
       recv: [
-        ...Object.entries(transcript.ranges.recv.headers).map(([, v]) => v),
-        transcript.ranges.recv.info,
-        ...transcript.ranges.recv.lineBreaks,
-        transcript.ranges.recv.json!['name'],
-        transcript.ranges.recv.json!['hair_color'],
-        transcript.ranges.recv.json!['skin_color'],
+        ...mapStringToRange(
+          [
+            recvInfo,
+            `${recvHeaders[4]}: ${recvHeaders[5]}\r\n`,
+            `${recvHeaders[6]}: ${recvHeaders[7]}\r\n`,
+            `${recvHeaders[8]}: ${recvHeaders[9]}\r\n`,
+            `${recvHeaders[10]}: ${recvHeaders[11]}\r\n`,
+            `${recvHeaders[12]}: ${recvHeaders[13]}`,
+            `${recvHeaders[14]}: ${recvHeaders[15]}`,
+            `${recvHeaders[16]}: ${recvHeaders[17]}`,
+            `${recvHeaders[18]}: ${recvHeaders[19]}`,
+            `"name":"${body.name}"`,
+            `"hair_color":"${body.hair_color}"`,
+            `"skin_color":"${body.skin_color}"`,
+          ],
+          Buffer.from(recv).toString('utf-8'),
+        ),
       ],
     };
     console.log(commit);
@@ -80,13 +92,13 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
       sent: partialTranscript.sent,
       recv: partialTranscript.recv,
     });
-    const sent = t.sent();
-    const recv = t.recv();
-    assert(sent.includes('host: swapi.dev'));
-    assert(!sent.includes('secret: test_secret'));
-    assert(recv.includes('"name":"Luke Skywalker"'));
-    assert(recv.includes('"hair_color":"blond"'));
-    assert(recv.includes('"skin_color":"fair"'));
+    const sentStr = t.sent();
+    const recvStr = t.recv();
+    assert(sentStr.includes('host: swapi.dev'));
+    assert(!sentStr.includes('secret: test_secret'));
+    assert(recvStr.includes('"name":"Luke Skywalker"'));
+    assert(recvStr.includes('"hair_color":"blond"'));
+    assert(recvStr.includes('"skin_color":"fair"'));
     assert(server_name === 'swapi.dev');
 
     // @ts-ignore
@@ -99,3 +111,35 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     document.getElementById('full-integration-swapi').textContent = err.message;
   }
 })();
+
+function parseHttpMessage(buffer: Buffer, type: 'request' | 'response') {
+  const parser = new HTTPParser(
+    type === 'request' ? HTTPParser.REQUEST : HTTPParser.RESPONSE,
+  );
+  const body: Buffer[] = [];
+  let complete = false;
+  let headers: string[] = [];
+
+  parser.onBody = (t) => {
+    body.push(t);
+  };
+
+  parser.onHeadersComplete = (res) => {
+    headers = res.headers;
+  };
+
+  parser.onMessageComplete = () => {
+    complete = true;
+  };
+
+  parser.execute(buffer);
+  parser.finish();
+
+  if (!complete) throw new Error(`Could not parse ${type.toUpperCase()}`);
+
+  return {
+    info: buffer.toString('utf-8').split('\r\n')[0] + '\r\n',
+    headers,
+    body,
+  };
+}

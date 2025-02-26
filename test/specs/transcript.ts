@@ -1,26 +1,10 @@
 import { describe, it } from 'mocha';
 import * as assert from 'assert';
 import { Transcript } from '../../src/transcript';
-// import { HTTPParser } from 'http-parser-js';
 
 describe('Transcript parsing', () => {
   it('should parse transcript correctly', async () => {
     const transcript = new Transcript({ sent: swapiSent, recv: swapiRecv });
-    // const parser = new HTTPParser(HTTPParser.REQUEST);
-    // const bodyChunks: Buffer[] = [];
-    // let headerInfo = null;
-
-    // parser.onBody = (t) => {
-    //   bodyChunks.push(t);
-    // };
-
-    // parser.onHeadersComplete = (req) => {
-    //   headerInfo = req;
-    // };
-
-    // parser.execute(Buffer.from(swapiSent));
-    // parser.finish();
-    // console.log(bodyChunks, headerInfo);
     assert.strictEqual(
       Buffer.from(transcript.raw.sent).toString('utf-8'),
       'GET https://swapi.dev/api/people/1 HTTP/1.1\r\nconnection: close\r\ncontent-length: 25\r\ncontent-type: application/json\r\nhost: swapi.dev\r\n\r\n{"hello":"world","one":1}',
