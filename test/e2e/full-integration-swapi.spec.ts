@@ -2,12 +2,14 @@ import {
   Prover as _Prover,
   NotaryServer,
   Presentation as _Presentation,
+  Commit,
+  mapStringToRange,
+  subtractRanges,
+  Transcript,
 } from '../../src/lib';
 import * as Comlink from 'comlink';
-import { Transcript } from '../../src/lib';
 import { assert } from '../utils';
 import { HTTPParser } from 'http-parser-js';
-import { Commit, mapStringToRange, subtractRanges } from '../../build/lib';
 
 const { init, Prover, Presentation }: any = Comlink.wrap(
   // @ts-ignore
