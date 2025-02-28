@@ -41,7 +41,7 @@ Comlink.expose({
 ```
 ```ts
 // app.ts
-import { NotaryServer } from 'tlsn-js';
+import { NotaryServer, subtractRanges, mapStringToRange } from 'tlsn-js';
 const { init, Prover, NotarizedSession, TlsProof }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
 );
@@ -72,19 +72,15 @@ const transcript = await prover.transcript();
 
 // Select ranges to commit 
 const commit: Commit = {
-  sent: [
-    transcript.ranges.sent.info!,
-    transcript.ranges.sent.headers!['content-type'],
-    transcript.ranges.sent.headers!['host'],
-    ...transcript.ranges.sent.lineBreaks,
-  ],
+  sent: subtractRanges(
+    { start: 0, end: transcript.sent.length },
+    mapStringToRange(
+      ['secret: test_secret'],
+      Buffer.from(transcript.sent).toString('utf-8'),
+    ),
+  ),
   recv: [
-    transcript.ranges.recv.info!,
-    transcript.ranges.recv.headers!['server'],
-    transcript.ranges.recv.headers!['date'],
-    transcript.ranges.recv.json!['name'],
-    transcript.ranges.recv.json!['gender'],
-    ...transcript.ranges.recv.lineBreaks,
+    { start: 0, end: transcript.recv.length },
   ],
 };
 
