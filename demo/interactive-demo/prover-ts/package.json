@@ -16,7 +16,7 @@
     "react-dom": "^18.2.0",
     "react-loader-spinner": "^6.1.6",
     "style-loader": "^4.0.0",
-    "tlsn-js": "file:../../.."
+    "tlsn-js": "../../.."
   },
   "devDependencies": {
     "@types/react": "^18.0.26",

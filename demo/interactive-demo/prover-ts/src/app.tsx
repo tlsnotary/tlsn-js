@@ -6,7 +6,7 @@ import { Prover as TProver } from 'tlsn-js';
 import { type Method } from 'tlsn-wasm';
 import './app.scss';
 import { HTTPParser } from 'http-parser-js';
-import { Commit, mapStringToRange, subtractRanges } from '../../../build/lib';
+import { Commit, mapStringToRange, subtractRanges } from 'tlsn-js';
 
 const { init, Prover }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
@@ -112,6 +112,7 @@ function App(): ReactElement {
               `${recvHeaders[18]}: ${recvHeaders[19]}`,
               `"name":"${body.name}"`,
               `"gender":"${body.gender}"`,
+              `"eye_color":"${body.eye_color}"`,
             ],
             Buffer.from(recv).toString('utf-8'),
           ),
