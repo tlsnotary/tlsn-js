@@ -8,10 +8,12 @@ import {
   Commit,
   NotaryServer,
   Transcript,
+  mapStringToRange,
+  subtractRanges,
 } from 'tlsn-js';
 import { PresentationJSON } from 'tlsn-js/build/types';
 import './app.scss';
-
+import { HTTPParser } from 'http-parser-js';
 const { init, Prover, Presentation }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
 );
@@ -22,8 +24,12 @@ const root = createRoot(container!);
 root.render(<App />);
 
 const local = true; // Toggle between local and remote notary
-const notaryUrl = local ? 'http://localhost:7047' : 'https://notary.pse.dev/v0.1.0-alpha.7';
-const websocketProxyUrl = local ? 'ws://localhost:55688' : 'wss://notary.pse.dev/proxy?token=swapi.dev';
+const notaryUrl = local
+  ? 'http://localhost:7047'
+  : 'https://notary.pse.dev/v0.1.0-alpha.7';
+const websocketProxyUrl = local
+  ? 'ws://localhost:55688'
+  : 'wss://notary.pse.dev/proxy?token=swapi.dev';
 const loggingLevel = 'Info'; // https://github.com/tlsnotary/tlsn/blob/main/crates/wasm/src/log.rs#L8
 
 const serverUrl = 'https://swapi.dev/api/people/1';
@@ -59,6 +65,7 @@ function App(): ReactElement {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        secret: 'test_secret',
       },
       body: {
         hello: 'world',
@@ -71,23 +78,44 @@ function App(): ReactElement {
 
     console.time('transcript');
     const transcript = await prover.transcript();
-    console.log(transcript);
+    const { sent, recv } = transcript;
+    console.log(new Transcript({ sent, recv }));
     console.timeEnd('transcript');
     console.time('commit');
+
+    const {
+      info: recvInfo,
+      headers: recvHeaders,
+      body: recvBody,
+    } = parseHttpMessage(Buffer.from(recv), 'response');
+
+    const body = JSON.parse(recvBody[0].toString());
+
     const commit: Commit = {
-      sent: [
-        transcript.ranges.sent.info!,
-        transcript.ranges.sent.headers!['content-type'],
-        transcript.ranges.sent.headers!['host'],
-        ...transcript.ranges.sent.lineBreaks,
-      ],
+      sent: subtractRanges(
+        { start: 0, end: sent.length },
+        mapStringToRange(
+          ['secret: test_secret'],
+          Buffer.from(sent).toString('utf-8'),
+        ),
+      ),
       recv: [
-        transcript.ranges.recv.info!,
-        transcript.ranges.recv.headers!['server'],
-        transcript.ranges.recv.headers!['date'],
-        transcript.ranges.recv.json!['name'],
-        transcript.ranges.recv.json!['gender'],
-        ...transcript.ranges.recv.lineBreaks,
+        ...mapStringToRange(
+          [
+            recvInfo,
+            `${recvHeaders[4]}: ${recvHeaders[5]}\r\n`,
+            `${recvHeaders[6]}: ${recvHeaders[7]}\r\n`,
+            `${recvHeaders[8]}: ${recvHeaders[9]}\r\n`,
+            `${recvHeaders[10]}: ${recvHeaders[11]}\r\n`,
+            `${recvHeaders[12]}: ${recvHeaders[13]}`,
+            `${recvHeaders[14]}: ${recvHeaders[15]}`,
+            `${recvHeaders[16]}: ${recvHeaders[17]}`,
+            `${recvHeaders[18]}: ${recvHeaders[19]}`,
+            `"name":"${body.name}"`,
+            `"gender":"${body.gender}"`,
+          ],
+          Buffer.from(recv).toString('utf-8'),
+        ),
       ],
     };
     const notarizationOutputs = await prover.notarize(commit);
@@ -164,12 +192,16 @@ function App(): ReactElement {
       </h1>
       <div className="mb-4 text-base font-light max-w-2xl">
         <p>
-          This demo showcases how to use TLSNotary in a React/TypeScript app with the tlsn-js library.
-          We will fetch JSON data from the Star Wars API, notarize the TLS request using TLSNotary,
-          and verify the proof. The demo runs entirely in the browser.
+          This demo showcases how to use TLSNotary in a React/TypeScript app
+          with the tlsn-js library. We will fetch JSON data from the Star Wars
+          API, notarize the TLS request using TLSNotary, and verify the proof.
+          The demo runs entirely in the browser.
         </p>
         <p>
-          <a href="https://docs.tlsnotary.org/quick_start/tlsn-js.html" className="text-blue-500 hover:underline">
+          <a
+            href="https://docs.tlsnotary.org/quick_start/tlsn-js.html"
+            className="text-blue-500 hover:underline"
+          >
             More info
           </a>
         </p>
@@ -199,7 +231,8 @@ function App(): ReactElement {
 
       <div className="mb-4">
         <p className="mb-2 text-base font-light">
-          There are two versions of the demo: one with a normal config and one with a helper method.
+          There are two versions of the demo: one with a normal config and one
+          with a helper method.
         </p>
         <div className="flex justify-center gap-4">
           <button
@@ -272,4 +305,36 @@ function App(): ReactElement {
       </div>
     </div>
   );
+}
+
+function parseHttpMessage(buffer: Buffer, type: 'request' | 'response') {
+  const parser = new HTTPParser(
+    type === 'request' ? HTTPParser.REQUEST : HTTPParser.RESPONSE,
+  );
+  const body: Buffer[] = [];
+  let complete = false;
+  let headers: string[] = [];
+
+  parser.onBody = (t) => {
+    body.push(t);
+  };
+
+  parser.onHeadersComplete = (res) => {
+    headers = res.headers;
+  };
+
+  parser.onMessageComplete = () => {
+    complete = true;
+  };
+
+  parser.execute(buffer);
+  parser.finish();
+
+  if (!complete) throw new Error(`Could not parse ${type.toUpperCase()}`);
+
+  return {
+    info: buffer.toString('utf-8').split('\r\n')[0] + '\r\n',
+    headers,
+    body,
+  };
 }

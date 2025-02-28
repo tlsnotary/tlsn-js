@@ -5,6 +5,8 @@ import { Watch } from 'react-loader-spinner';
 import { Prover as TProver } from 'tlsn-js';
 import { type Method } from 'tlsn-wasm';
 import './app.scss';
+import { HTTPParser } from 'http-parser-js';
+import { Commit, mapStringToRange, subtractRanges } from 'tlsn-js';
 
 const { init, Prover }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
@@ -78,25 +80,42 @@ function App(): ReactElement {
     }
 
     try {
+      const { sent, recv } = transcript;
+      const {
+        info: recvInfo,
+        headers: recvHeaders,
+        body: recvBody,
+      } = parseHttpMessage(Buffer.from(recv), 'response');
+
+      const body = JSON.parse(recvBody[0].toString());
+
       console.time('reveal');
-      const reveal = {
-        sent: [
-          transcript.ranges.sent.info!,
-          transcript.ranges.sent.headers!['connection'],
-          transcript.ranges.sent.headers!['host'],
-          transcript.ranges.sent.headers!['content-type'],
-          transcript.ranges.sent.headers!['content-length'],
-          ...transcript.ranges.sent.lineBreaks,
-        ],
+      const reveal: Commit = {
+        sent: subtractRanges(
+          { start: 0, end: sent.length },
+          mapStringToRange(
+            ['secret: test_secret'],
+            Buffer.from(sent).toString('utf-8'),
+          ),
+        ),
         recv: [
-          transcript.ranges.recv.info!,
-          transcript.ranges.recv.headers['server'],
-          transcript.ranges.recv.headers['date'],
-          transcript.ranges.recv.headers['content-type'],
-          transcript.ranges.recv.json!['name'],
-          transcript.ranges.recv.json!['eye_color'],
-          transcript.ranges.recv.json!['gender'],
-          ...transcript.ranges.recv.lineBreaks,
+          ...mapStringToRange(
+            [
+              recvInfo,
+              `${recvHeaders[4]}: ${recvHeaders[5]}\r\n`,
+              `${recvHeaders[6]}: ${recvHeaders[7]}\r\n`,
+              `${recvHeaders[8]}: ${recvHeaders[9]}\r\n`,
+              `${recvHeaders[10]}: ${recvHeaders[11]}\r\n`,
+              `${recvHeaders[12]}: ${recvHeaders[13]}`,
+              `${recvHeaders[14]}: ${recvHeaders[15]}`,
+              `${recvHeaders[16]}: ${recvHeaders[17]}`,
+              `${recvHeaders[18]}: ${recvHeaders[19]}`,
+              `"name":"${body.name}"`,
+              `"gender":"${body.gender}"`,
+              `"eye_color":"${body.eye_color}"`,
+            ],
+            Buffer.from(recv).toString('utf-8'),
+          ),
         ],
       };
       console.log('Start reveal:', reveal);
@@ -133,10 +152,12 @@ function App(): ReactElement {
 
       <div className="text-center text-gray-700 mb-6">
         <p>
-          Before clicking the <span className="font-semibold">Start</span> button,
-          make sure the <i>interactive verifier</i> and the{' '}
-          <i>web socket proxy</i> are running.</p>
-        <p>Check the{' '}
+          Before clicking the <span className="font-semibold">Start</span>{' '}
+          button, make sure the <i>interactive verifier</i> and the{' '}
+          <i>web socket proxy</i> are running.
+        </p>
+        <p>
+          Check the{' '}
           <a href="README.md" className="text-blue-600 hover:underline">
             README
           </a>{' '}
@@ -207,4 +228,36 @@ function App(): ReactElement {
       </div>
     </div>
   );
+}
+
+function parseHttpMessage(buffer: Buffer, type: 'request' | 'response') {
+  const parser = new HTTPParser(
+    type === 'request' ? HTTPParser.REQUEST : HTTPParser.RESPONSE,
+  );
+  const body: Buffer[] = [];
+  let complete = false;
+  let headers: string[] = [];
+
+  parser.onBody = (t) => {
+    body.push(t);
+  };
+
+  parser.onHeadersComplete = (res) => {
+    headers = res.headers;
+  };
+
+  parser.onMessageComplete = () => {
+    complete = true;
+  };
+
+  parser.execute(buffer);
+  parser.finish();
+
+  if (!complete) throw new Error(`Could not parse ${type.toUpperCase()}`);
+
+  return {
+    info: buffer.toString('utf-8').split('\r\n')[0] + '\r\n',
+    headers,
+    body,
+  };
 }
