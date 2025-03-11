@@ -31,6 +31,7 @@ for dir in "crates/server-fixture/" "crates/notary/server"; do
     # Change to the specific subdirectory
     cd ${dir}
 
+    cargo update
     # Build the project
     cargo build --release
     cd -

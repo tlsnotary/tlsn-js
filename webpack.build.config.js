@@ -1,6 +1,7 @@
 const webpack = require('webpack');
 const path = require('path');
 const isProd = process.env.NODE_ENV === 'production';
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const envPlugin = new webpack.EnvironmentPlugin({
   NODE_ENV: 'development',
@@ -53,6 +54,30 @@ module.exports = [
     },
     plugins: [
       envPlugin,
+      new CopyWebpackPlugin({
+        patterns: [
+          {
+            from: 'node_modules/tlsn-wasm/tlsn_wasm.js',
+            to: path.join(__dirname, 'build'),
+            force: true,
+          },
+          {
+            from: 'node_modules/tlsn-wasm/tlsn_wasm_bg.wasm',
+            to: path.join(__dirname, 'build'),
+            force: true,
+          },
+          {
+            from: 'node_modules/tlsn-wasm/spawn.js',
+            to: path.join(__dirname, 'build'),
+            force: true,
+          },
+          {
+            from: 'node_modules/tlsn-wasm/snippets',
+            to: path.join(__dirname, 'build', 'snippets'),
+            force: true,
+          },
+        ],
+      }),
     ],
   },
 ];

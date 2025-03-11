@@ -1,6 +1,5 @@
 import initWasm, {
-  initThreadPool,
-  init_logging,
+  initialize,
   LoggingLevel,
   LoggingConfig,
   Attestation as WasmAttestation,
@@ -45,18 +44,20 @@ export default async function init(config?: {
 
   const res = await initWasm();
 
-  init_logging({
-    level: loggingLevel,
-    crate_filters: undefined,
-    span_events: undefined,
-  });
-
   // 6422528 ~= 6.12 mb
   debug('res.memory', res.memory);
   debug('res.memory.buffer.length', res.memory.buffer.byteLength);
   debug('initialize thread pool');
 
-  await initThreadPool(hardwareConcurrency);
+  await initialize(
+    {
+      level: loggingLevel,
+      crate_filters: undefined,
+      span_events: undefined,
+    },
+    hardwareConcurrency,
+  );
+
   debug('initialized thread pool');
 }
 
