@@ -128,10 +128,10 @@ export class Prover {
     const presentation = build_presentation(attestation, secrets, commit);
 
     return {
-      version: '0.1.0-alpha.7',
+      version: '0.1.0-alpha.8',
       data: arrayToHex(presentation.serialize()),
       meta: {
-        notaryUrl: notaryUrl,
+        notaryUrl: notary.normalizeUrl(),
         websocketProxyUrl: websocketProxyUrl,
       },
     };
@@ -331,10 +331,12 @@ export class Presentation {
 
   async json(): Promise<PresentationJSON> {
     return {
-      version: '0.1.0-alpha.7',
+      version: '0.1.0-alpha.8',
       data: await this.serialize(),
       meta: {
-        notaryUrl: this.#notaryUrl,
+        notaryUrl: this.#notaryUrl
+          ? NotaryServer.from(this.#notaryUrl).normalizeUrl()
+          : '',
         websocketProxyUrl: this.#websocketProxyUrl,
       },
     };
@@ -438,6 +440,19 @@ export class NotaryServer {
       .toString('hex');
   }
 
+  normalizeUrl() {
+    const url = new URL(this.#url);
+    let protocol;
+
+    if (url.protocol === 'https:' || url.protocol === 'http:') {
+      protocol = url.protocol;
+    } else {
+      protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
+    }
+
+    return `${protocol}//${url.host}`;
+  }
+
   async sessionUrl(
     maxSentData?: number,
     maxRecvData?: number,
@@ -459,9 +474,8 @@ export class NotaryServer {
       'invalid session id',
     );
     const url = new URL(this.#url);
-    const protocol = url.protocol === 'https:' ? 'wss' : 'ws';
     const pathname = url.pathname;
-    return `${protocol}://${url.host}${pathname === '/' ? '' : pathname}/notarize?sessionId=${sessionId!}`;
+    return `${this.normalizeUrl()}${pathname === '/' ? '' : pathname}/notarize?sessionId=${sessionId!}`;
   }
 }
 
