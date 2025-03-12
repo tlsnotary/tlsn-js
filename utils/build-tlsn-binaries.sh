@@ -1,5 +1,4 @@
 #!/bin/bash
-# Run tlsn Server fixture
 
 set -e # Exit on error
 
@@ -27,7 +26,7 @@ fi
 git checkout "${VERSION}" --force
 git reset --hard
 
-for dir in "crates/server-fixture/" "crates/notary/server"; do
+for dir in "crates/notary/server"; do
     # Change to the specific subdirectory
     cd ${dir}
 

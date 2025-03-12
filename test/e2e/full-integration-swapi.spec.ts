@@ -26,7 +26,7 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
       id: 'test',
       serverDns: 'swapi.dev',
     })) as _Prover;
-    const notary = NotaryServer.from('http://localhost:7047');
+    const notary = NotaryServer.from('http://127.0.0.1:7047');
     await prover.setup(await notary.sessionUrl());
     await prover.sendRequest('wss://notary.pse.dev/proxy?token=swapi.dev', {
       url: 'https://swapi.dev/api/people/1',
