@@ -4,7 +4,6 @@ const assert = require('assert');
 import { exec, ChildProcess } from 'node:child_process';
 import * as fs from 'fs';
 import path from 'path';
-const yaml = require('js-yaml');
 
 const timeout = 300000;
 
@@ -31,9 +30,12 @@ let localNotaryServer: ChildProcess;
 const spawnLocalNotaryServer = async () => {
   const localNotaryServerPath = './utils/tlsn/crates/notary/server';
   console.log(localNotaryServerPath);
-  localNotaryServer = exec(`../../../target/release/notary-server --tls-enabled=false`, {
-    cwd: localNotaryServerPath,
-  });
+  localNotaryServer = exec(
+    `../../../target/release/notary-server --tls-enabled=false`,
+    {
+      cwd: localNotaryServerPath,
+    },
+  );
   localNotaryServer.on('error', (error) => {
     console.error(`Failed to start Notary server: ${error}`);
     process.exit(1);
