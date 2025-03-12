@@ -474,8 +474,9 @@ export class NotaryServer {
       'invalid session id',
     );
     const url = new URL(this.#url);
+    const protocol = url.protocol === 'https:' ? 'wss' : 'ws';
     const pathname = url.pathname;
-    return `${this.normalizeUrl()}${pathname === '/' ? '' : pathname}/notarize?sessionId=${sessionId!}`;
+    return `${protocol}://${url.host}${pathname === '/' ? '' : pathname}/notarize?sessionId=${sessionId!}`;
   }
 }
 
