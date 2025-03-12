@@ -1,6 +1,5 @@
 import initWasm, {
-  initThreadPool,
-  init_logging,
+  initialize,
   LoggingLevel,
   LoggingConfig,
   Attestation as WasmAttestation,
@@ -45,18 +44,20 @@ export default async function init(config?: {
 
   const res = await initWasm();
 
-  init_logging({
-    level: loggingLevel,
-    crate_filters: undefined,
-    span_events: undefined,
-  });
-
   // 6422528 ~= 6.12 mb
   debug('res.memory', res.memory);
   debug('res.memory.buffer.length', res.memory.buffer.byteLength);
   debug('initialize thread pool');
 
-  await initThreadPool(hardwareConcurrency);
+  await initialize(
+    {
+      level: loggingLevel,
+      crate_filters: undefined,
+      span_events: undefined,
+    },
+    hardwareConcurrency,
+  );
+
   debug('initialized thread pool');
 }
 
@@ -127,10 +128,10 @@ export class Prover {
     const presentation = build_presentation(attestation, secrets, commit);
 
     return {
-      version: '0.1.0-alpha.7',
+      version: '0.1.0-alpha.8',
       data: arrayToHex(presentation.serialize()),
       meta: {
-        notaryUrl: notaryUrl,
+        notaryUrl: notary.normalizeUrl(),
         websocketProxyUrl: websocketProxyUrl,
       },
     };
@@ -330,10 +331,12 @@ export class Presentation {
 
   async json(): Promise<PresentationJSON> {
     return {
-      version: '0.1.0-alpha.7',
+      version: '0.1.0-alpha.8',
       data: await this.serialize(),
       meta: {
-        notaryUrl: this.#notaryUrl,
+        notaryUrl: this.#notaryUrl
+          ? NotaryServer.from(this.#notaryUrl).normalizeUrl()
+          : '',
         websocketProxyUrl: this.#websocketProxyUrl,
       },
     };
@@ -435,6 +438,19 @@ export class NotaryServer {
     )
       .slice(23)
       .toString('hex');
+  }
+
+  normalizeUrl() {
+    const url = new URL(this.#url);
+    let protocol;
+
+    if (url.protocol === 'https:' || url.protocol === 'http:') {
+      protocol = url.protocol;
+    } else {
+      protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
+    }
+
+    return `${protocol}//${url.host}`;
   }
 
   async sessionUrl(

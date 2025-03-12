@@ -26,7 +26,7 @@ root.render(<App />);
 const local = true; // Toggle between local and remote notary
 const notaryUrl = local
   ? 'http://localhost:7047'
-  : 'https://notary.pse.dev/v0.1.0-alpha.7';
+  : 'https://notary.pse.dev/v0.1.0-alpha.8';
 const websocketProxyUrl = local
   ? 'ws://localhost:55688'
   : 'wss://notary.pse.dev/proxy?token=swapi.dev';
@@ -130,6 +130,7 @@ function App(): ReactElement {
       reveal: commit,
     })) as TPresentation;
 
+    console.log(await presentation.serialize());
     setPresentationJSON(await presentation.json());
     console.timeEnd('proof');
   }, [setPresentationJSON, setProcessing]);

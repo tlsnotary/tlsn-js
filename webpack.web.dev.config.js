@@ -1,6 +1,7 @@
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -78,6 +79,15 @@ module.exports = [
       }),
       new webpack.ProvidePlugin({
         process: 'process',
+      }),
+      new CopyWebpackPlugin({
+        patterns: [
+          {
+            from: 'node_modules/tlsn-wasm',
+            to: path.join(__dirname, 'test-build'),
+            force: true,
+          },
+        ],
       }),
       new HtmlWebpackPlugin({
         template: './test/test.ejs',
