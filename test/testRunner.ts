@@ -135,6 +135,9 @@ after(async function () {
 
       const tests = this.test?.parent?.suites.flatMap((suite) => suite.tests);
       const failed = tests!.some((test) => test.state === 'failed');
+
+      console.log('tests', tests);
+      console.log('failed', failed);
       process.exit(failed ? 1 : 0);
     }
     process.exit(1);
