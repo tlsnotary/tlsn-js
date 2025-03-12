@@ -28,14 +28,7 @@ let server: ChildProcess;
 
 let localNotaryServer: ChildProcess;
 const spawnLocalNotaryServer = async () => {
-  const localNotaryServerPath = './utils/tlsn/crates/notary/server';
-  console.log(localNotaryServerPath);
-  localNotaryServer = exec(
-    `../../../target/release/notary-server --tls-enabled=false`,
-    {
-      cwd: localNotaryServerPath,
-    },
-  );
+  localNotaryServer = exec(`docker run --platform=linux/amd64 -p 7047:7047 --rm ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.8 notary-server --tls-enabled=false`);
   localNotaryServer.on('error', (error) => {
     console.error(`Failed to start Notary server: ${error}`);
     process.exit(1);

@@ -15,7 +15,6 @@
     "serve:test": "serve  --config ../serve.json ./test-build -l 3001",
     "build:src": "webpack --config webpack.build.config.js",
     "build:types": "tsc --project tsconfig.compile.json",
-    "build:tlsn-binaries": "sh utils/build-tlsn-binaries.sh v0.1.0-alpha.8",
     "build:lib": "NODE_ENV=production concurrently npm:build:src npm:build:types",
     "build": "npm run build:lib",
     "watch:dev": "webpack --config webpack.web.dev.config.js --watch",
@@ -25,7 +24,7 @@
     "lint": "concurrently npm:lint:tsc npm:lint:eslint",
     "run:spec": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\"}' mocha -r ts-node/register 'test/specs/*.ts'",
     "run:e2e": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\"}' mocha -r ts-node/register 'test/testRunner.ts'",
-    "test": "npm run build:tlsn-binaries && npm run build:test && npm run run:e2e",
+    "test": "npm run build:test && npm run run:e2e",
     "test:only": "npm run build:test && npm run run:e2e"
   },
   "devDependencies": {
