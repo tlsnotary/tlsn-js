@@ -79,9 +79,14 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
       attestationHex: notarizationOutput.attestation,
       secretsHex: notarizationOutput.secrets,
       reveal: commit,
+      notaryUrl: notary.url,
+      websocketProxyUrl: 'wss://notary.pse.dev/proxy',
     })) as _Presentation;
     console.log('presentation:', await presentation.serialize());
     console.timeEnd('prove');
+    const json = await presentation.json();
+    assert(json.version === '0.1.0-alpha.8');
+    assert(new URL(json.meta.notaryUrl!).protocol === 'http:');
 
     console.time('verify');
     const { transcript: partialTranscript, server_name } =

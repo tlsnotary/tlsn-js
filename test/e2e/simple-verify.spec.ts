@@ -25,9 +25,7 @@ const { init, Presentation }: any = Comlink.wrap(
 
     const sent = transcript.sent();
     const recv = transcript.recv();
-    const json = await proof.json();
-    assert(json.version === '0.1.0-alpha.8');
-    assert(new URL(json.meta.notaryUrl!).protocol === 'http:');
+
     assert(sent.includes('host: swapi.dev'));
     assert(!sent.includes('secret: test_secret'));
     assert(recv.includes('"name":"Luke Skywalker"'));
