@@ -70,8 +70,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build Test dependencies
-        run: npm run build:tlsn-binaries
-
       - name: Test
         run: npm run test
