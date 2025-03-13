@@ -16,6 +16,13 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    services:
+      notary-server:
+        image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.8
+        options: --platform=linux/amd64 --tls-enabled=false
+        ports:
+          - 7047:7047
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4

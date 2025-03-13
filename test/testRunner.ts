@@ -26,21 +26,7 @@ let browser: Browser;
 let page: Page;
 let server: ChildProcess;
 
-let localNotaryServer: ChildProcess;
-const spawnLocalNotaryServer = async () => {
-  localNotaryServer = exec(`docker run --platform=linux/amd64 -p 7047:7047 --rm ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.8 notary-server --tls-enabled=false`);
-  localNotaryServer.on('error', (error) => {
-    console.error(`Failed to start Notary server: ${error}`);
-    process.exit(1);
-  });
-  localNotaryServer.stdout?.on('data', (data) => {
-    console.log(`Server: ${data}`);
-  });
-
-  localNotaryServer.stderr?.on('data', (data) => {
-    console.error(`Server Error: ${data}`);
-  });
-
+const waitForNotaryServer = async () => {
   // wait for the notary server to be ready
   while (true) {
     try {
@@ -59,7 +45,7 @@ const spawnLocalNotaryServer = async () => {
 before(async function () {
   server = exec('serve  --config ../serve.json ./test-build -l 3001');
 
-  await spawnLocalNotaryServer();
+  await waitForNotaryServer();
   browser = await puppeteer.launch(opts);
   page = await browser.newPage();
   await page.goto('http://127.0.0.1:3001');
@@ -70,9 +56,6 @@ after(async function () {
   console.log('Cleaning up:');
 
   try {
-    localNotaryServer.kill();
-    console.log('* Stopped Notary Server ✅');
-
     server.kill();
     console.log('* Stopped Test Web Server ✅');
 
