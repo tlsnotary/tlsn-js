@@ -19,7 +19,8 @@ jobs:
     services:
       notary-server:
         image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.8
-        options: --entrypoint "sh -c 'notary-server --tls-enabled=false'"
+        env:
+          NOTARY_SERVER__TLS__ENABLED: false
         ports:
           - 7047:7047
 
