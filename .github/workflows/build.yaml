@@ -48,3 +48,6 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Dry Run NPM Publish
+        run: npm publish --dry-run
