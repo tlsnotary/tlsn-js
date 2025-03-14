@@ -16,6 +16,14 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    services:
+      notary-server:
+        image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.8
+        env:
+          NOTARY_SERVER__TLS__ENABLED: false
+        ports:
+          - 7047:7047
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -69,9 +77,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
-
-      - name: Build Test dependencies
-        run: npm run build:tlsn-binaries
 
       - name: Test
         run: npm run test
