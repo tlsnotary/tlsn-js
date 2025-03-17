@@ -1,50 +1,20 @@
-name: test
+name: build
 
 on:
   push:
     branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 env:
-  LOCAL-NOTARY: true
-  LOCAL-WS: false
-  HEADLESS: true
   PUPPETEER_SKIP_DOWNLOAD: true
 
 jobs:
-  test:
-
+  build:
     runs-on: ubuntu-latest
-
-    services:
-      notary-server:
-        image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.8
-        env:
-          NOTARY_SERVER__TLS__ENABLED: false
-        ports:
-          - 7047:7047
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install stable rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-          toolchain: nightly
-
-      - name: Use caching
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
-        id: setup-chrome
-        with:
-          chrome-version: 121.0.6167.85
-
-      - name: Set CHROME_PATH environment variable
-        run: echo "CHROME_PATH=${{ steps.setup-chrome.outputs['chrome-path'] }}" >> $GITHUB_ENV
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -52,11 +22,35 @@ jobs:
           node-version: 18
           cache: 'npm'
 
-      - name: Install nightly tool-chain
-        run: rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+      - name: Install stable rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          toolchain: nightly
 
       - name: Install dependencies
         run: npm install
+          
+      - name: Build
+        run: npm run build
+          
+      - name: Lint
+        run: npm run lint
+      
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+        with:
+          chrome-version: 121.0.6167.85
+        
+      - name: Set CHROME_PATH environment variable
+        run: echo "CHROME_PATH=${{ steps.setup-chrome.outputs['chrome-path'] }}" >> $GITHUB_ENV
+        
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Use caching
+        uses: Swatinem/rust-cache@v2.7.7
 
       - name: Test
         run: npm run test
