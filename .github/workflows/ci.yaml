@@ -28,6 +28,8 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
           toolchain: nightly
+      - name: Use caching
+        uses: Swatinem/rust-cache@v2.7.7
 
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
@@ -49,10 +51,6 @@ jobs:
         
       - name: Set CHROME_PATH environment variable
         run: echo "CHROME_PATH=${{ steps.setup-chrome.outputs['chrome-path'] }}" >> $GITHUB_ENV
-
-
-      - name: Use caching
-        uses: Swatinem/rust-cache@v2.7.7
 
       - name: Test
         run: npm run test

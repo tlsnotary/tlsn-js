@@ -21,7 +21,7 @@
     "watch:dev": "webpack --config webpack.web.dev.config.js --watch",
     "dev": "concurrently npm:watch:dev npm:serve:test",
     "lint:eslint": "eslint . --fix",
-    "lint:tsc": "tsc --noEmit",
+    "lint:tsc": "tsc --noEmit --exclude tlsn-wasm/pkg",
     "lint": "concurrently npm:lint:tsc npm:lint:eslint",
     "run:spec": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\"}' mocha -r ts-node/register 'test/specs/*.ts'",
     "run:e2e": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\"}' mocha -r ts-node/register 'test/testRunner.ts'",
