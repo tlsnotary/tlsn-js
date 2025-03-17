@@ -36,8 +36,6 @@ jobs:
 
       - name: Use caching
         uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: wasm/prover
 
       - name: Install Chrome
         uses: browser-actions/setup-chrome@v1
@@ -48,35 +46,17 @@ jobs:
       - name: Set CHROME_PATH environment variable
         run: echo "CHROME_PATH=${{ steps.setup-chrome.outputs['chrome-path'] }}" >> $GITHUB_ENV
 
-      - name: Install Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-
-      - uses: pnpm/action-setup@v3
-        name: Install pnpm
-        with:
-          version: 8
-          run_install: false
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - uses: actions/cache@v4
-        name: Setup pnpm cache
-        with:
-          path: ${STORE_PATH}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          cache: 'npm'
 
       - name: Install nightly tool-chain
         run: rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
 
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
 
       - name: Test
         run: npm run test
