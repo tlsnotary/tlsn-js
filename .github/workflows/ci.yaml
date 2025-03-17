@@ -7,6 +7,9 @@ on:
     branches: [ main ]
 
 env:
+  LOCAL-NOTARY: true
+  LOCAL-WS: false
+  HEADLESS: true
   PUPPETEER_SKIP_DOWNLOAD: true
 
 jobs:
@@ -55,7 +58,7 @@ jobs:
         id: setup-chrome
         with:
           chrome-version: 121.0.6167.85
-        
+
       - name: Set CHROME_PATH environment variable
         run: echo "CHROME_PATH=${{ steps.setup-chrome.outputs['chrome-path'] }}" >> $GITHUB_ENV
 
