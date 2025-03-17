@@ -30,7 +30,7 @@
     "test-build",
     "dev-build",
     "wasm",
-    "utils",
+    "tlsn-wasm",
     "webpack.config.js",
     "webpack.test.config.js"
   ]
