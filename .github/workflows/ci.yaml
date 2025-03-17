@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
         notary-server:
-          image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.8
+          image: ghcr.io/tlsnotary/tlsn/notary-server:dev
           env:
             NOTARY_SERVER__TLS__ENABLED: false
           ports:

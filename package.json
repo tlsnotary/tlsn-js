@@ -1,6 +1,6 @@
 {
   "name": "tlsn-js",
-  "version": "0.1.0-alpha.8",
+  "version": "0.1.0-alpha.9-pre",
   "description": "",
   "repository": "https://github.com/tlsnotary/tlsn-js",
   "main": "build/lib.js",
@@ -26,7 +26,7 @@
     "run:spec": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\"}' mocha -r ts-node/register 'test/specs/*.ts'",
     "run:e2e": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\"}' mocha -r ts-node/register 'test/testRunner.ts'",
     "test": "npm run build:test && npm run run:e2e",
-    "notary": "docker run --platform=linux/amd64 -p 7047:7047 --rm ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.8 notary-server --tls-enabled=false"
+    "notary": "docker run --platform=linux/amd64 -p 7047:7047 --rm ghcr.io/tlsnotary/tlsn/notary-server:dev notary-server --tls-enabled=false"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
