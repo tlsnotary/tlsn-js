@@ -29,7 +29,6 @@
     "build",
     "test-build",
     "dev-build",
-    "wasm",
     "tlsn-wasm",
     "webpack.config.js",
     "webpack.test.config.js"

@@ -39,11 +39,13 @@ jobs:
           node-version: 18
           cache: 'npm'
 
-      - name: Install stable rust toolchain
+      - name: Install stable nightly toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown
-          toolchain: nightly
+            targets: wasm32-unknown-unknown
+            components: rust-src
+            toolchain: nightly
+
       - name: Use caching
         uses: Swatinem/rust-cache@v2.7.7
         with:

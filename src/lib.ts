@@ -331,7 +331,7 @@ export class Presentation {
 
   async json(): Promise<PresentationJSON> {
     return {
-      version: '0.1.0-alpha.8',
+      version: '0.1.0-alpha.9-pre',
       data: await this.serialize(),
       meta: {
         notaryUrl: this.#notaryUrl
