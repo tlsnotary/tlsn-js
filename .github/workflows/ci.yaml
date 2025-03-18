@@ -50,6 +50,7 @@ jobs:
         uses: Swatinem/rust-cache@v2.7.7
         with:
           workspaces: tlsn-wasm/tlsn -> target
+          cache-on-failure: true
 
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
