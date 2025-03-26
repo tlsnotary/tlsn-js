@@ -484,6 +484,7 @@ export {
   type LoggingLevel,
   type LoggingConfig,
   type Commit,
+  type Method,
   type Reveal,
   type ProverConfig,
   type VerifierConfig,
