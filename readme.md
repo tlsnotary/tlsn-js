@@ -8,7 +8,7 @@
 
 NPM Modules for proving and verifying using TLSNotary in the browser.
 
-The prover requires a [notary-server](https://github.com/tlsnotary/notary-server) and a websocket proxy
+The prover requires a [notary-server](https://github.com/tlsnotary/notary-server) and a websocket proxy.
 
 > [!IMPORTANT]
 > The primary purpose of `tlsn-js` is to support the development of the [TLSNotary browser extension](https://github.com/tlsnotary/tlsn-extension/).  
@@ -25,93 +25,23 @@ This repository is licensed under either of
 
 at your option.
 
-## Example
-```ts
-// worker.ts
-import * as Comlink from 'comlink';
-import init, { Prover, NotarizedSession, TlsProof } from 'tlsn-js';
+## Examples
 
-Comlink.expose({
-  init,
-  Prover,
-  NotarizedSession,
-  TlsProof,
-});
+`tlsn-js` can be used in many different modes, depending on your use case.
 
-```
-```ts
-// app.ts
-import { NotaryServer, subtractRanges, mapStringToRange } from 'tlsn-js';
-const { init, Prover, NotarizedSession, TlsProof }: any = Comlink.wrap(
-  new Worker(new URL('./worker.ts', import.meta.url)),
-);
+The `./demo` folder contains three demos of `tlsn-js`:
 
-// To create a proof
-await init({ loggingLevel: 'Debug '});
-const notary = NotaryServer.from(`http://localhost:7047`);
-const prover = await new Prover({ serverDns: 'swapi.dev' });
+* `react-ts-webpack`: create an attestation with a Notary and render the result.
+* `interactive-demo`: prove data interactively to a Verifier.
+* `web-to-web-p2p`: prove data between two peers, in the browser.
 
-// Connect to verifier
-await prover.setup(await notary.sessionUrl());
+## Running a local websocket proxy
 
-// Submit request
-await prover.sendRequest('ws://localhost:55688', {
-  url: 'https://swapi.dev/api/people/1',
-  method: 'GET',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: {
-    hello: 'world',
-    one: 1,
-  },
-});
-
-// Get transcript and precalculated ranges
-const transcript = await prover.transcript();
-
-// Select ranges to commit 
-const commit: Commit = {
-  sent: subtractRanges(
-    { start: 0, end: transcript.sent.length },
-    mapStringToRange(
-      ['secret: test_secret'],
-      Buffer.from(transcript.sent).toString('utf-8'),
-    ),
-  ),
-  recv: [
-    { start: 0, end: transcript.recv.length },
-  ],
-};
-
-// Notarize selected ranges
-const serializedSession = await prover.notarize(commit);
-
-// Instantiate NotarizedSession
-// note: this is necessary because workers can only post messages in serializable values
-const notarizedSession = await new NotarizedSession(serializedSession);
-
-
-// Create proof for commited ranges
-// note: this will reveal the selected ranges
-const serializedProof = await notarizedSession.proof(commit);
-
-// Instantiate Proof
-// note: necessary due to limitation with workers
-const proof = await new TlsProof(serializedProof);
-
-// Verify a proof
-const proofData = await proof.verify({
-  typ: 'P256',
-  key: await notary.publicKey(),
-});
-```
-
-## Running a local websocket proxy for `https://swapi.dev`
+In the demos, we attest data from the `https://swapi.dev` website. Because the browser does not allow for TCP connections, you need to set up a websocket proxy:
 
 1. Install [websocat](https://github.com/vi/websocat):
 
-    | tool   | command                        |
+    | Tool   | Command                        |
     | ------ | ------------------------------ |
     | cargo  | `cargo install websocat`       |
     | brew   | `brew install websocat`        |
@@ -124,7 +54,7 @@ websocat --binary -v ws-l:0.0.0.0:55688 tcp:swapi.dev:443
 
 ## Install as NPM Package
 
-```
+```sh
 npm install tlsn-js
 ```
 
@@ -139,7 +69,7 @@ To work on `tlsn-wasm` and `tlsn-js` at the same time, replace the "tlsn-wasm" d
 and run `npm run build:wasm` to build `tlsn-wasm` locally.
 
 Next, run:
-```
+```sh
 npm install
 npm run test
 ```
@@ -148,14 +78,14 @@ Note: if you want to switch back to a build with the version from npm, make sure
 
 ## Build for NPM
 
-```
+```sh
 npm install
 npm run build
 ```
 
 ## Adding a new test
-1. Create a new `new-test.spec.ts` file in the `test/` directory
-2. Add your spec file to the entry object fin `webpack.web.dev.config.js`
-3. Add a new `div` block to `test/test.ejs` like this: `<div>Testing "new-test":<div id="new-test"></div></div>`. The div id must be the same as the filename.
+1. Create a new `new-test.spec.ts` file in the `test/` directory.
+2. Add your spec file to the entry object in `webpack.web.dev.config.js`.
+3. Add a new `div` block to `test/test.ejs` like this: `<div>Testing "new-test":<div id="new-test"></div></div>`. The `div` id must be the same as the filename.
 
 
