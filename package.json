@@ -17,7 +17,7 @@
     "build:types": "tsc --project tsconfig.compile.json",
     "build:lib": "NODE_ENV=production concurrently npm:build:src npm:build:types",
     "build:wasm": "sh tlsn-wasm/build.sh v0.1.0-alpha.9",
-    "build": "npm run build:wasm && npm run build:lib",
+    "build": "npm run build:lib",
     "watch:dev": "webpack --config webpack.web.dev.config.js --watch",
     "dev": "concurrently npm:watch:dev npm:serve:test",
     "lint:eslint": "eslint . --fix",
@@ -71,6 +71,6 @@
     "node": ">= 16.20.2"
   },
   "dependencies": {
-    "tlsn-wasm": "./tlsn-wasm/pkg"
+    "tlsn-wasm": "^0.1.0-alpha.9"
   }
 }
