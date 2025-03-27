@@ -128,7 +128,7 @@ export class Prover {
     const presentation = build_presentation(attestation, secrets, commit);
 
     return {
-      version: '0.1.0-alpha.8',
+      version: '0.1.0-alpha.9',
       data: arrayToHex(presentation.serialize()),
       meta: {
         notaryUrl: notary.normalizeUrl(),
@@ -288,12 +288,12 @@ export class Presentation {
   constructor(
     params:
       | {
-          attestationHex: string;
-          secretsHex: string;
-          notaryUrl?: string;
-          websocketProxyUrl?: string;
-          reveal?: Reveal;
-        }
+        attestationHex: string;
+        secretsHex: string;
+        notaryUrl?: string;
+        websocketProxyUrl?: string;
+        reveal?: Reveal;
+      }
       | string,
   ) {
     if (typeof params === 'string') {
@@ -331,7 +331,7 @@ export class Presentation {
 
   async json(): Promise<PresentationJSON> {
     return {
-      version: '0.1.0-alpha.8',
+      version: '0.1.0-alpha.9',
       data: await this.serialize(),
       meta: {
         notaryUrl: this.#notaryUrl
@@ -484,6 +484,7 @@ export {
   type LoggingLevel,
   type LoggingConfig,
   type Commit,
+  type Method,
   type Reveal,
   type ProverConfig,
   type VerifierConfig,

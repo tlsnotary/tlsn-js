@@ -58,16 +58,23 @@ websocat --binary -v ws-l:0.0.0.0:55688 tcp:swapi.dev:443
 npm install tlsn-js
 ```
 
-## Development
+# Development
 
-```sh
-# make sure you have rust installed
-# https://www.rust-lang.org/tools/install
-npm install
+This library is a JS wrapper for `tlsn-wasm`.
 
-# this serves a page that will execute the example code at http://localhost:3001
-npm run dev
+To work on `tlsn-wasm` and `tlsn-js` at the same time, replace the "tlsn-wasm" dependency in `package.json` with:
 ```
+    "tlsn-wasm": "./tlsn-wasm/pkg"
+```
+and run `npm run build:wasm` to build `tlsn-wasm` locally.
+
+Next, run:
+```sh
+npm install
+npm run test
+```
+
+Note: if you want to switch back to a build with the version from npm, make sure to reset/remove `package-lock.json`, or it will keep using the local link.
 
 ## Build for NPM
 

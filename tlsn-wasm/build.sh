@@ -7,6 +7,8 @@ cd "$(dirname "$0")"
 
 VERSION=${1:-origin/dev} # use `dev` branch if no version is set
 
+rm -rf pkg
+
 # Name of the directory where the repo will be cloned
 REPO_DIR="tlsn"
 
@@ -26,12 +28,9 @@ fi
 git checkout "${VERSION}" --force
 git reset --hard
 
-for dir in "crates/notary/server"; do
-    # Change to the specific subdirectory
-    cd ${dir}
+cd crates/wasm
+cargo update
+./build.sh
+cd ../../
 
-    cargo update
-    # Build the project
-    cargo build --release
-    cd -
-done
+cp -r crates/wasm/pkg ..

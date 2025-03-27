@@ -1,0 +1,97 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  release:
+    types: [published]
+
+env:
+  LOCAL-NOTARY: true
+  LOCAL-WS: false
+  HEADLESS: true
+  PUPPETEER_SKIP_DOWNLOAD: true
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_MODE: 'dry-run' # dry-run by default, will be set to 'publish' for release builds
+    services:
+        notary-server:
+          image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.9
+          env:
+            NOTARY_SERVER__TLS__ENABLED: false
+          ports:
+            - 7047:7047
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checkout tlsn
+        uses: actions/checkout@v4
+        with:
+          repository: tlsnotary/tlsn
+          path: tlsn-wasm/tlsn
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install stable nightly toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+            targets: wasm32-unknown-unknown
+            components: rust-src
+            toolchain: nightly
+
+      - name: Use caching
+        uses: Swatinem/rust-cache@v2.7.7
+        with:
+          workspaces: tlsn-wasm/tlsn -> target
+          cache-on-failure: true
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Install dependencies
+        run: npm ci
+          
+      - name: Build
+        run: npm run build
+          
+      - name: Lint
+        run: npm run lint
+      
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+        with:
+          chrome-version: 121.0.6167.85
+
+      - name: Set CHROME_PATH environment variable
+        run: echo "CHROME_PATH=${{ steps.setup-chrome.outputs['chrome-path'] }}" >> $GITHUB_ENV
+
+      - name: Test
+        run: npm run test
+
+      - name: Determine release type (dry-run or publish)
+        run: |
+          if [[ $GITHUB_EVENT_NAME == "release" ]]; then
+            echo "RELEASE_MODE=publish" >> $GITHUB_ENV
+          else
+            echo "RELEASE_MODE=dry-run" >> $GITHUB_ENV
+          fi
+
+      - name: Dry-run release (non-release builds)
+        if: env.RELEASE_MODE == 'dry-run'
+        run: npm publish --dry-run
+
+      - name: Publish to npm (GitHub Release)
+        if: env.RELEASE_MODE == 'publish'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
