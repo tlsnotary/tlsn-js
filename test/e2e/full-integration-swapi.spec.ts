@@ -23,13 +23,13 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     console.log('test start');
     console.time('prove');
     const prover = (await new Prover({
-      id: 'test',
-      serverDns: 'swapi.dev',
+      serverDns: 'raw.githubusercontent.com',
+      maxRecvData: 1700
     })) as _Prover;
     const notary = NotaryServer.from('http://127.0.0.1:7047');
     await prover.setup(await notary.sessionUrl());
-    await prover.sendRequest('wss://notary.pse.dev/proxy?token=swapi.dev', {
-      url: 'https://swapi.dev/api/people/1',
+    await prover.sendRequest('ws://127.0.0.1:55688', {
+      url: 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/heads/main/crates/server-fixture/server/src/data/protected_data.json',
       headers: {
         'content-type': 'application/json',
         secret: 'test_secret',
@@ -44,6 +44,8 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     } = parseHttpMessage(Buffer.from(recv), 'response');
 
     const body = JSON.parse(recvBody[0].toString());
+
+    console.dir(body);
 
     const commit: Commit = {
       sent: subtractRanges(
@@ -65,9 +67,7 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
             `${recvHeaders[14]}: ${recvHeaders[15]}`,
             `${recvHeaders[16]}: ${recvHeaders[17]}`,
             `${recvHeaders[18]}: ${recvHeaders[19]}`,
-            `"name":"${body.name}"`,
-            `"hair_color":"${body.hair_color}"`,
-            `"skin_color":"${body.skin_color}"`,
+            `"id": ${body.id}`,
           ],
           Buffer.from(recv).toString('utf-8'),
         ),
@@ -101,12 +101,12 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     });
     const sentStr = t.sent();
     const recvStr = t.recv();
-    assert(sentStr.includes('host: swapi.dev'));
+    console.log(sentStr);
+    console.log(recvStr);
+    assert(sentStr.includes('host: raw.githubusercontent.com'));
     assert(!sentStr.includes('secret: test_secret'));
-    assert(recvStr.includes('"name":"Luke Skywalker"'));
-    assert(recvStr.includes('"hair_color":"blond"'));
-    assert(recvStr.includes('"skin_color":"fair"'));
-    assert(server_name === 'swapi.dev');
+    assert(recvStr.includes('"id": 1234567890'));
+    assert(server_name === 'raw.githubusercontent.com');
 
     // @ts-ignore
     document.getElementById('full-integration-swapi').textContent = 'OK';
