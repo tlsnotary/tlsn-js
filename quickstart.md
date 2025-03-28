@@ -29,38 +29,31 @@ Note the `tcp:swapi.dev:443` argument on the last line, this is the server we wi
 
 For this demo, we also need to run a local notary server.
 
-1. Clone the TLSNotary repository:
-   ```shell
-   git clone https://github.com/tlsnotary/tlsn.git --branch "v0.1.0-alpha.8"
-   ```
-2. Edit the notary server config file (`notary/server/config/config.yaml`) to turn off TLS so that the browser extension can connect to the local notary server without requiring extra steps to accept self-signed certificates in the browser.
-   ```yaml
-   tls:
-      enabled: false
-   ```
-3. Run the notary server:
-   ```shell
-   cd notary/server
-   cargo run --release
-   ```
+* Use docker
+    ```sh
+    npm run notary
+    ```
+* Or, compile and run the notary server natively:
+     ```sh
+     # Clone the TLSNotary repository:
+     git clone https://github.com/tlsnotary/tlsn.git --branch "v0.1.0-alpha.9"
+     cd tlsn/crates/notary/server/
+     # Run the ntoary server
+     cargo run --release -- --tls-enabled false
+     ```
 
 The notary server will now be running in the background waiting for connections.
 
 ## `tlsn-js` in a React/Typescript app
 
-### Run the
-1. Clone the repository
-    ```sh
-    git clone https://github.com/tlsnotary/tlsn-js
-    ```
-2. Compile tlns-js
+1. Compile tlns-js
     ```sh
     npm i
     npm run build
     ```
 2. Go to the demo folder
     ```sh
-    cd ./tlsn-js/demo/react-ts-webpack
+    cd demo/react-ts-webpack
     ```
 3. Install dependencies
     ```sh
