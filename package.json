@@ -71,6 +71,6 @@
     "node": ">= 16.20.2"
   },
   "dependencies": {
-    "tlsn-wasm": "^0.1.0-alpha.9"
+    "tlsn-wasm": "0.1.0-alpha.9"
   }
 }
