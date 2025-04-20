@@ -85,7 +85,7 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     console.log('presentation:', await presentation.serialize());
     console.timeEnd('prove');
     const json = await presentation.json();
-    assert(json.version === '0.1.0-alpha.9');
+    assert(json.version === '0.1.0-alpha.10');
     assert(new URL(json.meta.notaryUrl!).protocol === 'http:');
 
     console.time('verify');
