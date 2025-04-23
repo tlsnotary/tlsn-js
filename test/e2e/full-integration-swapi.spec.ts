@@ -45,8 +45,6 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
 
     const body = JSON.parse(recvBody[0].toString());
 
-    console.dir(body);
-
     const commit: Commit = {
       sent: subtractRanges(
         { start: 0, end: sent.length },
@@ -68,6 +66,9 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
             `${recvHeaders[16]}: ${recvHeaders[17]}`,
             `${recvHeaders[18]}: ${recvHeaders[19]}`,
             `"id": ${body.id}`,
+            `"city": "${body.information.address.city}"`,
+            `"postalCode": "12345"`,
+
           ],
           Buffer.from(recv).toString('utf-8'),
         ),
@@ -101,11 +102,15 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     });
     const sentStr = t.sent();
     const recvStr = t.recv();
-    console.log(sentStr);
-    console.log(recvStr);
+
+    console.log("Sent:", sentStr);
+    console.log("Received:", recvStr);
+
     assert(sentStr.includes('host: raw.githubusercontent.com'));
     assert(!sentStr.includes('secret: test_secret'));
     assert(recvStr.includes('"id": 1234567890'));
+    assert(recvStr.includes('"city": "Anytown"'));
+    assert(recvStr.includes('"postalCode": "12345"'));
     assert(server_name === 'raw.githubusercontent.com');
 
     // @ts-ignore
