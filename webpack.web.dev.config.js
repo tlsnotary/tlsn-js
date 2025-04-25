@@ -38,7 +38,7 @@ module.exports = [
     target: 'web',
     mode: isProd ? 'production' : 'development',
     entry: {
-      'full-integration-swapi.spec': path.join(__dirname, 'test', 'e2e', 'full-integration-swapi.spec.ts'),
+      'full-integration.spec': path.join(__dirname, 'test', 'e2e', 'full-integration.spec.ts'),
       'simple-verify': path.join(__dirname, 'test', 'e2e', 'simple-verify.spec.ts'),
     },
     output: {

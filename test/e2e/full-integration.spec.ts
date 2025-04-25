@@ -114,13 +114,13 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     assert(server_name === 'raw.githubusercontent.com');
 
     // @ts-ignore
-    document.getElementById('full-integration-swapi').textContent = 'OK';
+    document.getElementById('full-integration').textContent = 'OK';
   } catch (err) {
     console.log('caught error from wasm');
     console.error(err);
 
     // @ts-ignore
-    document.getElementById('full-integration-swapi').textContent = err.message;
+    document.getElementById('full-integration').textContent = err.message;
   }
 })();
 
