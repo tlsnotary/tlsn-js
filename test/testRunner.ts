@@ -48,6 +48,12 @@ before(async function () {
   await waitForNotaryServer();
   browser = await puppeteer.launch(opts);
   page = await browser.newPage();
+
+  // log browser console messages
+  page.on('console', (msg) => {
+    console.log(`[BROWSER ${msg.type().toUpperCase()}] ${msg.text()}`);
+  });
+
   await page.goto('http://127.0.0.1:3001');
 });
 

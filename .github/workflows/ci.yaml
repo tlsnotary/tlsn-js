@@ -20,7 +20,7 @@ jobs:
       RELEASE_MODE: 'dry-run' # dry-run by default, will be set to 'publish' for release builds
     services:
         notary-server:
-          image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.9
+          image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.10
           env:
             NOTARY_SERVER__TLS__ENABLED: false
           ports:

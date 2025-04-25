@@ -36,7 +36,7 @@ For this demo, we also need to run a local notary server.
 * Or, compile and run the notary server natively:
      ```sh
      # Clone the TLSNotary repository:
-     git clone https://github.com/tlsnotary/tlsn.git --branch "v0.1.0-alpha.9"
+     git clone https://github.com/tlsnotary/tlsn.git --branch "v0.1.0-alpha.10"
      cd tlsn/crates/notary/server/
      # Run the ntoary server
      cargo run --release -- --tls-enabled false

@@ -23,13 +23,13 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     console.log('test start');
     console.time('prove');
     const prover = (await new Prover({
-      id: 'test',
-      serverDns: 'swapi.dev',
+      serverDns: 'raw.githubusercontent.com',
+      maxRecvData: 1700
     })) as _Prover;
     const notary = NotaryServer.from('http://127.0.0.1:7047');
     await prover.setup(await notary.sessionUrl());
-    await prover.sendRequest('wss://notary.pse.dev/proxy?token=swapi.dev', {
-      url: 'https://swapi.dev/api/people/1',
+    await prover.sendRequest('wss://notary.pse.dev/proxy?token=raw.githubusercontent.com', {
+      url: 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/heads/main/crates/server-fixture/server/src/data/protected_data.json',
       headers: {
         'content-type': 'application/json',
         secret: 'test_secret',
@@ -65,9 +65,10 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
             `${recvHeaders[14]}: ${recvHeaders[15]}`,
             `${recvHeaders[16]}: ${recvHeaders[17]}`,
             `${recvHeaders[18]}: ${recvHeaders[19]}`,
-            `"name":"${body.name}"`,
-            `"hair_color":"${body.hair_color}"`,
-            `"skin_color":"${body.skin_color}"`,
+            `"id": ${body.id}`,
+            `"city": "${body.information.address.city}"`,
+            `"postalCode": "12345"`,
+
           ],
           Buffer.from(recv).toString('utf-8'),
         ),
@@ -85,7 +86,7 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     console.log('presentation:', await presentation.serialize());
     console.timeEnd('prove');
     const json = await presentation.json();
-    assert(json.version === '0.1.0-alpha.9');
+    assert(json.version === '0.1.0-alpha.10');
     assert(new URL(json.meta.notaryUrl!).protocol === 'http:');
 
     console.time('verify');
@@ -101,21 +102,25 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     });
     const sentStr = t.sent();
     const recvStr = t.recv();
-    assert(sentStr.includes('host: swapi.dev'));
+
+    console.log("Sent:", sentStr);
+    console.log("Received:", recvStr);
+
+    assert(sentStr.includes('host: raw.githubusercontent.com'));
     assert(!sentStr.includes('secret: test_secret'));
-    assert(recvStr.includes('"name":"Luke Skywalker"'));
-    assert(recvStr.includes('"hair_color":"blond"'));
-    assert(recvStr.includes('"skin_color":"fair"'));
-    assert(server_name === 'swapi.dev');
+    assert(recvStr.includes('"id": 1234567890'));
+    assert(recvStr.includes('"city": "Anytown"'));
+    assert(recvStr.includes('"postalCode": "12345"'));
+    assert(server_name === 'raw.githubusercontent.com');
 
     // @ts-ignore
-    document.getElementById('full-integration-swapi').textContent = 'OK';
+    document.getElementById('full-integration').textContent = 'OK';
   } catch (err) {
     console.log('caught error from wasm');
     console.error(err);
 
     // @ts-ignore
-    document.getElementById('full-integration-swapi').textContent = err.message;
+    document.getElementById('full-integration').textContent = err.message;
   }
 })();
 
