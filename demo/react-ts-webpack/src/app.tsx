@@ -29,11 +29,11 @@ const notaryUrl = local
   : 'https://notary.pse.dev/v0.1.0-alpha.10';
 const websocketProxyUrl = local
   ? 'ws://localhost:55688'
-  : 'wss://notary.pse.dev/proxy?token=swapi.dev';
+  : 'wss://notary.pse.dev/proxy?token=raw.githubusercontent.com';
 const loggingLevel = 'Info'; // https://github.com/tlsnotary/tlsn/blob/main/crates/wasm/src/log.rs#L8
 
-const serverUrl = 'https://swapi.dev/api/people/1';
-const serverDns = 'swapi.dev';
+const serverUrl = 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.10/crates/server-fixture/server/src/data/1kb.json';
+const serverDns = 'raw.githubusercontent.com';
 
 function App(): ReactElement {
   const [initialized, setInitialized] = useState(false);
@@ -111,8 +111,8 @@ function App(): ReactElement {
             `${recvHeaders[14]}: ${recvHeaders[15]}`,
             `${recvHeaders[16]}: ${recvHeaders[17]}`,
             `${recvHeaders[18]}: ${recvHeaders[19]}`,
-            `"name":"${body.name}"`,
-            `"gender":"${body.gender}"`,
+            `"name": "${body.information.name}"`,
+            `"street": "${body.information.address.street}"`,
           ],
           Buffer.from(recv).toString('utf-8'),
         ),
@@ -240,7 +240,7 @@ function App(): ReactElement {
             onClick={!processing ? onClick : undefined}
             disabled={processing || !initialized}
             className={`px-4 py-2 rounded-md text-white shadow-md font-semibold
-          ${processing || !initialized ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}`}
+        ${processing || !initialized ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}`}
           >
             Start Demo (Normal config)
           </button>
@@ -248,7 +248,7 @@ function App(): ReactElement {
             onClick={!processing ? onAltClick : undefined}
             disabled={processing || !initialized}
             className={`px-4 py-2 rounded-md text-white shadow-md font-semibold
-          ${processing || !initialized ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}`}
+        ${processing || !initialized ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}`}
           >
             Start Demo 2 (With helper method)
           </button>
@@ -268,7 +268,7 @@ function App(): ReactElement {
           />
         </div>
       )}
-      <div className="flex flex-col sm:flex-row gap-6 w-full max-w-4xl">
+      <div className="flex flex-col gap-6 w-full max-w-4xl">
         <div className="flex-1 bg-slate-50 border border-slate-200 rounded p-4">
           <b className="text-slate-600">Proof: </b>
           {!processing && !presentationJSON ? (
@@ -285,7 +285,10 @@ function App(): ReactElement {
               <summary className="cursor-pointer text-slate-600">
                 View Proof
               </summary>
-              <pre className="mt-2 p-2 bg-slate-100 rounded text-sm text-slate-800">
+              <pre
+                className="mt-2 p-2 bg-slate-100 rounded text-sm text-slate-800 overflow-auto"
+                style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+              >
                 {JSON.stringify(presentationJSON, null, 2)}
               </pre>
             </details>
@@ -298,7 +301,10 @@ function App(): ReactElement {
           ) : !result ? (
             <i className="text-slate-500">verifying</i>
           ) : (
-            <pre className="mt-2 p-2 bg-slate-100 rounded text-sm text-slate-800">
+            <pre
+              className="mt-2 p-2 bg-slate-100 rounded text-sm text-slate-800 overflow-auto"
+              style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+            >
               {JSON.stringify(result, null, 2)}
             </pre>
           )}

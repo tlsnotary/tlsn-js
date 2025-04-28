@@ -7,7 +7,7 @@ const VERIFIER_HOST: &str = "0.0.0.0";
 const VERIFIER_PORT: u16 = 9816;
 
 /// Make sure the following domain is the same in SERVER_URL on the prover side
-const SERVER_DOMAIN: &str = "swapi.dev";
+const SERVER_DOMAIN: &str = "raw.githubusercontent.com";
 
 #[tokio::main]
 async fn main() -> Result<(), eyre::ErrReport> {
