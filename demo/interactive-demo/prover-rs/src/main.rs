@@ -2,10 +2,9 @@ use async_tungstenite::{tokio::connect_async_with_config, tungstenite::protocol:
 use http_body_util::Empty;
 use hyper::{body::Bytes, Request, StatusCode, Uri};
 use hyper_util::rt::TokioIo;
-use regex::Regex;
 use spansy::{
-    http::{parse_response, BodyContent},
-    json::{self, JsonValue},
+    http::parse_response,
+    json::{self},
     Spanned,
 };
 use tlsn_common::config::ProtocolConfig;
@@ -149,7 +148,7 @@ fn redact_and_reveal_received_data(prover: &mut Prover<Prove>) -> Idx {
     // Get the some information from the received data.
     let received_string = String::from_utf8(recv_transcript.to_vec()).unwrap();
     debug!("Received data: {}", received_string);
-    let resp = parse_response(&recv_transcript).unwrap();
+    let resp = parse_response(recv_transcript).unwrap();
     let body = resp.body.unwrap();
     let mut json = json::parse_slice(body.as_bytes()).unwrap();
     json.offset(body.content.span().indices().min().unwrap());
