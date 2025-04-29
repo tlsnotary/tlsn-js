@@ -151,7 +151,8 @@ fn redact_and_reveal_received_data(prover: &mut Prover<Prove>) -> Idx {
     debug!("Received data: {}", received_string);
     let resp = parse_response(&recv_transcript).unwrap();
     let body = resp.body.unwrap();
-    let json = json::parse_slice(body.as_bytes()).unwrap();
+    let mut json = json::parse_slice(body.as_bytes()).unwrap();
+    json.offset(body.content.span().indices().min().unwrap());
 
     let name = json.get("information.name").expect("name field not found");
 
@@ -159,13 +160,12 @@ fn redact_and_reveal_received_data(prover: &mut Prover<Prove>) -> Idx {
         .get("information.address.street")
         .expect("street field not found");
 
-    let offset = body.content.span().indices().min().unwrap();
-    let name_start = offset + name.span().indices().min().unwrap() - 9; // 9 is the length of "name: "
-    let name_end = offset + name.span().indices().max().unwrap() + 2;
-    let street_start = offset + street.span().indices().min().unwrap() - 11; // 11 is the length of "street: "
-    let street_end = offset + street.span().indices().max().unwrap() + 2;
+    let name_start = name.span().indices().min().unwrap() - 9; // 9 is the length of "name: "
+    let name_end = name.span().indices().max().unwrap() + 1; // include `"`
+    let street_start = street.span().indices().min().unwrap() - 11; // 11 is the length of "street: "
+    let street_end = street.span().indices().max().unwrap() + 1; // include `"`
 
-    Idx::new([name_start..name_end, street_start..street_end])
+    Idx::new([name_start..name_end + 1, street_start..street_end + 1])
 }
 
 /// Redacts and reveals sent data to the verifier.
