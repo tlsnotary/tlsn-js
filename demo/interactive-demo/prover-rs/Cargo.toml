@@ -28,3 +28,4 @@ ws_stream_tungstenite = { version = "0.13", features = ["tokio_io"] }
 tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.10", package = "tlsn-core" }
 tlsn-prover = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.10", package = "tlsn-prover" }
 tlsn-common = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.10", package = "tlsn-common" }
+spansy = {git = "https://github.com/tlsnotary/tlsn-utils", package = "spansy", branch = "dev"}

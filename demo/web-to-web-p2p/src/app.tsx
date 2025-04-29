@@ -27,9 +27,9 @@ let proverLogs: string[] = [];
 let verifierLogs: string[] = [];
 
 const p2pProxyUrl = 'ws://localhost:3001';
-const serverDns = 'swapi.dev';
+const serverDns = 'raw.githubusercontent.com';
 const webSocketProxy = `wss://notary.pse.dev/proxy?token=${serverDns}`;
-const requestUrl = `https://swapi.dev/api/people/1`;
+const requestUrl = `https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.10/crates/server-fixture/server/src/data/1kb.json`;
 
 function App(): ReactElement {
   const [ready, setReady] = useState(false);
@@ -40,7 +40,7 @@ function App(): ReactElement {
   // Initialize TLSNotary
   useEffect(() => {
     (async () => {
-      await init({ loggingLevel: 'Debug' });
+      await init({ loggingLevel: 'Info' });
       setReady(true);
     })();
   }, []);
@@ -96,11 +96,14 @@ function App(): ReactElement {
     addProverLog('Instantiate Prover class');
     const prover: TProver = await new Prover({
       serverDns: serverDns,
+      maxRecvData: 2000
     });
     addProverLog('Prover class instantiated');
 
     addVerifierLog('Instantiate Verifier class');
-    const verifier: TVerifier = await new Verifier({});
+    const verifier: TVerifier = await new Verifier({
+      maxRecvData: 2000
+    });
     addVerifierLog('Verifier class instantiated');
 
     addVerifierLog('Connect verifier to p2p proxy');
@@ -190,8 +193,8 @@ function App(): ReactElement {
             `${recvHeaders[14]}: ${recvHeaders[15]}`,
             `${recvHeaders[16]}: ${recvHeaders[17]}`,
             `${recvHeaders[18]}: ${recvHeaders[19]}`,
-            `"name":"${body.name}"`,
-            `"gender":"${body.gender}"`,
+            `"name": "${body.information.name}"`,
+            `"street": "${body.information.address.street}"`,
           ],
           Buffer.from(recv).toString('utf-8'),
         ),
@@ -222,12 +225,12 @@ function App(): ReactElement {
           This demo showcases peer-to-peer communication between a web prover
           and a web verifier using TLSNotary. The prover fetches data from{' '}
           <a
-            href="https://swapi.dev"
+            href="https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.10/crates/server-fixture/server/src/data/1kb.json"
             target="_blank"
             rel="noopener noreferrer"
             className="underline text-blue-400 hover:text-blue-300"
           >
-            swapi.dev
+            our GitHub repository
           </a>{' '}
           and proves it to the verifier.
         </p>
@@ -240,7 +243,7 @@ function App(): ReactElement {
             {proverMessages.map((m, index) => (
               <span
                 key={index}
-                className="px-3 py-1 text-slate-600 break-words"
+                className="px-3 py-1 text-slate-600 break-all"
               >
                 {m}
               </span>
@@ -254,7 +257,7 @@ function App(): ReactElement {
             {verifierMessages.map((m, index) => (
               <span
                 key={index}
-                className="px-3 py-1 text-slate-600 break-words"
+                className="px-3 py-1 text-slate-600 break-all"
               >
                 {m}
               </span>

@@ -1,7 +1,7 @@
 # Web-to-Web P2P Demo
 
 This project demonstrates a peer-to-peer (P2P) communication between two web clients using TLSNotary.
-The web prover will get data from <https://swapi.dev> and prove it to the web verifier.
+The web prover will get data from <https://raw.githubusercontent.com> and prove it to the web verifier.
 
 In this demo, the two web clients run in the same browser page (`./src/app.tsx`) and communicate via a simple websocket server (`./server/index.js`)
 

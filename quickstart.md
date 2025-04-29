@@ -8,22 +8,22 @@ There is a simple react/typescript demo app in `./demo/react-ts-webpack`. The di
 
 Since a web browser doesn't have the ability to make TCP connection, we need to use a websocket proxy server.
 
-To run your own websocket proxy for `https://swapi.dev` **locally**:
+To run your own websocket proxy for `https://raw.githubusercontent.com` **locally**:
 
-1. Install [websocat](https://github.com/vi/websocat):
+1. Install [wstcp](https://github.com/sile/wstcp):
 
-    | tool   | command                        |
-    | ------ | ------------------------------ |
-    | cargo  | `cargo install websocat`       |
-    | brew   | `brew install websocat`        |
-    | source | https://github.com/vi/websocat |
+    | Tool   | Command                       |
+    | ------ | ----------------------------- |
+    | cargo  | `cargo install wstcp`         |
+    | brew   | `brew install wstcp`          |
+    | source | https://github.com/sile/wstcp |
 
-2. Run a websocket proxy for `https://swapi.dev`:
+2. Run a websocket proxy for `https://raw.githubusercontent.com`:
 ```sh
-websocat --binary -v ws-l:0.0.0.0:55688 tcp:swapi.dev:443
+wstcp --bind-addr 127.0.0.1:55688 raw.githubusercontent.com:443
 ```
 
-Note the `tcp:swapi.dev:443` argument on the last line, this is the server we will use in this quick start.
+Note the `raw.githubusercontent.com:443` argument on the last line, this is the server we will use in this quick start.
 
 ### Run a Local Notary Server <a name="local-notary"></a>
 

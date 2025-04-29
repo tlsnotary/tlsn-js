@@ -37,7 +37,7 @@ The `./demo` folder contains three demos of `tlsn-js`:
 
 ## Running a local websocket proxy
 
-In the demos, we attest data from the `https://swapi.dev` website. Because the browser does not allow for TCP connections, you need to set up a websocket proxy:
+In the demos, we attest data from `https://raw.githubusercontent.com`. Because the browser does not allow for TCP connections, you need to set up a websocket proxy:
 
 1. Install [wstcp](https://github.com/sile/wstcp):
 
@@ -47,11 +47,10 @@ In the demos, we attest data from the `https://swapi.dev` website. Because the b
     | brew   | `brew install wstcp`          |
     | source | https://github.com/sile/wstcp |
 
-2. Run a websocket proxy for `https://swapi.dev`:
+2. Run a websocket proxy for `https://raw.githubusercontent.com`:
 ```sh
-wstcp --bind-addr 127.0.0.1:55688 swapi.dev:443
+wstcp --bind-addr 127.0.0.1:55688 raw.githubusercontent.com:443
 ```
-
 ## Install as NPM Package
 
 ```sh

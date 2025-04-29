@@ -2,7 +2,11 @@ use async_tungstenite::{tokio::connect_async_with_config, tungstenite::protocol:
 use http_body_util::Empty;
 use hyper::{body::Bytes, Request, StatusCode, Uri};
 use hyper_util::rt::TokioIo;
-use regex::Regex;
+use spansy::{
+    http::parse_response,
+    json::{self},
+    Spanned,
+};
 use tlsn_common::config::ProtocolConfig;
 use tlsn_core::transcript::Idx;
 use tlsn_prover::{state::Prove, Prover, ProverConfig};
@@ -23,7 +27,7 @@ const MAX_RECV_DATA: usize = 1 << 14;
 
 const SECRET: &str = "TLSNotary's private key 🤡";
 /// Make sure the following url's domain is the same as SERVER_DOMAIN on the verifier side
-const SERVER_URL: &str = "https://swapi.dev/api/people/1";
+const SERVER_URL: &str = "https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.10/crates/server-fixture/server/src/data/1kb.json";
 
 #[tokio::main]
 async fn main() {
@@ -140,18 +144,27 @@ async fn prover<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(verifier_soc
 /// Redacts and reveals received data to the verifier.
 fn redact_and_reveal_received_data(prover: &mut Prover<Prove>) -> Idx {
     let recv_transcript = prover.transcript().received();
-    let recv_transcript_len = recv_transcript.len();
 
-    // Get the homeworld from the received data.
+    // Get the some information from the received data.
     let received_string = String::from_utf8(recv_transcript.to_vec()).unwrap();
     debug!("Received data: {}", received_string);
-    let re = Regex::new(r#""homeworld"\s?:\s?"(.*?)""#).unwrap();
-    let homeworld_match = re.captures(&received_string).unwrap().get(1).unwrap();
+    let resp = parse_response(recv_transcript).unwrap();
+    let body = resp.body.unwrap();
+    let mut json = json::parse_slice(body.as_bytes()).unwrap();
+    json.offset(body.content.span().indices().min().unwrap());
 
-    // Reveal everything except for the homeworld.
-    let start = homeworld_match.start();
-    let end = homeworld_match.end();
-    Idx::new([0..start, end..recv_transcript_len])
+    let name = json.get("information.name").expect("name field not found");
+
+    let street = json
+        .get("information.address.street")
+        .expect("street field not found");
+
+    let name_start = name.span().indices().min().unwrap() - 9; // 9 is the length of "name: "
+    let name_end = name.span().indices().max().unwrap() + 1; // include `"`
+    let street_start = street.span().indices().min().unwrap() - 11; // 11 is the length of "street: "
+    let street_end = street.span().indices().max().unwrap() + 1; // include `"`
+
+    Idx::new([name_start..name_end + 1, street_start..street_end + 1])
 }
 
 /// Redacts and reveals sent data to the verifier.

@@ -14,11 +14,11 @@ cd prover-rs; cargo run --release
 ```bash
 cd verifier-rs; cargo run --release
 ```
-2. Since a web browser doesn't have the ability to make TCP connection, we need to use a websocket proxy server to access <swapi.dev>.
+2. Since a web browser doesn't have the ability to make TCP connection, we need to use a websocket proxy server to access <raw.githubusercontent.com>.
 ```bash
 cargo install wstcp
 
-wstcp --bind-addr 127.0.0.1:55688 swapi.dev:443
+wstcp --bind-addr 127.0.0.1:55688 raw.githubusercontent.com:443
 ```
 3. Run the prover
     1. Build tlsn-js

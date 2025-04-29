@@ -1,7 +1,6 @@
 name: ci
 
 on:
-  push:
   pull_request:
   release:
     types: [published]
@@ -19,12 +18,12 @@ jobs:
     env:
       RELEASE_MODE: 'dry-run' # dry-run by default, will be set to 'publish' for release builds
     services:
-        notary-server:
-          image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.10
-          env:
-            NOTARY_SERVER__TLS__ENABLED: false
-          ports:
-            - 7047:7047
+      notary-server:
+        image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.10
+        env:
+          NOTARY_SERVER__TLS__ENABLED: false
+        ports:
+          - 7047:7047
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,7 +75,13 @@ jobs:
         run: echo "CHROME_PATH=${{ steps.setup-chrome.outputs['chrome-path'] }}" >> $GITHUB_ENV
 
       - name: Test
-        run: npm run test
+        run: |
+          # Install wstcp and use it in the background
+          cargo install wstcp
+          wstcp --bind-addr 127.0.0.1:55688 raw.githubusercontent.com:443 &
+          WSTCP_PID=$!
+          trap "kill $WSTCP_PID" EXIT
+          npm run test
 
       - name: Determine release type (dry-run or publish)
         run: |
