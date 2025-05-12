@@ -17,8 +17,8 @@ const root = createRoot(container!);
 
 root.render(<App />);
 
-const serverUrl = 'https://swapi.dev/api/people/1';
-// let websocketProxyUrl = 'wss://notary.pse.dev/proxy';
+const serverUrl = 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.10/crates/server-fixture/server/src/data/1kb.json';
+// const websocketProxyUrl = `wss://notary.pse.dev/proxy`;
 const websocketProxyUrl = 'ws://localhost:55688';
 const verifierProxyUrl = 'ws://localhost:9816/verify';
 
@@ -44,7 +44,10 @@ function App(): ReactElement {
       console.time('setup');
       await init({ loggingLevel: 'Info' });
       console.log('Setting up Prover for', hostname);
-      prover = (await new Prover({ serverDns: hostname })) as TProver;
+      prover = (await new Prover({
+        serverDns: hostname,
+        maxRecvData: 2000
+      })) as TProver;
       console.log('Setting up Prover: 1/2');
       await prover.setup(verifierProxyUrl);
       console.log('Setting up Prover: done');
@@ -89,6 +92,8 @@ function App(): ReactElement {
 
       const body = JSON.parse(recvBody[0].toString());
 
+      console.log("test", body.information.address.street);
+
       console.time('reveal');
       const reveal: Commit = {
         sent: subtractRanges(
@@ -110,9 +115,8 @@ function App(): ReactElement {
               `${recvHeaders[14]}: ${recvHeaders[15]}`,
               `${recvHeaders[16]}: ${recvHeaders[17]}`,
               `${recvHeaders[18]}: ${recvHeaders[19]}`,
-              `"name":"${body.name}"`,
-              `"gender":"${body.gender}"`,
-              `"eye_color":"${body.eye_color}"`,
+              `"name": "${body.information.name}"`,
+              `"street": "${body.information.address.street}"`,
             ],
             Buffer.from(recv).toString('utf-8'),
           ),
@@ -203,7 +207,7 @@ function App(): ReactElement {
           <i className="text-gray-500">Not started yet</i>
         ) : !result ? (
           <div className="flex flex-col items-center justify-center">
-            <p className="text-gray-700 mb-2">Proving data from swapi...</p>
+            <p className="text-gray-700 mb-2">Proving data from GitHub...</p>
             <Watch
               visible={true}
               height="40"

@@ -44,7 +44,7 @@ pub async fn run_server(
 ) -> Result<(), eyre::ErrReport> {
     let verifier_address = SocketAddr::new(
         IpAddr::V4(verifier_host.parse().map_err(|err| {
-            eyre!("Failed to parse verifer host address from server config: {err}")
+            eyre!("Failed to parse verifier host address from server config: {err}")
         })?),
         verifier_port,
     );
@@ -153,10 +153,11 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     debug!("Starting received data verification...");
     let received = partial_transcript.received_unsafe().to_vec();
     let response = String::from_utf8(received.clone()).expect("Verifier expected received data");
+
     debug!("Received data: {:?}", response);
     response
-        .find("eye_color")
-        .ok_or_else(|| eyre!("Verification failed: missing eye_color in received data"))?;
+        .find("123 Elm Street")
+        .ok_or_else(|| eyre!("Verification failed: missing data in received data"))?;
     // Check Session info: server name.
     if session_info.server_name.as_str() != server_domain {
         return Err(eyre!("Verification failed: server name mismatches"));

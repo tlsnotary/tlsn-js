@@ -28,7 +28,10 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     })) as _Prover;
     const notary = NotaryServer.from('http://127.0.0.1:7047');
     await prover.setup(await notary.sessionUrl());
-    await prover.sendRequest('wss://notary.pse.dev/proxy?token=raw.githubusercontent.com', {
+    // const websocketProxyUrl = 'wss://notary.pse.dev/proxy?token=raw.githubusercontent.com';
+    const websocketProxyUrl = 'ws://127.0.0.1:55688';
+
+    await prover.sendRequest(websocketProxyUrl, {
       url: 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/heads/main/crates/server-fixture/server/src/data/protected_data.json',
       headers: {
         'content-type': 'application/json',
