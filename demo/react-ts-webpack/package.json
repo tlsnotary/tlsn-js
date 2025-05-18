@@ -5,16 +5,17 @@
   "main": "webpack.js",
   "scripts": {
     "dev": "webpack-dev-server --config webpack.js",
-    "build": "webpack --config webpack.js"
+    "build": "webpack --config webpack.js",
+    "start": "webpack serve --config webpack.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "comlink": "^4.4.1",
     "css-loader": "^7.1.2",
+    "http-parser-js": "^0.5.9",
     "postcss": "^8.4.49",
     "postcss-loader": "^8.1.1",
-    "http-parser-js": "^0.5.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-loader-spinner": "^6.1.6",
@@ -25,6 +26,8 @@
     "tlsn-js": "../../"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^22.15.18",
     "@types/react": "^18.0.26",
     "@types/react-dom": "^18.0.10",
     "babel-loader": "^9.1.3",
