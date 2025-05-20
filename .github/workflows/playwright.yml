@@ -1,27 +1,50 @@
 name: Playwright Tests
 on:
-  push:
-    branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
 jobs:
   test:
     timeout-minutes: 60
+    name: Playwright Tests
     runs-on: ubuntu-latest
+    services:
+      notary-server:
+        image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.10
+        env:
+          NOTARY_SERVER__TLS__ENABLED: false
+        ports:
+          - 7047:7047
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test
+    - name: Test react demo
+      run: |
+        cd  demo/react-ts-webpack
+        npm i
+        npm run build
+        npx playwright install --with-deps
+        npx playwright test
+
+    - name: Test interactive verifier demo
+      run: |
+        cd demo/interactive-demo/verifier-rs
+        cargo build --release
+        cd ../prover-ts
+        npm i
+        npx playwright install --with-deps
+        npx playwright test
+
+    - name: Test web-to-web p2p demo
+      run: |
+        cd demo/web-to-web-p2p
+        npm i
+        npx playwright install --with-deps
+        npx playwright test
+
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
         name: playwright-report
-        path: playwright-report/
+        path: '**/playwright-report/'
         retention-days: 30

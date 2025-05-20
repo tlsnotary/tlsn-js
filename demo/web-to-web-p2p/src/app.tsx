@@ -243,6 +243,7 @@ function App(): ReactElement {
             {proverMessages.map((m, index) => (
               <span
                 key={index}
+                data-testid="prover-data"
                 className="px-3 py-1 text-slate-600 break-all"
               >
                 {m}
@@ -257,6 +258,7 @@ function App(): ReactElement {
             {verifierMessages.map((m, index) => (
               <span
                 key={index}
+                data-testid="verifier-data"
                 className="px-3 py-1 text-slate-600 break-all"
               >
                 {m}
@@ -271,7 +273,7 @@ function App(): ReactElement {
             disabled={!ready || started}
             onClick={start}
           >
-            <div className="flex items-center">
+            <div data-testid="start" className="flex items-center">
               {ready && !started ? (
                 <>Start Demo</>
               ) : (
