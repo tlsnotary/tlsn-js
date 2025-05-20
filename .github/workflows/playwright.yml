@@ -23,14 +23,16 @@ jobs:
     - name: install wstcp
       run: cargo install wstcp
     - name: Test react demo
+      working-directory: demo/react-ts-webpack
       run: |
-        cd  demo/react-ts-webpack
+        set -e
         npm i
         npm run build
         npx playwright install --with-deps chromium
         npx playwright test
     - name: Test interactive verifier demo
       run: |
+        set -e
         cd demo/interactive-demo/verifier-rs
         cargo build --release
         cd ../prover-ts
@@ -38,8 +40,9 @@ jobs:
         npx playwright install --with-deps chromium
         npx playwright test
     - name: Test web-to-web p2p demo
+      working-directory: demo/react-ts-webpack
       run: |
-        cd demo/web-to-web-p2p
+        set -e
         npm i
         npx playwright install --with-deps chromium
         npx playwright test
