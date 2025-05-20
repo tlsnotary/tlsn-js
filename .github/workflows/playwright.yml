@@ -27,7 +27,7 @@ jobs:
         cd  demo/react-ts-webpack
         npm i
         npm run build
-        npx playwright install --with-deps
+        npx playwright install --with-deps chromium
         npx playwright test
     - name: Test interactive verifier demo
       run: |
@@ -35,13 +35,13 @@ jobs:
         cargo build --release
         cd ../prover-ts
         npm i
-        npx playwright install --with-deps
+        npx playwright install --with-deps chromium
         npx playwright test
     - name: Test web-to-web p2p demo
       run: |
         cd demo/web-to-web-p2p
         npm i
-        npx playwright install --with-deps
+        npx playwright install --with-deps chromium
         npx playwright test
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}

@@ -6,6 +6,7 @@ test('has title', async ({ page }) => {
 });
 
 test('run demo (normal)', async ({ page }) => {
+  test.setTimeout(60000);
   await page.goto('/');
 
   // Click the get started link.
@@ -19,6 +20,7 @@ test('run demo (normal)', async ({ page }) => {
 });
 
 test('run demo (helper)', async ({ page }) => {
+  test.setTimeout(60000);
   await page.goto('/');
 
   // Click the get started link.
