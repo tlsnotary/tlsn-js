@@ -19,9 +19,9 @@ jobs:
       with:
         node-version: lts/*
     - name: build tlsn-js
-      run: |
-        npm ci
-        npm run build
+      run: npm ci; npm run build
+    - name: install wstcp
+      run: cargo install wstcp
     - name: Test react demo
       run: |
         cd  demo/react-ts-webpack
