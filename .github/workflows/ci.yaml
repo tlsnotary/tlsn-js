@@ -62,6 +62,9 @@ jobs:
       - name: install wstcp
         run: cargo install wstcp
 
+      - name: Install Chromium (Playwright)
+        run: npx playwright install --with-deps chromium
+
       - name: Test
         run: npm run test
 

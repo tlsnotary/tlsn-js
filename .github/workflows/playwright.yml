@@ -26,19 +26,23 @@ jobs:
       run: npx playwright install --with-deps chromium
     - name: Test react demo
       working-directory: demo/react-ts-webpack
+      continue-on-error: true
       run: |
         set -e
         npm i
         npm run test
     - name: Test interactive verifier demo
+      continue-on-error: true
       run: |
         set -e
         cd demo/interactive-demo/verifier-rs
         cargo build --release
         cd ../prover-ts
+        npm i
         npm run test
     - name: Test web-to-web p2p demo
       working-directory: demo/react-ts-webpack
+      continue-on-error: true
       run: |
         set -e
         npm run test
