@@ -1,10 +1,10 @@
-name: Playwright Tests
+name: Tests demos
 on:
   pull_request:
 jobs:
   test:
     timeout-minutes: 60
-    name: Playwright Tests
+    name: Tests demos
     runs-on: ubuntu-latest
     services:
       notary-server:
