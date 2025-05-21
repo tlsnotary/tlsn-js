@@ -5,12 +5,6 @@ on:
   release:
     types: [published]
 
-env:
-  LOCAL-NOTARY: true
-  LOCAL-WS: false
-  HEADLESS: true
-  PUPPETEER_SKIP_DOWNLOAD: true
-
 jobs:
   build-and-test:
     name: Build and test
@@ -37,7 +31,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
 
       - name: Install stable nightly toolchain
@@ -61,27 +55,15 @@ jobs:
           
       - name: Build
         run: npm run build
-          
+
       - name: Lint
         run: npm run lint
-      
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
-        id: setup-chrome
-        with:
-          chrome-version: 121.0.6167.85
 
-      - name: Set CHROME_PATH environment variable
-        run: echo "CHROME_PATH=${{ steps.setup-chrome.outputs['chrome-path'] }}" >> $GITHUB_ENV
+      - name: install wstcp
+        run: cargo install wstcp
 
       - name: Test
-        run: |
-          # Install wstcp and use it in the background
-          cargo install wstcp
-          wstcp --bind-addr 127.0.0.1:55688 raw.githubusercontent.com:443 &
-          WSTCP_PID=$!
-          trap "kill $WSTCP_PID" EXIT
-          npm run test
+        run: npm run test
 
       - name: Determine release type (dry-run or publish)
         run: |
