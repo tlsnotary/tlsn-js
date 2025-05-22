@@ -86,7 +86,7 @@ module.exports = [
       ),
       // Add an index page listing all test pages
       new HtmlWebpackPlugin({
-        templateContent: ({ htmlWebpackPlugin }) => `
+        templateContent: () => `
           <!DOCTYPE html>
           <html>
             <head>

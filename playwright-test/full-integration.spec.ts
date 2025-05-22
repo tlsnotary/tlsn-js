@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { time } from 'console';
 
 test('full-integration', async ({ page }) => {
   // log browser console messages
