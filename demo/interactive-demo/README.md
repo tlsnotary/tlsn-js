@@ -9,6 +9,7 @@ cd verifier-rs; cargo run --release
 cd prover-rs; cargo run --release
 ```
 
+
 # Test Browser Prover
 1. Start the verifier:
 ```bash
@@ -33,6 +34,6 @@ wstcp --bind-addr 127.0.0.1:55688 raw.githubusercontent.com:443
         cd prover-ts
         npm i
         npm link
-        npm run dev
+        npm run test
         ```
     3. Open <http://localhost:8080/> and click **Start Prover**
