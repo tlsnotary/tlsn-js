@@ -10,6 +10,7 @@ import initWasm, {
   Prover as WasmProver,
   type ProverConfig,
   type Method,
+  NetworkSetting,
   VerifierConfig,
   VerifierOutput,
   VerifyingKey,
@@ -19,7 +20,7 @@ import initWasm, {
   PartialTranscript,
 } from 'tlsn-wasm';
 import { arrayToHex, expect, headerToMap, hexToArray } from './utils';
-import { PresentationJSON } from './types';
+import { PresentationJSON, } from './types';
 import { Buffer } from 'buffer';
 import { Transcript, subtractRanges, mapStringToRange } from './transcript';
 
@@ -79,6 +80,9 @@ export class Prover {
     maxSentData?: number;
     maxRecvData?: number;
     maxRecvDataOnline?: number;
+    maxSentRecords?: number,
+    maxRecvRecords?: number,
+    network?: NetworkSetting
     deferDecryptionFromStart?: boolean;
     commit?: Commit;
   }): Promise<PresentationJSON> {
@@ -90,6 +94,9 @@ export class Prover {
       maxSentData = 1024,
       maxRecvData = 1024,
       maxRecvDataOnline,
+      maxSentRecords,
+      maxRecvRecords,
+      network = 'Latency',
       deferDecryptionFromStart,
       notaryUrl,
       websocketProxyUrl,
@@ -103,6 +110,9 @@ export class Prover {
       max_recv_data: maxRecvData,
       max_recv_data_online: maxRecvDataOnline,
       defer_decryption_from_start: deferDecryptionFromStart,
+      max_sent_records: maxSentRecords,
+      max_recv_records: maxRecvRecords,
+      network: network,
     });
 
     await prover.setup(await notary.sessionUrl(maxSentData, maxRecvData));
@@ -143,6 +153,9 @@ export class Prover {
     maxRecvData?: number;
     maxRecvDataOnline?: number;
     deferDecryptionFromStart?: boolean;
+    max_sent_records?: number,
+    max_recv_records?: number,
+    network?: NetworkSetting
   }) {
     this.#config = {
       server_name: config.serverDns,
@@ -150,6 +163,9 @@ export class Prover {
       max_sent_data: config.maxSentData || 1024,
       max_recv_data_online: config.maxRecvDataOnline,
       defer_decryption_from_start: config.deferDecryptionFromStart,
+      max_sent_records: config.max_sent_records,
+      max_recv_records: config.max_recv_records,
+      network: config.network || 'Latency',
     };
     this.#prover = new WasmProver(this.#config);
   }
@@ -263,10 +279,12 @@ export class Verifier {
   #config: VerifierConfig;
   #verifier: WasmVerifier;
 
-  constructor(config: { maxSentData?: number; maxRecvData?: number }) {
+  constructor(config: { maxSentData?: number; maxRecvData?: number; maxSentRecords?: number; maxRecvRecords?: number }) {
     this.#config = {
       max_recv_data: config.maxRecvData || 1024,
       max_sent_data: config.maxSentData || 1024,
+      max_sent_records: config.maxSentRecords,
+      max_recv_records: config.maxRecvRecords,
     };
     this.#verifier = new WasmVerifier(this.#config);
   }
