@@ -107,16 +107,7 @@ npm run notary
 
 1. Create a `new-test.spec.ts` file in the `test/` directory.
 2. Add your spec file to the `entry` object in `webpack.web.dev.config.js`.
-3. Update `test/test.ejs` with a block like:
-
-    ```html
-    <div>
-      Testing "new-test":
-      <div id="new-test" data-testid="new-test"></div>
-    </div>
-    ```
-
-    The `div` ID must match the filename.
+3. Create a corresponding `new-test.spec.ts` file in the `playwright-test/` directory.
 
 4. Add an `expect()` call for it in `tests/test.spec.ts`.
 

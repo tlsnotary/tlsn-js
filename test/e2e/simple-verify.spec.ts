@@ -2,7 +2,6 @@ import { Presentation as _Presentation } from '../../src/lib';
 // import { assert } from '../utils';
 import * as Comlink from 'comlink';
 import { Transcript } from '../../src/lib';
-import { assert } from '../utils';
 
 const { init, Presentation }: any = Comlink.wrap(
   // @ts-ignore
@@ -26,16 +25,11 @@ const { init, Presentation }: any = Comlink.wrap(
     const sent = transcript.sent();
     const recv = transcript.recv();
 
-    console.log('sent', sent);
-    console.log('recv', recv);
-
-    assert(sent.includes('host: raw.githubusercontent.com'));
-
-    assert(recv.includes('"name": "John Doe"'));
-    assert(recv.includes('"city": "Anytown"'));
-
     // @ts-ignore
-    document.getElementById('simple-verify').textContent = 'OK';
+    document.getElementById('simple-verify').textContent = JSON.stringify({
+      sent,
+      recv
+    }, null, 2);
   } catch (err) {
     console.log('caught error from wasm');
     console.error(err);

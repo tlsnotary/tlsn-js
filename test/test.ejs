@@ -5,19 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="/manifest.json">
-    <title>tlsn-js development</title>
+    <title>
+        Testing <%= htmlWebpackPlugin.options.testName || 'test' %>
+    </title>
 </head>
 
 <body>
     <script>
         global = globalThis //<- this should be enough
     </script>
-    <div>Testing "full-integration":
-        <div id="full-integration" data-testid="full-integration"></div>
-    </div>
-    <div>Testing "simple-verify":
-        <div id="simple-verify" data-testid="simple-verify"></div>
-    </div>
+    <h1>Testing "<%= htmlWebpackPlugin.options.testName || 'unknown' %>":</h1>
+    <pre>
+        <div id="<%= htmlWebpackPlugin.options.testName || 'test' %>"
+            data-testid="<%= htmlWebpackPlugin.options.testName || 'test' %>">
+        </div>
+    </pre>
 </body>
 
 </html>

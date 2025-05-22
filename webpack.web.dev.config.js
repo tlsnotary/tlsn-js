@@ -33,14 +33,17 @@ const rules = [
 
 const rendererRules = [];
 
+const entry = {
+  'full-integration': path.join(__dirname, 'test', 'e2e', 'full-integration.spec.ts'),
+  'simple-verify': path.join(__dirname, 'test', 'e2e', 'simple-verify.spec.ts'),
+  // add more entries as needed
+};
+
 module.exports = [
   {
     target: 'web',
     mode: isProd ? 'production' : 'development',
-    entry: {
-      'full-integration.spec': path.join(__dirname, 'test', 'e2e', 'full-integration.spec.ts'),
-      'simple-verify': path.join(__dirname, 'test', 'e2e', 'simple-verify.spec.ts'),
-    },
+    entry,
     output: {
       path: __dirname + '/test-build',
       publicPath: '/',
@@ -49,25 +52,6 @@ module.exports = [
     devtool: 'source-map',
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.jsx', '.png', '.svg'],
-      // modules: [
-      //   path.resolve('./node_modules'),
-      //   path.resolve(__dirname, compilerOptions.baseUrl),
-      // ],
-      // fallback: {
-      //   browserify: require.resolve('browserify'),
-      //   stream: require.resolve('stream-browserify'),
-      //   path: require.resolve('path-browserify'),
-      //   crypto: require.resolve('crypto-browserify'),
-      //   os: require.resolve('os-browserify/browser'),
-      //   http: require.resolve('stream-http'),
-      //   https: require.resolve('https-browserify'),
-      //   assert: require.resolve('assert/'),
-      //   events: require.resolve('events/'),
-      //   'ansi-html-community': require.resolve('ansi-html-community'),
-      //   'html-entities': require.resolve('html-entities'),
-      //   constants: false,
-      //   fs: false,
-      // },
     },
     module: {
       rules: [...rules, ...rendererRules],
@@ -89,10 +73,41 @@ module.exports = [
           },
         ],
       }),
+      // Generate an HTML file for each entry
+      ...Object.keys(entry).map(
+        (name) =>
+          new HtmlWebpackPlugin({
+            template: './test/test.ejs',
+            filename: `${name}.html`,
+            chunks: [name],
+            inject: true,
+            testName: name,
+          })
+      ),
+      // Add an index page listing all test pages
       new HtmlWebpackPlugin({
-        template: './test/test.ejs',
-        filename: `index.html`,
-        inject: true,
+        templateContent: ({ htmlWebpackPlugin }) => `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="UTF-8">
+              <title>tlsn-js test index</title>
+            </head>
+            <body>
+              <h1>tlsn-js test index</h1>
+              <ul>
+                ${Object.keys(entry)
+            .map(
+              (name) =>
+                `<li><a href="${name}.html">${name}</a></li>`
+            )
+            .join('\n')}
+              </ul>
+            </body>
+          </html>
+        `,
+        filename: 'index.html',
+        inject: false,
       }),
     ],
     stats: 'minimal',
