@@ -2,14 +2,15 @@ use async_tungstenite::{tokio::connect_async_with_config, tungstenite::protocol:
 use http_body_util::Empty;
 use hyper::{body::Bytes, Request, StatusCode, Uri};
 use hyper_util::rt::TokioIo;
+use rangeset::RangeSet;
 use spansy::{
     http::parse_response,
     json::{self},
     Spanned,
 };
 use tlsn_common::config::ProtocolConfig;
-use tlsn_core::transcript::Idx;
-use tlsn_prover::{state::Prove, Prover, ProverConfig};
+use tlsn_core::ProveConfig;
+use tlsn_prover::{Prover, ProverConfig};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
 use tracing::{debug, info};
@@ -129,22 +130,27 @@ async fn prover<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(verifier_soc
     assert!(response.status() == StatusCode::OK);
 
     // Create proof for the Verifier.
-    let mut prover = prover_task.await.unwrap().unwrap().start_prove();
+    let mut prover = prover_task.await.unwrap().unwrap();
 
-    let idx_sent = redact_and_reveal_sent_data(&mut prover);
-    let idx_recv = redact_and_reveal_received_data(&mut prover);
+    let mut builder: tlsn_core::ProveConfigBuilder<'_> = ProveConfig::builder(prover.transcript());
 
-    // Reveal parts of the transcript
-    prover.prove_transcript(idx_sent, idx_recv).await.unwrap();
+    // Reveal the DNS name.
+    builder.server_identity();
 
-    // Finalize.
-    prover.finalize().await.unwrap()
+    let idx_sent = redact_and_reveal_sent_data(prover.transcript().sent());
+    let _ = builder.reveal_sent(&idx_sent);
+
+    let idx_recv = redact_and_reveal_received_data(prover.transcript().received());
+    let _ = builder.reveal_recv(&idx_recv);
+
+    let config = builder.build().unwrap();
+
+    prover.prove(&config).await.unwrap();
+    prover.close().await.unwrap();
 }
 
 /// Redacts and reveals received data to the verifier.
-fn redact_and_reveal_received_data(prover: &mut Prover<Prove>) -> Idx {
-    let recv_transcript = prover.transcript().received();
-
+fn redact_and_reveal_received_data(recv_transcript: &[u8]) -> RangeSet<usize> {
     // Get the some information from the received data.
     let received_string = String::from_utf8(recv_transcript.to_vec()).unwrap();
     debug!("Received data: {}", received_string);
@@ -164,12 +170,11 @@ fn redact_and_reveal_received_data(prover: &mut Prover<Prove>) -> Idx {
     let street_start = street.span().indices().min().unwrap() - 11; // 11 is the length of "street: "
     let street_end = street.span().indices().max().unwrap() + 1; // include `"`
 
-    Idx::new([name_start..name_end + 1, street_start..street_end + 1])
+    [name_start..name_end + 1, street_start..street_end + 1].into()
 }
 
 /// Redacts and reveals sent data to the verifier.
-fn redact_and_reveal_sent_data(prover: &mut Prover<Prove>) -> Idx {
-    let sent_transcript = prover.transcript().sent();
+fn redact_and_reveal_sent_data(sent_transcript: &[u8]) -> RangeSet<usize> {
     let sent_transcript_len = sent_transcript.len();
 
     let sent_string: String = String::from_utf8(sent_transcript.to_vec()).unwrap();
@@ -178,8 +183,9 @@ fn redact_and_reveal_sent_data(prover: &mut Prover<Prove>) -> Idx {
     debug!("Send data: {}", sent_string);
 
     // Reveal everything except for the SECRET.
-    Idx::new([
+    [
         0..secret_start,
         secret_start + SECRET.len()..sent_transcript_len,
-    ])
+    ]
+    .into()
 }

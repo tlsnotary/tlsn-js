@@ -29,3 +29,4 @@ tlsn-core = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha
 tlsn-prover = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.11", package = "tlsn-prover" }
 tlsn-common = { git = "https://github.com/tlsnotary/tlsn.git", tag = "v0.1.0-alpha.11", package = "tlsn-common" }
 spansy = {git = "https://github.com/tlsnotary/tlsn-utils", package = "spansy", branch = "dev"}
+rangeset = "0.2.0"

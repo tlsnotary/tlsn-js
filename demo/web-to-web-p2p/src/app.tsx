@@ -207,8 +207,8 @@ function App(): ReactElement {
     addVerifierLog('Verification completed');
 
     const t = new Transcript({
-      sent: result.transcript.sent,
-      recv: result.transcript.recv,
+      sent: result.transcript?.sent || [],
+      recv: result.transcript?.recv || [],
     });
 
     addVerifierLog('Verified data:');

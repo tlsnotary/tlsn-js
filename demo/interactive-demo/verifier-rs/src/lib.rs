@@ -13,7 +13,8 @@ use std::{
     sync::Arc,
 };
 use tlsn_common::config::ProtocolConfigValidator;
-use tlsn_verifier::{SessionInfo, Verifier, VerifierConfig};
+use tlsn_core::{connection::ServerName, VerifyConfig};
+use tlsn_verifier::{Verifier, VerifierConfig};
 
 use tokio::{
     io::{AsyncRead, AsyncWrite},
@@ -119,7 +120,7 @@ async fn handle_socket(socket: WebSocket, verifier_globals: VerifierGlobals) {
 async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     socket: T,
     server_domain: &str,
-) -> Result<(String, String, SessionInfo), eyre::ErrReport> {
+) -> Result<(String, String, ServerName), eyre::ErrReport> {
     debug!("Starting verification...");
 
     // Setup Verifier.
@@ -138,7 +139,17 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     // Verify MPC-TLS and wait for (redacted) data.
     debug!("Starting MPC-TLS verification...");
     // Verify MPC-TLS and wait for (redacted) data.
-    let (mut partial_transcript, session_info) = verifier.verify(socket.compat()).await.unwrap();
+    let verify_config = VerifyConfig::default();
+    let verifier_output = verifier
+        .verify(socket.compat(), &verify_config)
+        .await
+        .unwrap();
+
+    let mut partial_transcript = verifier_output.transcript.unwrap();
+    let server_name = verifier_output.server_name.unwrap();
+
+    // verifier_output.transcript.set
+    // let (mut partial_transcript, session_info) =
     partial_transcript.set_unauthed(0);
 
     // Check sent data: check host.
@@ -159,14 +170,14 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
         .find("123 Elm Street")
         .ok_or_else(|| eyre!("Verification failed: missing data in received data"))?;
     // Check Session info: server name.
-    if session_info.server_name.as_str() != server_domain {
+    if server_name.as_str() != server_domain {
         return Err(eyre!("Verification failed: server name mismatches"));
     }
 
     let sent_string = bytes_to_redacted_string(&sent)?;
     let received_string = bytes_to_redacted_string(&received)?;
 
-    Ok((sent_string, received_string, session_info))
+    Ok((sent_string, received_string, server_name))
 }
 
 /// Render redacted bytes as `🙈`.
