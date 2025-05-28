@@ -96,7 +96,7 @@ export class Prover {
       maxRecvDataOnline,
       maxSentRecords,
       maxRecvRecords,
-      network = 'Latency',
+      network = 'Bandwidth',
       deferDecryptionFromStart,
       notaryUrl,
       websocketProxyUrl,

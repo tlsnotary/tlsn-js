@@ -24,7 +24,7 @@
     "lint:tsc": "tsc --noEmit",
     "lint": "concurrently npm:lint:tsc npm:lint:eslint",
     "test": "playwright test",
-    "notary": "docker run --platform=linux/amd64 -p 7047:7047 --rm ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.11 notary-server --tls-enabled=false"
+    "notary": "docker run --platform=linux/amd64 -p 7047:7047 --rm ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.11 notary-server"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
