@@ -13,7 +13,7 @@ use std::{
     sync::Arc,
 };
 use tlsn_common::config::ProtocolConfigValidator;
-use tlsn_core::VerifyConfig;
+use tlsn_core::{VerifierOutput, VerifyConfig};
 use tlsn_verifier::{Verifier, VerifierConfig};
 
 use tokio::{
@@ -136,25 +136,25 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
         .unwrap();
     let verifier = Verifier::new(verifier_config);
 
-    // Verify MPC-TLS and wait for (redacted) data.
+    // Receive authenticated data.
     debug!("Starting MPC-TLS verification...");
-    // Verify MPC-TLS and wait for (redacted) data.
+
     let verify_config = VerifyConfig::default();
-    let verifier_output = verifier
+    let VerifierOutput {
+        server_name,
+        transcript,
+        ..
+    } = verifier
         .verify(socket.compat(), &verify_config)
         .await
         .unwrap();
 
-    let mut partial_transcript = verifier_output.transcript.unwrap();
-    let server_name = verifier_output.server_name;
-
-    // verifier_output.transcript.set
-    // let (mut partial_transcript, session_info) =
-    partial_transcript.set_unauthed(0);
+    let server_name = server_name.expect("prover should have revealed server name");
+    let transcript = transcript.expect("prover should have revealed transcript data");
 
     // Check sent data: check host.
     debug!("Starting sent data verification...");
-    let sent = partial_transcript.sent_unsafe().to_vec();
+    let sent = transcript.sent_unsafe().to_vec();
     let sent_data = String::from_utf8(sent.clone()).expect("Verifier expected sent data");
     sent_data
         .find(server_domain)
@@ -162,22 +162,16 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
 
     // Check received data: check json and version number.
     debug!("Starting received data verification...");
-    let received = partial_transcript.received_unsafe().to_vec();
+    let received = transcript.received_unsafe().to_vec();
     let response = String::from_utf8(received.clone()).expect("Verifier expected received data");
 
     debug!("Received data: {:?}", response);
     response
         .find("123 Elm Street")
         .ok_or_else(|| eyre!("Verification failed: missing data in received data"))?;
+
     // Check Session info: server name.
-    if let Some(server_name) = server_name {
-        if server_name.as_str() != server_domain {
-            return Err(eyre!("Verification failed: server name mismatches"));
-        }
-    } else {
-        // TODO
-        // return Err(eyre!("Verification failed: server name is missing"));
-    }
+    assert_eq!(server_name.as_str(), server_domain);
 
     let sent_string = bytes_to_redacted_string(&sent)?;
     let received_string = bytes_to_redacted_string(&received)?;

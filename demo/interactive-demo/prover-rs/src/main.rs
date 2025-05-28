@@ -137,11 +137,11 @@ async fn prover<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(verifier_soc
     // Reveal the DNS name.
     builder.server_identity();
 
-    let idx_sent = redact_and_reveal_sent_data(prover.transcript().sent());
-    let _ = builder.reveal_sent(&idx_sent);
+    let sent_rangeset = redact_and_reveal_sent_data(prover.transcript().sent());
+    let _ = builder.reveal_sent(&sent_rangeset);
 
-    let idx_recv = redact_and_reveal_received_data(prover.transcript().received());
-    let _ = builder.reveal_recv(&idx_recv);
+    let recv_rangeset = redact_and_reveal_received_data(prover.transcript().received());
+    let _ = builder.reveal_recv(&recv_rangeset);
 
     let config = builder.build().unwrap();
 
