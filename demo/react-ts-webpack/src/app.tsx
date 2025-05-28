@@ -170,8 +170,8 @@ function App(): ReactElement {
         const notaryKey = await notary.publicKey('hex');
         const verifierOutput = await proof.verify();
         const transcript = new Transcript({
-          sent: verifierOutput.transcript.sent,
-          recv: verifierOutput.transcript.recv,
+          sent: verifierOutput.transcript!.sent,
+          recv: verifierOutput.transcript!.recv,
         });
         const vk = await proof.verifyingKey();
         setResult({
@@ -201,7 +201,7 @@ function App(): ReactElement {
         </p>
         <p>
           <a
-            href="https://docs.tlsnotary.org/quick_start/tlsn-js.html"
+            href="https://tlsnotary.org/docs/quick_start/tlsn-js/"
             className="text-blue-500 hover:underline"
           >
             More info
