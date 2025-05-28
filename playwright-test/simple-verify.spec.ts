@@ -17,4 +17,7 @@ test('simple verify', async ({ page }) => {
   expect(recv).toContain('"name": "John Doe"');
   expect(recv).toContain('"city": "Anytown"');
   expect(recv).toContain('"id": **********,');
+  // assert(recv.includes('"postalCode": "12345"'));
+  // assert(recv.includes('"city": "Anytown"'));
+
 });
