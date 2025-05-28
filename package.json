@@ -1,6 +1,6 @@
 {
   "name": "tlsn-js",
-  "version": "0.1.0-alpha.10.0",
+  "version": "0.1.0-alpha.11.0",
   "description": "",
   "repository": "https://github.com/tlsnotary/tlsn-js",
   "main": "build/lib.js",
@@ -16,7 +16,7 @@
     "build:src": "webpack --config webpack.build.config.js",
     "build:types": "tsc --project tsconfig.compile.json",
     "build:lib": "NODE_ENV=production concurrently npm:build:src npm:build:types",
-    "build:wasm": "sh tlsn-wasm/build.sh v0.1.0-alpha.10",
+    "build:wasm": "sh tlsn-wasm/build.sh v0.1.0-alpha.11",
     "build": "npm run build:lib",
     "watch:dev": "webpack --config webpack.web.dev.config.js --watch",
     "dev": "concurrently npm:watch:dev npm:serve:test",
@@ -24,7 +24,7 @@
     "lint:tsc": "tsc --noEmit",
     "lint": "concurrently npm:lint:tsc npm:lint:eslint",
     "test": "playwright test",
-    "notary": "docker run --platform=linux/amd64 -p 7047:7047 --rm ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.10 notary-server --tls-enabled=false"
+    "notary": "docker run --platform=linux/amd64 -p 7047:7047 --rm ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.11 notary-server --tls-enabled=false"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
@@ -67,6 +67,6 @@
     "node": ">= 16.20.2"
   },
   "dependencies": {
-    "tlsn-wasm": "0.1.0-alpha.10"
+    "tlsn-wasm": "0.1.0-alpha.11"
   }
 }

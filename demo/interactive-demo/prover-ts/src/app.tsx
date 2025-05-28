@@ -17,7 +17,7 @@ const root = createRoot(container!);
 
 root.render(<App />);
 
-const serverUrl = 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.10/crates/server-fixture/server/src/data/1kb.json';
+const serverUrl = 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.11/crates/server-fixture/server/src/data/1kb.json';
 // const websocketProxyUrl = `wss://notary.pse.dev/proxy`;
 const websocketProxyUrl = 'ws://localhost:55688';
 const verifierProxyUrl = 'ws://localhost:9816/verify';

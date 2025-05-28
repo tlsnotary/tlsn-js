@@ -27,7 +27,7 @@ const MAX_RECV_DATA: usize = 1 << 14;
 
 const SECRET: &str = "TLSNotary's private key 🤡";
 /// Make sure the following url's domain is the same as SERVER_DOMAIN on the verifier side
-const SERVER_URL: &str = "https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.10/crates/server-fixture/server/src/data/1kb.json";
+const SERVER_URL: &str = "https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.11/crates/server-fixture/server/src/data/1kb.json";
 
 #[tokio::main]
 async fn main() {

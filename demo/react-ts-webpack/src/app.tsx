@@ -26,13 +26,13 @@ root.render(<App />);
 const local = true; // Toggle between local and remote notary
 const notaryUrl = local
   ? 'http://localhost:7047'
-  : 'https://notary.pse.dev/v0.1.0-alpha.10';
+  : 'https://notary.pse.dev/v0.1.0-alpha.11';
 const websocketProxyUrl = local
   ? 'ws://localhost:55688'
   : 'wss://notary.pse.dev/proxy?token=raw.githubusercontent.com';
 const loggingLevel = 'Info'; // https://github.com/tlsnotary/tlsn/blob/main/crates/wasm/src/log.rs#L8
 
-const serverUrl = 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.10/crates/server-fixture/server/src/data/1kb.json';
+const serverUrl = 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.11/crates/server-fixture/server/src/data/1kb.json';
 const serverDns = 'raw.githubusercontent.com';
 
 function App(): ReactElement {

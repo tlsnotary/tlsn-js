@@ -138,7 +138,7 @@ export class Prover {
     const presentation = build_presentation(attestation, secrets, commit);
 
     return {
-      version: '0.1.0-alpha.10',
+      version: '0.1.0-alpha.11',
       data: arrayToHex(presentation.serialize()),
       meta: {
         notaryUrl: notary.normalizeUrl(),
@@ -349,7 +349,7 @@ export class Presentation {
 
   async json(): Promise<PresentationJSON> {
     return {
-      version: '0.1.0-alpha.10',
+      version: '0.1.0-alpha.11',
       data: await this.serialize(),
       meta: {
         notaryUrl: this.#notaryUrl
