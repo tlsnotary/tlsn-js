@@ -43,7 +43,7 @@ async fn main() {
 async fn run_prover(verifier_host: &str, verifier_port: u16, server_uri: &str) {
     info!("Sending websocket request...");
     let request = http::Request::builder()
-        .uri(format!("ws://{}:{}/verify", verifier_host, verifier_port,))
+        .uri(format!("ws://{verifier_host}:{verifier_port}/verify",))
         .header("Host", verifier_host)
         .header("Sec-WebSocket-Key", uuid::Uuid::new_v4().to_string())
         .header("Sec-WebSocket-Version", "13")

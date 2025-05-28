@@ -109,7 +109,7 @@ async fn handle_socket(socket: WebSocket, verifier_globals: VerifierGlobals) {
         Ok((sent, received, _session_info)) => {
             info!("Successfully verified {}", &verifier_globals.server_domain);
             info!("Verified sent data:\n{}", sent,);
-            println!("Verified received data:\n{}", received,);
+            println!("Verified received data:\n{received}",);
         }
         Err(err) => {
             error!("Failed verification using websocket: {err}");
