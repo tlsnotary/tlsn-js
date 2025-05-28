@@ -165,7 +165,7 @@ export class Prover {
       defer_decryption_from_start: config.deferDecryptionFromStart,
       max_sent_records: config.max_sent_records,
       max_recv_records: config.max_recv_records,
-      network: config.network || 'Latency',
+      network: config.network || 'Bandwidth',
     };
     this.#prover = new WasmProver(this.#config);
   }

@@ -13,7 +13,7 @@ use std::{
     sync::Arc,
 };
 use tlsn_common::config::ProtocolConfigValidator;
-use tlsn_core::{connection::ServerName, VerifyConfig};
+use tlsn_core::VerifyConfig;
 use tlsn_verifier::{Verifier, VerifierConfig};
 
 use tokio::{
@@ -106,7 +106,7 @@ async fn handle_socket(socket: WebSocket, verifier_globals: VerifierGlobals) {
     let stream = WsStream::new(socket.into_inner());
 
     match verifier(stream, &verifier_globals.server_domain).await {
-        Ok((sent, received, _session_info)) => {
+        Ok((sent, received)) => {
             info!("Successfully verified {}", &verifier_globals.server_domain);
             info!("Verified sent data:\n{}", sent,);
             println!("Verified received data:\n{received}",);
@@ -120,7 +120,7 @@ async fn handle_socket(socket: WebSocket, verifier_globals: VerifierGlobals) {
 async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     socket: T,
     server_domain: &str,
-) -> Result<(String, String, ServerName), eyre::ErrReport> {
+) -> Result<(String, String), eyre::ErrReport> {
     debug!("Starting verification...");
 
     // Setup Verifier.
@@ -146,7 +146,7 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
         .unwrap();
 
     let mut partial_transcript = verifier_output.transcript.unwrap();
-    let server_name = verifier_output.server_name.unwrap();
+    let server_name = verifier_output.server_name;
 
     // verifier_output.transcript.set
     // let (mut partial_transcript, session_info) =
@@ -170,14 +170,19 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
         .find("123 Elm Street")
         .ok_or_else(|| eyre!("Verification failed: missing data in received data"))?;
     // Check Session info: server name.
-    if server_name.as_str() != server_domain {
-        return Err(eyre!("Verification failed: server name mismatches"));
+    if let Some(server_name) = server_name {
+        if server_name.as_str() != server_domain {
+            return Err(eyre!("Verification failed: server name mismatches"));
+        }
+    } else {
+        // TODO
+        // return Err(eyre!("Verification failed: server name is missing"));
     }
 
     let sent_string = bytes_to_redacted_string(&sent)?;
     let received_string = bytes_to_redacted_string(&received)?;
 
-    Ok((sent_string, received_string, server_name))
+    Ok((sent_string, received_string))
 }
 
 /// Render redacted bytes as `🙈`.
