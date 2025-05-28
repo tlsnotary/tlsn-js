@@ -140,6 +140,7 @@ function App(): ReactElement {
     const proof = await (Prover.notarize as typeof TProver.notarize)({
       notaryUrl: notaryUrl,
       websocketProxyUrl: websocketProxyUrl,
+      maxRecvData: 2048,
       url: serverUrl,
       method: 'GET',
       headers: {
@@ -285,7 +286,7 @@ function App(): ReactElement {
               <summary className="cursor-pointer text-slate-600">
                 View Proof
               </summary>
-              <pre
+              <pre data-testid="proof-data"
                 className="mt-2 p-2 bg-slate-100 rounded text-sm text-slate-800 overflow-auto"
                 style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
               >
@@ -301,7 +302,7 @@ function App(): ReactElement {
           ) : !result ? (
             <i className="text-slate-500">verifying</i>
           ) : (
-            <pre
+            <pre data-testid="verify-data"
               className="mt-2 p-2 bg-slate-100 rounded text-sm text-slate-800 overflow-auto"
               style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
             >

@@ -224,7 +224,7 @@ function App(): ReactElement {
           </div>
         ) : (
           <div className="bg-gray-100 border border-gray-300 p-4 rounded-lg mt-4">
-            <pre className="text-left text-sm text-gray-800 whitespace-pre-wrap overflow-auto">
+            <pre data-testid="proof-data" className="text-left text-sm text-gray-800 whitespace-pre-wrap overflow-auto">
               {JSON.stringify(result, null, 2)}
             </pre>
           </div>

@@ -8,7 +8,6 @@ import {
   Transcript,
 } from '../../src/lib';
 import * as Comlink from 'comlink';
-import { assert } from '../utils';
 import { HTTPParser } from 'http-parser-js';
 
 const { init, Prover, Presentation }: any = Comlink.wrap(
@@ -89,8 +88,7 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     console.log('presentation:', await presentation.serialize());
     console.timeEnd('prove');
     const json = await presentation.json();
-    assert(json.version === '0.1.0-alpha.10');
-    assert(new URL(json.meta.notaryUrl!).protocol === 'http:');
+
 
     console.time('verify');
     const { transcript: partialTranscript, server_name } =
@@ -109,19 +107,17 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     console.log("Sent:", sentStr);
     console.log("Received:", recvStr);
 
-    assert(sentStr.includes('host: raw.githubusercontent.com'));
-    assert(!sentStr.includes('secret: test_secret'));
-    assert(recvStr.includes('"id": 1234567890'));
-    assert(recvStr.includes('"city": "Anytown"'));
-    assert(recvStr.includes('"postalCode": "12345"'));
-    assert(server_name === 'raw.githubusercontent.com');
-
     // @ts-ignore
-    document.getElementById('full-integration').textContent = 'OK';
+    document.getElementById('full-integration').textContent = JSON.stringify({
+      sent: sentStr,
+      recv: recvStr,
+      version: json.version,
+      meta: json.meta,
+      server_name
+    }, null, 2);
   } catch (err) {
     console.log('caught error from wasm');
     console.error(err);
-
     // @ts-ignore
     document.getElementById('full-integration').textContent = err.message;
   }

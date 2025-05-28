@@ -4,7 +4,9 @@
   "description": "",
   "main": "webpack.js",
   "scripts": {
-    "dev": "webpack-dev-server --config webpack.js"
+    "dev": "webpack-dev-server --config webpack.js",
+    "start": "webpack serve --config webpack.js",
+    "test": "npx playwright test"
   },
   "author": "",
   "license": "ISC",

@@ -12,7 +12,7 @@ In this demo, the two web clients run in the same browser page (`./src/app.tsx`)
     npm i
     npm run dev
 ```
-2. Open <http://localhost:3456/>
+2. Open <http://localhost:8080/>
 3. Click the **Start Demo** button
 
 The Prover window logs the Prover's output, the Verifier logs the Verifier's output. In the console view you can see the websocket log.

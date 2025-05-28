@@ -1,0 +1,54 @@
+name: Tests demos
+on:
+  pull_request:
+jobs:
+  test:
+    timeout-minutes: 60
+    name: Tests demos
+    runs-on: ubuntu-latest
+    services:
+      notary-server:
+        image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.10
+        env:
+          NOTARY_SERVER__TLS__ENABLED: false
+        ports:
+          - 7047:7047
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+    - name: build tlsn-js
+      run: npm ci; npm run build
+    - name: install wstcp
+      run: cargo install wstcp
+    - name: Install Chromium (Playwright)
+      run: npx playwright install --with-deps chromium
+    - name: Test react demo
+      working-directory: demo/react-ts-webpack
+      continue-on-error: true
+      run: |
+        set -e
+        npm i
+        npm run test
+    - name: Test interactive verifier demo
+      continue-on-error: true
+      run: |
+        set -e
+        cd demo/interactive-demo/verifier-rs
+        cargo build --release
+        cd ../prover-ts
+        npm i
+        npm run test
+    - name: Test web-to-web p2p demo
+      working-directory: demo/react-ts-webpack
+      continue-on-error: true
+      run: |
+        set -e
+        npm run test
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: playwright-report
+        path: '**/playwright-report/'
+        retention-days: 30

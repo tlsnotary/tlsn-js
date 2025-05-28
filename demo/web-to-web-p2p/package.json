@@ -7,7 +7,9 @@
     "dev:server": "node ./server/index.js",
     "dev:ui": "webpack-dev-server --config webpack.js",
     "dev": "concurrently npm:dev:ui npm:dev:server",
-    "build": "webpack --config webpack.js"
+    "build": "webpack --config webpack.js",
+    "start:ui": "webpack serve --config webpack.js",
+    "test": "npm run build && npx playwright test"
   },
   "author": "",
   "license": "ISC",

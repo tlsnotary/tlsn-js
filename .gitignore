@@ -7,3 +7,9 @@ test-build/
 ./demo/node_modules
 utils/tlsn
 .vscode
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
