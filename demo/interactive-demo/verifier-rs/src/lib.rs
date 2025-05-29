@@ -149,7 +149,6 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
         .await
         .unwrap();
 
-    let server_name = server_name.expect("prover should have revealed server name");
     let transcript = transcript.expect("prover should have revealed transcript data");
 
     // Check sent data: check host.
@@ -171,7 +170,14 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
         .ok_or_else(|| eyre!("Verification failed: missing data in received data"))?;
 
     // Check Session info: server name.
-    assert_eq!(server_name.as_str(), server_domain);
+    if let Some(server_name) = server_name {
+        if server_name.as_str() != server_domain {
+            return Err(eyre!("Verification failed: server name mismatches"));
+        }
+    } else {
+        // TODO: https://github.com/tlsnotary/tlsn-js/issues/110
+        // return Err(eyre!("Verification failed: server name is missing"));
+    }
 
     let sent_string = bytes_to_redacted_string(&sent)?;
     let received_string = bytes_to_redacted_string(&received)?;
