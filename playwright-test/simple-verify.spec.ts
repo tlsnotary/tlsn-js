@@ -14,7 +14,8 @@ test('simple verify', async ({ page }) => {
   const { sent, recv } = JSON.parse(json);
 
   expect(sent).toContain('host: raw.githubusercontent.com');
-  expect(recv).toContain('"name": "John Doe"');
+  expect(recv).toContain('*******************');
   expect(recv).toContain('"city": "Anytown"');
-  expect(recv).toContain('"id": **********,');
+  expect(recv).toContain('"id": 1234567890');
+  expect(recv).toContain('"postalCode": "12345"');
 });

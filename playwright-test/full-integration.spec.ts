@@ -13,7 +13,7 @@ test('full-integration', async ({ page }) => {
   const json = await page.getByTestId('full-integration').innerText();
   const { sent, recv, server_name, version, meta } = JSON.parse(json);
 
-  expect(version).toBe('0.1.0-alpha.10');
+  expect(version).toBe('0.1.0-alpha.11');
   expect(new URL(meta.notaryUrl!).protocol === 'http:');
   expect(server_name).toBe('raw.githubusercontent.com');
 

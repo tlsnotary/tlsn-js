@@ -23,7 +23,8 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     console.time('prove');
     const prover = (await new Prover({
       serverDns: 'raw.githubusercontent.com',
-      maxRecvData: 1700
+      maxRecvData: 1700,
+      network: "Bandwidth",
     })) as _Prover;
     const notary = NotaryServer.from('http://127.0.0.1:7047');
     await prover.setup(await notary.sessionUrl());
