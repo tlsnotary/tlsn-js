@@ -17,19 +17,11 @@ export class Transcript {
   }
 
   recv(redactedSymbol = '*') {
-    return this.#recv.reduce((recv: string, num) => {
-      recv =
-        recv + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
-      return recv;
-    }, '');
+    return bytesToUtf8(substituteRedactions(this.#recv, redactedSymbol));
   }
 
   sent(redactedSymbol = '*') {
-    return this.#sent.reduce((sent: string, num) => {
-      sent =
-        sent + (num === 0 ? redactedSymbol : Buffer.from([num]).toString());
-      return sent;
-    }, '');
+    return bytesToUtf8(substituteRedactions(this.#sent, redactedSymbol));
   }
 
   text = (redactedSymbol = '*') => {
@@ -100,4 +92,16 @@ function indexOfString(str: string, substr: string): number {
 
 function bytesSize(str: string): number {
   return Buffer.from(str).byteLength;
+}
+
+function bytesToUtf8(array: number[]): string {
+  return Buffer.from(array).toString("utf8");
+}
+
+function substituteRedactions(
+  array: number[],
+  redactedSymbol: string = "*",
+): number[] {
+  const replaceCharByte = redactedSymbol.charCodeAt(0);
+  return array.map((byte) => (byte === 0 ? replaceCharByte : byte));
 }
