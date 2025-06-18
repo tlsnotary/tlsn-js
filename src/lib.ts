@@ -78,13 +78,14 @@ export class Prover {
     };
     body?: unknown;
     maxSentData?: number;
+    maxSentRecords?: number,
     maxRecvData?: number;
     maxRecvDataOnline?: number;
-    maxSentRecords?: number,
-    maxRecvRecords?: number,
+    maxRecvRecordsOnline?: number,
     network?: NetworkSetting
     deferDecryptionFromStart?: boolean;
     commit?: Commit;
+    clientAuth?: [Buffer[], Buffer]
   }): Promise<PresentationJSON> {
     const {
       url,
@@ -92,27 +93,29 @@ export class Prover {
       headers = {},
       body,
       maxSentData = 1024,
+      maxSentRecords,
       maxRecvData = 1024,
       maxRecvDataOnline,
-      maxSentRecords,
-      maxRecvRecords,
+      maxRecvRecordsOnline,
       network = 'Bandwidth',
       deferDecryptionFromStart,
       notaryUrl,
       websocketProxyUrl,
       commit: _commit,
+      clientAuth,
     } = options;
     const hostname = new URL(url).hostname;
     const notary = NotaryServer.from(notaryUrl);
     const prover = new WasmProver({
       server_name: hostname,
       max_sent_data: maxSentData,
+      max_sent_records: maxSentRecords,
       max_recv_data: maxRecvData,
       max_recv_data_online: maxRecvDataOnline,
+      max_recv_records_online: maxRecvRecordsOnline,
       defer_decryption_from_start: deferDecryptionFromStart,
-      max_sent_records: maxSentRecords,
-      max_recv_records: maxRecvRecords,
       network: network,
+      client_auth: clientAuth,
     });
 
     await prover.setup(await notary.sessionUrl(maxSentData, maxRecvData));
@@ -150,22 +153,24 @@ export class Prover {
   constructor(config: {
     serverDns: string;
     maxSentData?: number;
+    maxSentRecords?: number,
     maxRecvData?: number;
     maxRecvDataOnline?: number;
+    maxRecvRecordsOnline?: number,
     deferDecryptionFromStart?: boolean;
-    max_sent_records?: number,
-    max_recv_records?: number,
     network?: NetworkSetting
+    clientAuth?: [Buffer[], Buffer],
   }) {
     this.#config = {
       server_name: config.serverDns,
-      max_recv_data: config.maxRecvData || 1024,
       max_sent_data: config.maxSentData || 1024,
+      max_sent_records: config.maxSentRecords,
+      max_recv_data: config.maxRecvData || 1024,
       max_recv_data_online: config.maxRecvDataOnline,
+      max_recv_records_online: config.maxRecvRecordsOnline,
       defer_decryption_from_start: config.deferDecryptionFromStart,
-      max_sent_records: config.max_sent_records,
-      max_recv_records: config.max_recv_records,
       network: config.network || 'Bandwidth',
+      client_auth: config.clientAuth
     };
     this.#prover = new WasmProver(this.#config);
   }
@@ -279,12 +284,12 @@ export class Verifier {
   #config: VerifierConfig;
   #verifier: WasmVerifier;
 
-  constructor(config: { maxSentData?: number; maxRecvData?: number; maxSentRecords?: number; maxRecvRecords?: number }) {
+  constructor(config: { maxSentData?: number; maxRecvData?: number; maxSentRecords?: number; maxRecvRecordsOnline?: number }) {
     this.#config = {
       max_recv_data: config.maxRecvData || 1024,
       max_sent_data: config.maxSentData || 1024,
       max_sent_records: config.maxSentRecords,
-      max_recv_records: config.maxRecvRecords,
+      max_recv_records_online: config.maxRecvRecordsOnline,
     };
     this.#verifier = new WasmVerifier(this.#config);
   }
