@@ -13,7 +13,7 @@ jobs:
       RELEASE_MODE: 'dry-run' # dry-run by default, will be set to 'publish' for release builds
     services:
       notary-server:
-        image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.11
+        image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.12
         ports:
           - 7047:7047
     steps:

@@ -6,6 +6,7 @@ import {
   mapStringToRange,
   subtractRanges,
   Transcript,
+  Reveal,
 } from '../../src/lib';
 import * as Comlink from 'comlink';
 import { HTTPParser } from 'http-parser-js';
@@ -79,10 +80,14 @@ const { init, Prover, Presentation }: any = Comlink.wrap(
     };
     console.log(commit);
     const notarizationOutput = await prover.notarize(commit);
+    const reveal: Reveal = {
+      ...commit,
+      server_identity: false,
+    };
     const presentation = (await new Presentation({
       attestationHex: notarizationOutput.attestation,
       secretsHex: notarizationOutput.secrets,
-      reveal: commit,
+      reveal: reveal,
       notaryUrl: notary.url,
       websocketProxyUrl: 'wss://notary.pse.dev/proxy',
     })) as _Presentation;

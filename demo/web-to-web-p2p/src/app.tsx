@@ -29,7 +29,7 @@ let verifierLogs: string[] = [];
 const p2pProxyUrl = 'ws://localhost:3001';
 const serverDns = 'raw.githubusercontent.com';
 const webSocketProxy = `wss://notary.pse.dev/proxy?token=${serverDns}`;
-const requestUrl = `https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.11/crates/server-fixture/server/src/data/1kb.json`;
+const requestUrl = `https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.12/crates/server-fixture/server/src/data/1kb.json`;
 
 function App(): ReactElement {
   const [ready, setReady] = useState(false);
@@ -200,7 +200,7 @@ function App(): ReactElement {
         ),
       ],
     };
-    await prover.reveal(commit);
+    await prover.reveal({ ...commit, server_identity: false });
     addProverLog('Data revealed to verifier');
 
     const result = await verified;
@@ -225,7 +225,7 @@ function App(): ReactElement {
           This demo showcases peer-to-peer communication between a web prover
           and a web verifier using TLSNotary. The prover fetches data from{' '}
           <a
-            href="https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.11/crates/server-fixture/server/src/data/1kb.json"
+            href="https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.12/crates/server-fixture/server/src/data/1kb.json"
             target="_blank"
             rel="noopener noreferrer"
             className="underline text-blue-400 hover:text-blue-300"

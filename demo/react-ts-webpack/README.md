@@ -76,4 +76,3 @@ If you want to use the hosted PSE notary and proxy:
    Go to [http://localhost:8080](http://localhost:8080)
 4. **Click the "Start demo" button**
 5. **Open Developer Tools** and monitor the console logs
-œœ
