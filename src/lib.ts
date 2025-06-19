@@ -160,7 +160,7 @@ export class Prover {
     maxRecvRecordsOnline?: number,
     deferDecryptionFromStart?: boolean;
     network?: NetworkSetting
-    clientAuth?: [Buffer[], Buffer],
+    clientAuth?: [number[][], number[]] | undefined,
   }) {
     this.#config = {
       server_name: config.serverDns,
@@ -334,6 +334,7 @@ export class Presentation {
         params.reveal || {
           sent: [{ start: 0, end: transcript.sent.length }],
           recv: [{ start: 0, end: transcript.recv.length }],
+          server_identity: false,
         },
       );
       this.#websocketProxyUrl = params.websocketProxyUrl;
