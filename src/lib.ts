@@ -85,7 +85,7 @@ export class Prover {
     network?: NetworkSetting
     deferDecryptionFromStart?: boolean;
     commit?: Commit;
-    clientAuth?: [Buffer[], Buffer]
+    clientAuth?: [number[][], number[]];
   }): Promise<PresentationJSON> {
     const {
       url,
