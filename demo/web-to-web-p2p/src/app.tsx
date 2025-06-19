@@ -200,7 +200,7 @@ function App(): ReactElement {
         ),
       ],
     };
-    await prover.reveal(commit);
+    await prover.reveal({ ...commit, server_identity: false });
     addProverLog('Data revealed to verifier');
 
     const result = await verified;

@@ -51,7 +51,7 @@ If you want to use the hosted PSE notary and proxy:
 1. Open `app.tsx` in your editor.
 2. Replace the notary URL:
     ```ts
-    notaryUrl: 'https://notary.pse.dev/v0.1.0-alpha.12',
+    notaryUrl: 'https://notary.pse.dev/v0.1.0-alpha.11',
     ```
     This uses the [PSE](https://pse.dev) notary server to notarize the API request. You can use a different or [local notary](#run-a-local-notary-server); a local server will be faster due to the high bandwidth and low network latency.
 3. Replace the websocket proxy URL:
@@ -76,4 +76,3 @@ If you want to use the hosted PSE notary and proxy:
    Go to [http://localhost:8080](http://localhost:8080)
 4. **Click the "Start demo" button**
 5. **Open Developer Tools** and monitor the console logs
-œœ

@@ -127,7 +127,7 @@ function App(): ReactElement {
       secretsHex: notarizationOutputs.secrets,
       notaryUrl: notarizationOutputs.notaryUrl,
       websocketProxyUrl: notarizationOutputs.websocketProxyUrl,
-      reveal: commit,
+      reveal: { ...commit, server_identity: false },
     })) as TPresentation;
 
     console.log(await presentation.serialize());

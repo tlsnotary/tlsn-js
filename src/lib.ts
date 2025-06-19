@@ -138,7 +138,8 @@ export class Prover {
 
     const { attestation, secrets } = await prover.notarize(commit);
 
-    const presentation = build_presentation(attestation, secrets, commit);
+    const reveal: Reveal = { ...commit, server_identity: false }
+    const presentation = build_presentation(attestation, secrets, reveal);
 
     return {
       version: '0.1.0-alpha.12',

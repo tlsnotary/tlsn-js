@@ -6,7 +6,7 @@ import { Prover as TProver } from 'tlsn-js';
 import { type Method } from 'tlsn-wasm';
 import './app.scss';
 import { HTTPParser } from 'http-parser-js';
-import { Commit, mapStringToRange, subtractRanges } from 'tlsn-js';
+import { Reveal, mapStringToRange, subtractRanges } from 'tlsn-js';
 
 const { init, Prover }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
@@ -95,7 +95,7 @@ function App(): ReactElement {
       console.log("test", body.information.address.street);
 
       console.time('reveal');
-      const reveal: Commit = {
+      const reveal: Reveal = {
         sent: subtractRanges(
           { start: 0, end: sent.length },
           mapStringToRange(
@@ -121,6 +121,7 @@ function App(): ReactElement {
             Buffer.from(recv).toString('utf-8'),
           ),
         ],
+        server_identity: true,
       };
       console.log('Start reveal:', reveal);
       await prover.reveal(reveal);
