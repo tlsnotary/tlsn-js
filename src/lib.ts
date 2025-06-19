@@ -85,6 +85,7 @@ export class Prover {
     network?: NetworkSetting
     deferDecryptionFromStart?: boolean;
     commit?: Commit;
+    serverIdentity?: boolean
     clientAuth?: [number[][], number[]];
   }): Promise<PresentationJSON> {
     const {
@@ -102,6 +103,7 @@ export class Prover {
       notaryUrl,
       websocketProxyUrl,
       commit: _commit,
+      serverIdentity = false,
       clientAuth,
     } = options;
     const hostname = new URL(url).hostname;
@@ -138,7 +140,7 @@ export class Prover {
 
     const { attestation, secrets } = await prover.notarize(commit);
 
-    const reveal: Reveal = { ...commit, server_identity: false }
+    const reveal: Reveal = { ...commit, server_identity: serverIdentity }
     const presentation = build_presentation(attestation, secrets, reveal);
 
     return {
