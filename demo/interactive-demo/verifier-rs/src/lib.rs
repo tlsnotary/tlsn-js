@@ -132,15 +132,7 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
         .build()
         .unwrap();
 
-    let root_store = RootCertStore {
-        roots: webpki_roots::TLS_SERVER_ROOTS
-            .iter()
-            .map(|ta| CertificateDer(ta.subject.as_ref().to_vec()))
-            .collect(),
-    };
-
     let verifier_config = VerifierConfig::builder()
-        .root_store(root_store)
         .protocol_config_validator(config_validator)
         .build()
         .unwrap();
