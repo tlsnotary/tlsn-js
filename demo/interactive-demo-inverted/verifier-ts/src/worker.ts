@@ -1,7 +1,7 @@
 import * as Comlink from 'comlink';
-import init, { Prover } from 'tlsn-js';
+import init, { Verifier } from 'tlsn-js';
 
 Comlink.expose({
   init,
-  Prover,
+  Verifier,
 });

@@ -36,9 +36,9 @@ use ws_stream_tungstenite::WsStream;
 mod axum_websocket;
 
 // Maximum number of bytes that can be sent from prover to server
-const MAX_SENT_DATA: usize = 1 << 12;
+const MAX_SENT_DATA: usize = 2048;
 // Maximum number of bytes that can be received by prover from server
-const MAX_RECV_DATA: usize = 1 << 14;
+const MAX_RECV_DATA: usize = 4096;
 
 const SECRET: &str = "TLSNotary's private key 🤡";
 

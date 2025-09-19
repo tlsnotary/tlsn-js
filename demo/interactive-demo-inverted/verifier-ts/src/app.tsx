@@ -2,13 +2,18 @@ import React, { ReactElement, useCallback, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Comlink from 'comlink';
 import { Watch } from 'react-loader-spinner';
-import { Prover as TProver } from 'tlsn-js';
+import {
+  Prover as TProver,
+  Verifier as TVerifier,
+  Commit,
+  Transcript,
+} from 'tlsn-js';
 import { type Method } from 'tlsn-wasm';
 import './app.scss';
 import { HTTPParser } from 'http-parser-js';
 import { Reveal, mapStringToRange, subtractRanges } from 'tlsn-js';
 
-const { init, Prover }: any = Comlink.wrap(
+const { init, Verifier }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
 );
 
@@ -19,130 +24,69 @@ root.render(<App />);
 
 const serverUrl = 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.12/crates/server-fixture/server/src/data/1kb.json';
 // const websocketProxyUrl = `wss://notary.pse.dev/proxy`;
-const websocketProxyUrl = 'ws://localhost:55688';
-const verifierProxyUrl = 'ws://localhost:9816/verify';
+const proverProxyUrl = 'ws://localhost:9816/prove';
 
 function App(): ReactElement {
+  const [ready, setReady] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+
+  // Initialize TLSNotary
+  React.useEffect(() => {
+    (async () => {
+      await init({ loggingLevel: 'Info' });
+      setReady(true);
+      console.log('tlsn init ready');
+    })();
+  }, []);
 
   const onClick = useCallback(async () => {
     setProcessing(true);
 
-    const url = serverUrl;
-    const method: Method = 'GET';
-    const headers = {
-      secret: "TLSNotary's private key",
-      'Content-Type': 'application/json',
-    };
-    const body = {};
-
-    const hostname = new URL(url).hostname;
-
-    let prover: TProver;
+    let verifier: TVerifier;
     try {
-      console.time('setup');
-      await init({ loggingLevel: 'Info' });
-      console.log('Setting up Prover for', hostname);
-      prover = (await new Prover({
-        serverDns: hostname,
-        maxRecvData: 2000
-      })) as TProver;
-      console.log('Setting up Prover: 1/2');
-      await prover.setup(verifierProxyUrl);
-      console.log('Setting up Prover: done');
-      console.timeEnd('setup');
-    } catch (error) {
-      const msg = `Error setting up prover: ${error}`;
-      console.error(msg);
-      setResult(msg);
+      console.log('Setting up Verifier');
+      verifier = await new Verifier({
+        maxSentData: 2048,
+        maxRecvData: 4096
+      });
+      console.log('Verifier class instantiated');
+      await verifier.connect(proverProxyUrl);
+      console.log('Connecting verifier to p2p proxy: done');
+    } catch (e: any) {
+      console.error('Error setting up verifier', e);
+      console.error('Error connecting verifier to p2p proxy', e);
       setProcessing(false);
       return;
     }
 
-    let transcript;
-    try {
-      console.time('request');
-      console.log('Sending request to proxy');
+    await new Promise((r) => setTimeout(r, 2000));
 
-      const resp = await prover.sendRequest(
-        `${websocketProxyUrl}?token=${hostname}`,
-        { url, method, headers, body },
-      );
-      console.log('Response:', resp);
-      console.log('Wait for transcript');
-      transcript = await prover.transcript();
-      console.log('Transcript:', transcript);
-      console.timeEnd('request');
-    } catch (error) {
-      const msg = `Error sending request: ${error}`;
-      console.error(msg);
-      setResult(msg);
-      setProcessing(false);
-      return;
-    }
+    console.log('Start verifier');
+    // This needs to be called before we send the request
+    // This starts the verifier and makes it wait for the prover to send the request
+    const verified = verifier.verify();
+    const result = await verified;
+    console.log('Verification completed');
 
-    try {
-      const { sent, recv } = transcript;
-      const {
-        info: recvInfo,
-        headers: recvHeaders,
-        body: recvBody,
-      } = parseHttpMessage(Buffer.from(recv), 'response');
+    const t = new Transcript({
+      sent: result.transcript?.sent || [],
+      recv: result.transcript?.recv || [],
+    });
 
-      const body = JSON.parse(recvBody[0].toString());
-
-      console.log("test", body.information.address.street);
-
-      console.time('reveal');
-      const reveal: Reveal = {
-        sent: subtractRanges(
-          { start: 0, end: sent.length },
-          mapStringToRange(
-            ['secret: test_secret'],
-            Buffer.from(sent).toString('utf-8'),
-          ),
-        ),
-        recv: [
-          ...mapStringToRange(
-            [
-              recvInfo,
-              `${recvHeaders[4]}: ${recvHeaders[5]}\r\n`,
-              `${recvHeaders[6]}: ${recvHeaders[7]}\r\n`,
-              `${recvHeaders[8]}: ${recvHeaders[9]}\r\n`,
-              `${recvHeaders[10]}: ${recvHeaders[11]}\r\n`,
-              `${recvHeaders[12]}: ${recvHeaders[13]}`,
-              `${recvHeaders[14]}: ${recvHeaders[15]}`,
-              `${recvHeaders[16]}: ${recvHeaders[17]}`,
-              `${recvHeaders[18]}: ${recvHeaders[19]}`,
-              `"name": "${body.information.name}"`,
-              `"street": "${body.information.address.street}"`,
-            ],
-            Buffer.from(recv).toString('utf-8'),
-          ),
-        ],
-        server_identity: true,
-      };
-      console.log('Start reveal:', reveal);
-      await prover.reveal(reveal);
-      console.timeEnd('reveal');
-    } catch (error) {
-      console.dir(error);
-      console.error('Error during data reveal:', error);
-      setResult(`${error}`);
-      setProcessing(false);
-      return;
-    }
+    console.log('Verified data:');
+    console.log(`transcript.sent: ${t.sent()}`);
+    console.log(`transcript.recv: ${t.recv()}`);
 
     console.log('Ready');
 
     console.log('Unredacted data:', {
-      sent: transcript.sent,
-      received: transcript.recv,
+      sent: t.sent(),
+      received: t.recv(),
     });
 
     setResult(
-      "Unredacted data successfully revealed to Verifier. Check the Verifier's console output to see what exactly was shared and revealed.",
+      t.recv(),
     );
 
     setProcessing(false);
@@ -152,14 +96,14 @@ function App(): ReactElement {
     <div className="flex flex-col items-center justify-center w-full min-h-screen bg-gray-50 p-4">
       <h1 className="text-4xl font-bold text-slate-500 mb-2">TLSNotary</h1>
       <span className="text-lg text-gray-600 mb-4">
-        Interactive Prover Demo
+        Interactive Verifier Demo
       </span>
 
       <div className="text-center text-gray-700 mb-6">
         <p>
-          Before clicking the <span className="font-semibold">Start</span>{' '}
-          button, make sure the <i>interactive verifier</i> and the{' '}
-          <i>web socket proxy</i> are running.
+          Before clicking the <span className="font-semibold">Verify</span>{' '}
+          button, make sure the <i>interactive Prover</i> is running.<br />
+          (This demo does not require a proxy server.)
         </p>
         <p>
           Check the{' '}
@@ -181,13 +125,10 @@ function App(): ReactElement {
               <td className="border px-4 py-2">{serverUrl}</td>
             </tr>
             <tr>
-              <td className="border px-4 py-2">Verifier</td>
-              <td className="border px-4 py-2">{verifierProxyUrl}</td>
+              <td className="border px-4 py-2">Prover</td>
+              <td className="border px-4 py-2">{proverProxyUrl}</td>
             </tr>
-            <tr>
-              <td className="border px-4 py-2">WebSocket Proxy</td>
-              <td className="border px-4 py-2">{websocketProxyUrl}</td>
-            </tr>
+
           </tbody>
         </table>
       </div>
@@ -199,11 +140,11 @@ function App(): ReactElement {
           ${processing ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}
         `}
       >
-        Start Prover
+        Verify Prover Server
       </button>
 
       <div className="mt-6 w-full max-w-3xl text-center">
-        <b className="text-lg font-medium text-gray-800">Proof: </b>
+        <b className="text-lg font-medium text-gray-800">Verified data: </b>
         {!processing && !result ? (
           <i className="text-gray-500">Not started yet</i>
         ) : !result ? (

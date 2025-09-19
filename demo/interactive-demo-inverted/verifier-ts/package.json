@@ -1,5 +1,5 @@
 {
-  "name": "prover-ts",
+  "name": "verifier-ts",
   "version": "1.0.0",
   "description": "",
   "main": "webpack.js",

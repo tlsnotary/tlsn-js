@@ -18,9 +18,9 @@ const TRACING_FILTER: &str = "INFO";
 const PROVER_HOST: &str = "localhost";
 const PROVER_PORT: u16 = 9816;
 // Maximum number of bytes that can be sent from prover to server
-const MAX_SENT_DATA: usize = 1 << 12;
+const MAX_SENT_DATA: usize = 2048;
 // Maximum number of bytes that can be received by prover from server
-const MAX_RECV_DATA: usize = 1 << 14;
+const MAX_RECV_DATA: usize = 4096;
 
 /// Make sure the following url's domain is the same as SERVER_DOMAIN on the prover side
 const SERVER_DOMAIN: &str = "raw.githubusercontent.com";
