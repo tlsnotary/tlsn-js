@@ -13,7 +13,7 @@ use std::{
     sync::Arc,
 };
 use tlsn::{
-    config::{CertificateDer, ProtocolConfigValidator, RootCertStore},
+    config::ProtocolConfigValidator,
     connection::ServerName,
     verifier::{Verifier, VerifierConfig, VerifierOutput, VerifyConfig},
 };
