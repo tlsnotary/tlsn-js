@@ -8,9 +8,11 @@ use spansy::{
     json::{self},
     Spanned,
 };
-use tlsn_common::config::ProtocolConfig;
-use tlsn_core::ProveConfig;
-use tlsn_prover::{Prover, ProverConfig};
+use tlsn::{
+    config::ProtocolConfig,
+    connection::{DnsName, ServerName},
+    prover::{ProveConfig, ProveConfigBuilder, Prover, ProverConfig},
+};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
 use tracing::{debug, info};
@@ -73,23 +75,25 @@ async fn prover<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(verifier_soc
 
     // Create prover and connect to verifier.
     //
+    // Set up protocol configuration for prover.
+    let mut prover_config_builder = ProverConfig::builder();
+    prover_config_builder
+        .server_name(ServerName::Dns(server_domain.try_into().unwrap()))
+        .protocol_config(
+            ProtocolConfig::builder()
+                .max_sent_data(MAX_SENT_DATA)
+                .max_recv_data(MAX_RECV_DATA)
+                .build()
+                .unwrap(),
+        );
+    let prover_config = prover_config_builder.build().unwrap();
+    // Create prover and connect to verifier.
+    //
     // Perform the setup phase with the verifier.
-    let prover = Prover::new(
-        ProverConfig::builder()
-            .server_name(server_domain)
-            .protocol_config(
-                ProtocolConfig::builder()
-                    .max_sent_data(MAX_SENT_DATA)
-                    .max_recv_data(MAX_RECV_DATA)
-                    .build()
-                    .unwrap(),
-            )
-            .build()
-            .unwrap(),
-    )
-    .setup(verifier_socket.compat())
-    .await
-    .unwrap();
+    let prover = Prover::new(prover_config)
+        .setup(verifier_socket.compat())
+        .await
+        .unwrap();
 
     // Connect to TLS Server.
     let tls_client_socket = tokio::net::TcpStream::connect((server_domain, server_port))
@@ -132,7 +136,7 @@ async fn prover<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(verifier_soc
     // Create proof for the Verifier.
     let mut prover = prover_task.await.unwrap().unwrap();
 
-    let mut builder: tlsn_core::ProveConfigBuilder<'_> = ProveConfig::builder(prover.transcript());
+    let mut builder: ProveConfigBuilder<'_> = ProveConfig::builder(prover.transcript());
 
     // Reveal the DNS name.
     builder.server_identity();

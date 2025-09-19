@@ -12,9 +12,11 @@ use std::{
     net::{IpAddr, SocketAddr},
     sync::Arc,
 };
-use tlsn_common::config::ProtocolConfigValidator;
-use tlsn_core::{VerifierOutput, VerifyConfig};
-use tlsn_verifier::{Verifier, VerifierConfig};
+use tlsn::{
+    config::{CertificateDer, ProtocolConfigValidator, RootCertStore},
+    connection::ServerName,
+    verifier::{Verifier, VerifierConfig, VerifierOutput, VerifyConfig},
+};
 
 use tokio::{
     io::{AsyncRead, AsyncWrite},
@@ -130,7 +132,15 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
         .build()
         .unwrap();
 
+    let root_store = RootCertStore {
+        roots: webpki_roots::TLS_SERVER_ROOTS
+            .iter()
+            .map(|ta| CertificateDer(ta.subject.as_ref().to_vec()))
+            .collect(),
+    };
+
     let verifier_config = VerifierConfig::builder()
+        .root_store(root_store)
         .protocol_config_validator(config_validator)
         .build()
         .unwrap();
@@ -139,16 +149,16 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     // Receive authenticated data.
     debug!("Starting MPC-TLS verification...");
 
-    let verify_config = VerifyConfig::default();
     let VerifierOutput {
         server_name,
         transcript,
         ..
     } = verifier
-        .verify(socket.compat(), &verify_config)
+        .verify(socket.compat(), &VerifyConfig::default())
         .await
         .unwrap();
 
+    let server_name = server_name.expect("prover should have revealed server name");
     let transcript = transcript.expect("prover should have revealed transcript data");
 
     // Check sent data: check host.
@@ -170,13 +180,9 @@ async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
         .ok_or_else(|| eyre!("Verification failed: missing data in received data"))?;
 
     // Check Session info: server name.
-    if let Some(server_name) = server_name {
-        if server_name.as_str() != server_domain {
-            return Err(eyre!("Verification failed: server name mismatches"));
-        }
-    } else {
-        // TODO: https://github.com/tlsnotary/tlsn-js/issues/110
-        // return Err(eyre!("Verification failed: server name is missing"));
+    let ServerName::Dns(dns_name) = server_name;
+    if dns_name.as_str() != server_domain {
+        return Err(eyre!("Verification failed: server name mismatches"));
     }
 
     let sent_string = bytes_to_redacted_string(&sent)?;
