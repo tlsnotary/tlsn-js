@@ -34,6 +34,7 @@ use tracing::{debug, error, info};
 use ws_stream_tungstenite::WsStream;
 
 mod axum_websocket;
+pub mod verifier;
 
 // Maximum number of bytes that can be sent from prover to server
 const MAX_SENT_DATA: usize = 2048;
