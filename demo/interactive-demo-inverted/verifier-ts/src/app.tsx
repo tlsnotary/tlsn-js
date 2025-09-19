@@ -2,16 +2,9 @@ import React, { ReactElement, useCallback, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Comlink from 'comlink';
 import { Watch } from 'react-loader-spinner';
-import {
-  Prover as TProver,
-  Verifier as TVerifier,
-  Commit,
-  Transcript,
-} from 'tlsn-js';
-import { type Method } from 'tlsn-wasm';
+import { Verifier as TVerifier } from 'tlsn-wasm';
 import './app.scss';
 import { HTTPParser } from 'http-parser-js';
-import { Reveal, mapStringToRange, subtractRanges } from 'tlsn-js';
 
 const { init, Verifier }: any = Comlink.wrap(
   new Worker(new URL('./worker.ts', import.meta.url)),
@@ -69,24 +62,20 @@ function App(): ReactElement {
     const result = await verified;
     console.log('Verification completed');
 
-    const t = new Transcript({
-      sent: result.transcript?.sent || [],
-      recv: result.transcript?.recv || [],
-    });
+    const sent_b = result.transcript?.sent || [];
+    const recv_b = result.transcript?.recv || [];
+
+    let recv = bytesToUtf8(substituteRedactions(recv_b, '*'));
+    let sent = bytesToUtf8(substituteRedactions(sent_b, '*'));
 
     console.log('Verified data:');
-    console.log(`transcript.sent: ${t.sent()}`);
-    console.log(`transcript.recv: ${t.recv()}`);
+    console.log(`transcript.sent: ${sent}`);
+    console.log(`transcript.recv: ${recv}`);
 
     console.log('Ready');
 
-    console.log('Unredacted data:', {
-      sent: t.sent(),
-      received: t.recv(),
-    });
-
     setResult(
-      t.recv(),
+      recv,
     );
 
     setProcessing(false);
@@ -206,4 +195,16 @@ function parseHttpMessage(buffer: Buffer, type: 'request' | 'response') {
     headers,
     body,
   };
+}
+
+function substituteRedactions(
+  array: number[],
+  redactedSymbol: string = "*",
+): number[] {
+  const replaceCharByte = redactedSymbol.charCodeAt(0);
+  return array.map((byte) => (byte === 0 ? replaceCharByte : byte));
+}
+
+function bytesToUtf8(array: number[]): string {
+  return Buffer.from(array).toString("utf8");
 }
