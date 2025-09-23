@@ -31,6 +31,13 @@ struct ServerGlobals {
     pub server_uri: Uri,
 }
 
+/// Enum to differentiate between prover and verifier socket handling
+#[derive(Clone, Debug)]
+enum SocketType {
+    Prover,
+    Verifier,
+}
+
 pub async fn run_ws_server(config: &config::Config) -> Result<(), eyre::ErrReport> {
     let ws_server_address = SocketAddr::new(
         IpAddr::V4(config.ws_host.parse().map_err(|err| {
@@ -46,8 +53,14 @@ pub async fn run_ws_server(config: &config::Config) -> Result<(), eyre::ErrRepor
 
     let protocol = Arc::new(http1::Builder::new());
     let router = Router::new()
-        .route("/prove", get(ws_handler_prover))
-        .route("/verify", get(ws_handler_verifier))
+        .route(
+            "/prove",
+            get(|ws, state| ws_handler(ws, state, SocketType::Prover)),
+        )
+        .route(
+            "/verify",
+            get(|ws, state| ws_handler(ws, state, SocketType::Verifier)),
+        )
         .with_state(ServerGlobals {
             server_uri: config.server_uri.clone(),
         });
@@ -83,52 +96,49 @@ pub async fn run_ws_server(config: &config::Config) -> Result<(), eyre::ErrRepor
     }
 }
 
-async fn ws_handler_prover(
+async fn ws_handler(
     ws: WebSocketUpgrade,
-    State(prover_globals): State<ServerGlobals>,
+    State(globals): State<ServerGlobals>,
+    socket_type: SocketType,
 ) -> impl IntoResponse {
-    info!("Received websocket request");
-    ws.on_upgrade(move |socket| handle_socket_prover(socket, prover_globals))
+    let operation = match socket_type {
+        SocketType::Prover => "proving",
+        SocketType::Verifier => "verification",
+    };
+    info!("Received websocket request for {}", operation);
+    ws.on_upgrade(move |socket| handle_socket(socket, globals, socket_type))
 }
 
-async fn ws_handler_verifier(
-    ws: WebSocketUpgrade,
-    State(prover_globals): State<ServerGlobals>,
-) -> impl IntoResponse {
-    info!("Received websocket request");
-    ws.on_upgrade(move |socket| handle_socket_verifier(socket, prover_globals))
-}
-
-async fn handle_socket_prover(socket: WebSocket, prover_globals: ServerGlobals) {
+async fn handle_socket(socket: WebSocket, globals: ServerGlobals, socket_type: SocketType) {
     // Convert axum WebSocket to tungstenite WebSocketStream
-    let socket = socket.into_inner();
-    let socket = WsStream::new(socket);
-
-    let result = prover(socket, &prover_globals.server_uri).await;
-    match result {
-        Ok(()) => {
-            info!("============================================");
-            info!("Proving successful!");
-            info!("============================================");
-        }
-        Err(err) => {
-            error!("Proving failed: {err}");
-        }
-    }
-}
-
-async fn handle_socket_verifier(socket: WebSocket, prover_globals: ServerGlobals) {
     let stream = WsStream::new(socket.into_inner());
 
-    let domain = prover_globals.server_uri.authority().unwrap().host();
-    match verifier(stream, &domain).await {
-        Ok((sent, received)) => {
-            info!("Successfully verified {}", &domain);
-            info!("Verified sent data:\n{}", sent,);
-            println!("Verified received data:\n{received}",);
+    match socket_type {
+        SocketType::Prover => {
+            let result = prover(stream, &globals.server_uri).await;
+            match result {
+                Ok(()) => {
+                    info!("============================================");
+                    info!("Proving successful!");
+                    info!("============================================");
+                }
+                Err(err) => {
+                    error!("Proving failed: {err}");
+                }
+            }
         }
-        Err(err) => {
-            error!("Failed verification using websocket: {err}");
+        SocketType::Verifier => {
+            let domain = globals.server_uri.authority().unwrap().host();
+            match verifier(stream, domain).await {
+                Ok((sent, received)) => {
+                    info!("Successfully verified {}", domain);
+                    info!("Verified sent data:\n{}", sent);
+                    info!("Verified received data:\n{}", received);
+                }
+                Err(err) => {
+                    error!("Failed verification using websocket: {err}");
+                }
+            }
         }
     }
 }
