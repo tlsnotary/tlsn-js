@@ -117,6 +117,10 @@ function App(): ReactElement {
               <td className="border px-4 py-2">Prover</td>
               <td className="border px-4 py-2">{proverProxyUrl}</td>
             </tr>
+            <tr>
+              <td className="border px-4 py-2">Verifier</td>
+              <td className="border px-4 py-2">This browser</td>
+            </tr>
 
           </tbody>
         </table>

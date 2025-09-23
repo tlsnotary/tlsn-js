@@ -188,6 +188,10 @@ function App(): ReactElement {
               <td className="border px-4 py-2">WebSocket Proxy</td>
               <td className="border px-4 py-2">{websocketProxyUrl}</td>
             </tr>
+            <tr>
+              <td className="border px-4 py-2">Prover</td>
+              <td className="border px-4 py-2">This browser</td>
+            </tr>
           </tbody>
         </table>
       </div>

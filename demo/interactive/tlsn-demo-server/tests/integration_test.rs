@@ -19,7 +19,7 @@ async fn test_prover_verifier_integration() {
 
     // Start prover server in background task
     let server_task = tokio::spawn(async move {
-        run_server(PROVER_HOST, PROVER_PORT, SERVER_URL)
+        run_server(PROVER_HOST, PROVER_PORT, SERVER_URL, SERVER_DOMAIN)
             .await
             .expect("Server should start successfully")
     });
@@ -61,7 +61,7 @@ async fn test_verifier_prover_integration() {
 
     // Start prover server in background task
     let server_task = tokio::spawn(async move {
-        run_server(PROVER_HOST, PROVER_PORT, SERVER_URL)
+        run_server(PROVER_HOST, PROVER_PORT, SERVER_URL, SERVER_DOMAIN)
             .await
             .expect("Server should start successfully")
     });
