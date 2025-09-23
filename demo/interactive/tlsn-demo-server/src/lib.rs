@@ -69,29 +69,32 @@ pub async fn run_ws_server(config: &config::Config) -> Result<(), eyre::ErrRepor
         let stream = match listener.accept().await {
             Ok((stream, _)) => stream,
             Err(err) => {
-                error!("Failed to connect to verifier: {err}");
+                error!("Failed to accept TCP connection: {err}");
                 continue;
             }
         };
-        debug!("Received a verifier's TCP connection");
+        debug!("Received TCP connection");
 
         let tower_service = router.clone();
         let protocol = protocol.clone();
 
         tokio::spawn(async move {
-            info!("Accepted verifier's TCP connection");
+            info!("Accepted TCP connection");
             // Reference: https://github.com/tokio-rs/axum/blob/5201798d4e4d4759c208ef83e30ce85820c07baa/examples/low-level-rustls/src/main.rs#L67-L80
             let io = TokioIo::new(stream);
             let hyper_service = hyper::service::service_fn(move |request: Request<Incoming>| {
                 tower_service.clone().call(request)
             });
             // Serve different requests using the same hyper protocol and axum router
-            let _ = protocol
+            if let Err(err) = protocol
                 .serve_connection(io, hyper_service)
                 // use with_upgrades to upgrade connection to websocket for websocket clients
                 // and to extract tcp connection for tcp clients
                 .with_upgrades()
-                .await;
+                .await
+            {
+                error!("Connection serving failed: {err}");
+            }
         });
     }
 }
@@ -110,35 +113,46 @@ async fn ws_handler(
 }
 
 async fn handle_socket(socket: WebSocket, globals: ServerGlobals, socket_type: SocketType) {
-    // Convert axum WebSocket to tungstenite WebSocketStream
     let stream = WsStream::new(socket.into_inner());
+
+    async fn handle_operation_result<T>(
+        result: Result<T, eyre::ErrReport>,
+        operation: &str,
+        on_success: impl FnOnce(T),
+    ) {
+        match result {
+            Ok(value) => {
+                info!("============================================");
+                info!("{} successful!", operation);
+                info!("============================================");
+                on_success(value);
+            }
+            Err(err) => {
+                error!("{} failed: {err}", operation);
+            }
+        }
+    }
 
     match socket_type {
         SocketType::Prover => {
             let result = prover(stream, &globals.server_uri).await;
-            match result {
-                Ok(()) => {
-                    info!("============================================");
-                    info!("Proving successful!");
-                    info!("============================================");
-                }
-                Err(err) => {
-                    error!("Proving failed: {err}");
-                }
-            }
+            handle_operation_result(result, "Proving", |_| {}).await;
         }
         SocketType::Verifier => {
-            let domain = globals.server_uri.authority().unwrap().host();
-            match verifier(stream, domain).await {
-                Ok((sent, received)) => {
-                    info!("Successfully verified {}", domain);
-                    info!("Verified sent data:\n{}", sent);
-                    info!("Verified received data:\n{}", received);
-                }
-                Err(err) => {
-                    error!("Failed verification using websocket: {err}");
-                }
-            }
+            let domain = globals
+                .server_uri
+                .authority()
+                .ok_or_else(|| error!("Failed to extract domain from server URI"))
+                .unwrap()
+                .host();
+
+            let result = verifier(stream, domain).await;
+            handle_operation_result(result, "Verification", |(sent, received)| {
+                info!("Successfully verified {}", domain);
+                info!("Verified sent data:\n{}", sent);
+                info!("Verified received data:\n{}", received);
+            })
+            .await;
         }
     }
 }
