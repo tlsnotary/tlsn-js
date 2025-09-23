@@ -1,7 +1,7 @@
 use async_tungstenite::{tokio::connect_async_with_config, tungstenite::protocol::WebSocketConfig};
 use eyre::eyre;
 use tlsn::{
-    config::{CertificateDer, ProtocolConfigValidator, RootCertStore},
+    config::ProtocolConfigValidator,
     connection::ServerName,
     verifier::{Verifier, VerifierConfig, VerifierOutput, VerifyConfig},
 };
@@ -17,7 +17,11 @@ const MAX_SENT_DATA: usize = 2048;
 const MAX_RECV_DATA: usize = 4096;
 
 /// Connect to prover via websocket and run verification
-pub async fn run_verifier_test(prover_host: &str, prover_port: u16, server_domain: &str) -> Result<(), eyre::ErrReport> {
+pub async fn run_verifier_test(
+    prover_host: &str,
+    prover_port: u16,
+    server_domain: &str,
+) -> Result<(), eyre::ErrReport> {
     info!("Sending websocket request to prover...");
     let request = http::Request::builder()
         .uri(format!("ws://{prover_host}:{prover_port}/prove"))
@@ -36,16 +40,16 @@ pub async fn run_verifier_test(prover_host: &str, prover_port: u16, server_domai
 
     info!("Websocket connection established with prover!");
     let prover_ws_socket = WsStream::new(prover_ws_stream);
-    verify_prover_connection(prover_ws_socket, server_domain).await?;
+    verifier(prover_ws_socket, server_domain).await?;
     info!("Verification is successful!");
     Ok(())
 }
 
 /// Core verifier logic that validates the TLS proof
-pub async fn verify_prover_connection<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
+pub async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     socket: T,
     server_domain: &str,
-) -> Result<(), eyre::ErrReport> {
+) -> Result<(String, String), eyre::ErrReport> {
     debug!("Starting verification...");
 
     // Setup Verifier.
@@ -73,8 +77,10 @@ pub async fn verify_prover_connection<T: AsyncWrite + AsyncRead + Send + Unpin +
         .await
         .map_err(|e| eyre!("Verification failed: {}", e))?;
 
-    let server_name = server_name.ok_or_else(|| eyre!("prover should have revealed server name"))?;
-    let transcript = transcript.ok_or_else(|| eyre!("prover should have revealed transcript data"))?;
+    let server_name =
+        server_name.ok_or_else(|| eyre!("prover should have revealed server name"))?;
+    let transcript =
+        transcript.ok_or_else(|| eyre!("prover should have revealed transcript data"))?;
 
     // Check sent data: check host.
     debug!("Starting sent data verification...");
@@ -109,7 +115,7 @@ pub async fn verify_prover_connection<T: AsyncWrite + AsyncRead + Send + Unpin +
     info!("Sent data: {:?}", sent_string);
     info!("Received data: {:?}", received_string);
 
-    Ok(())
+    Ok((sent_string, received_string))
 }
 
 /// Render redacted bytes as `🙈`.

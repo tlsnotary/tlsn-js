@@ -1,13 +1,7 @@
-use axum::{
-    extract::{Request, State},
-    response::IntoResponse,
-    routing::get,
-    Router,
-};
-use axum_websocket::{WebSocket, WebSocketUpgrade};
+use async_tungstenite::{tokio::connect_async_with_config, tungstenite::protocol::WebSocketConfig};
 use eyre::eyre;
 use http_body_util::Empty;
-use hyper::{body::Bytes, body::Incoming, server::conn::http1, StatusCode, Uri};
+use hyper::{body::Bytes, Request, StatusCode, Uri};
 use hyper_util::rt::TokioIo;
 use rangeset::RangeSet;
 use spansy::{
@@ -15,121 +9,58 @@ use spansy::{
     json::{self},
     Spanned,
 };
-use std::{
-    net::{IpAddr, SocketAddr},
-    sync::Arc,
-};
+
 use tlsn::{
     config::ProtocolConfig,
     connection::ServerName,
     prover::{ProveConfig, ProveConfigBuilder, Prover, ProverConfig},
 };
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    net::TcpListener,
-};
+use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
-use tower_service::Service;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 use ws_stream_tungstenite::WsStream;
 
-mod axum_websocket;
-pub mod verifier;
+const TRACING_FILTER: &str = "INFO";
 
+const VERIFIER_HOST: &str = "localhost";
+const VERIFIER_PORT: u16 = 9816;
 // Maximum number of bytes that can be sent from prover to server
 const MAX_SENT_DATA: usize = 2048;
 // Maximum number of bytes that can be received by prover from server
 const MAX_RECV_DATA: usize = 4096;
 
 const SECRET: &str = "TLSNotary's private key 🤡";
+/// Make sure the following url's domain is the same as SERVER_DOMAIN on the verifier side
 
-/// Global data that needs to be shared with the axum handlers
-#[derive(Clone, Debug)]
-struct ProverGlobals {
-    pub server_url: String,
-}
-
-pub async fn run_server(
-    prover_host: &str,
-    prover_port: u16,
+pub async fn run_prover_test(
+    server_host: &str,
+    server_port: u16,
     server_url: &str,
 ) -> Result<(), eyre::ErrReport> {
-    let prover_address = SocketAddr::new(
-        IpAddr::V4(prover_host.parse().map_err(|err| {
-            eyre!("Failed to parse prover host address from server config: {err}")
-        })?),
-        prover_port,
-    );
-    let listener = TcpListener::bind(prover_address)
-        .await
-        .map_err(|err| eyre!("Failed to bind server address to tcp listener: {err}"))?;
+    info!("Sending websocket verify request to server...");
+    let request = http::Request::builder()
+        .uri(format!("ws://{server_host}:{server_port}/verify"))
+        .header("Host", server_host)
+        .header("Sec-WebSocket-Key", uuid::Uuid::new_v4().to_string())
+        .header("Sec-WebSocket-Version", "13")
+        .header("Connection", "Upgrade")
+        .header("Upgrade", "Websocket")
+        .body(())
+        .unwrap();
 
-    info!("Listening for TCP traffic at {}", prover_address);
+    let (prover_ws_stream, _) =
+        connect_async_with_config(request, Some(WebSocketConfig::default()))
+            .await
+            .map_err(|e| eyre!("Failed to connect to server: {}", e))?;
 
-    let protocol = Arc::new(http1::Builder::new());
-    let router = Router::new()
-        .route("/prove", get(ws_handler))
-        .with_state(ProverGlobals {
-            server_url: server_url.to_string(),
-        });
-
-    loop {
-        let stream = match listener.accept().await {
-            Ok((stream, _)) => stream,
-            Err(err) => {
-                error!("Failed to connect to verifier: {err}");
-                continue;
-            }
-        };
-        debug!("Received a verifier's TCP connection");
-
-        let tower_service = router.clone();
-        let protocol = protocol.clone();
-
-        tokio::spawn(async move {
-            info!("Accepted verifier's TCP connection");
-            // Reference: https://github.com/tokio-rs/axum/blob/5201798d4e4d4759c208ef83e30ce85820c07baa/examples/low-level-rustls/src/main.rs#L67-L80
-            let io = TokioIo::new(stream);
-            let hyper_service = hyper::service::service_fn(move |request: Request<Incoming>| {
-                tower_service.clone().call(request)
-            });
-            // Serve different requests using the same hyper protocol and axum router
-            let _ = protocol
-                .serve_connection(io, hyper_service)
-                // use with_upgrades to upgrade connection to websocket for websocket clients
-                // and to extract tcp connection for tcp clients
-                .with_upgrades()
-                .await;
-        });
-    }
+    info!("Websocket connection established with prover!");
+    let server_ws_socket = WsStream::new(prover_ws_stream);
+    prover(server_ws_socket, server_url).await?;
+    info!("Proving is successful!");
+    Ok(())
 }
 
-async fn ws_handler(
-    ws: WebSocketUpgrade,
-    State(prover_globals): State<ProverGlobals>,
-) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, prover_globals))
-}
-
-async fn handle_socket(socket: WebSocket, prover_globals: ProverGlobals) {
-    // Convert axum WebSocket to tungstenite WebSocketStream
-    let socket = socket.into_inner();
-    let socket = WsStream::new(socket);
-
-    let result = prover(socket, &prover_globals.server_url).await;
-    match result {
-        Ok(()) => {
-            info!("============================================");
-            info!("Proving successful!");
-            info!("============================================");
-        }
-        Err(err) => {
-            error!("Proving failed: {err}");
-        }
-    }
-}
-
-async fn prover<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
+pub async fn prover<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     verifier_socket: T,
     server_uri: &str,
 ) -> Result<(), eyre::ErrReport> {
