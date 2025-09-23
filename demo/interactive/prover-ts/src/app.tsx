@@ -17,6 +17,8 @@ const root = createRoot(container!);
 
 root.render(<App />);
 
+let consoleLogs: string[] = [];
+
 const serverUrl = 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.12/crates/server-fixture/server/src/data/1kb.json';
 // const websocketProxyUrl = `wss://notary.pse.dev/proxy`;
 const websocketProxyUrl = 'ws://localhost:55688';
@@ -25,9 +27,20 @@ const verifierProxyUrl = 'ws://localhost:9816/verify';
 function App(): ReactElement {
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [consoleMessages, setConsoleMessages] = useState<string[]>([]);
+
+  const addConsoleLog = useCallback((log: string) => {
+    consoleLogs = consoleLogs.concat(
+      `${new Date().toLocaleTimeString()} - ${log}`,
+    );
+    setConsoleMessages([...consoleLogs]);
+  }, []);
 
   const onClick = useCallback(async () => {
     setProcessing(true);
+    consoleLogs = [];
+    setConsoleMessages([]);
+    addConsoleLog('Starting prover demo...');
 
     const url = serverUrl;
     const method: Method = 'GET';
@@ -43,18 +56,18 @@ function App(): ReactElement {
     try {
       console.time('setup');
       await init({ loggingLevel: 'Info' });
-      console.log('Setting up Prover for', hostname);
+      addConsoleLog(`Setting up Prover for ${hostname}`);
       prover = (await new Prover({
         serverDns: hostname,
         maxRecvData: 2000
       })) as TProver;
-      console.log('Setting up Prover: 1/2');
+      addConsoleLog('Setting up Prover: 1/2');
       await prover.setup(verifierProxyUrl);
-      console.log('Setting up Prover: done');
+      addConsoleLog('Setting up Prover: done');
       console.timeEnd('setup');
     } catch (error) {
       const msg = `Error setting up prover: ${error}`;
-      console.error(msg);
+      addConsoleLog(msg);
       setResult(msg);
       setProcessing(false);
       return;
@@ -63,20 +76,20 @@ function App(): ReactElement {
     let transcript;
     try {
       console.time('request');
-      console.log('Sending request to proxy');
+      addConsoleLog('Sending request to proxy');
 
       const resp = await prover.sendRequest(
         `${websocketProxyUrl}?token=${hostname}`,
         { url, method, headers, body },
       );
-      console.log('Response:', resp);
-      console.log('Wait for transcript');
+      addConsoleLog('Response received');
+      addConsoleLog('Wait for transcript');
       transcript = await prover.transcript();
-      console.log('Transcript:', transcript);
+      addConsoleLog('Transcript received');
       console.timeEnd('request');
     } catch (error) {
       const msg = `Error sending request: ${error}`;
-      console.error(msg);
+      addConsoleLog(msg);
       setResult(msg);
       setProcessing(false);
       return;
@@ -92,7 +105,7 @@ function App(): ReactElement {
 
       const body = JSON.parse(recvBody[0].toString());
 
-      console.log("test", body.information.address.street);
+      addConsoleLog('Parsed response body data');
 
       console.time('reveal');
       const reveal: Reveal = {
@@ -123,117 +136,134 @@ function App(): ReactElement {
         ],
         server_identity: true,
       };
-      console.log('Start reveal:', reveal);
+      addConsoleLog('Start reveal process');
       await prover.reveal(reveal);
+      addConsoleLog('Data revealed to verifier');
       console.timeEnd('reveal');
     } catch (error) {
-      console.dir(error);
-      console.error('Error during data reveal:', error);
+      const msg = `Error during data reveal: ${error}`;
+      addConsoleLog(msg);
       setResult(`${error}`);
       setProcessing(false);
       return;
     }
 
-    console.log('Ready');
-
-    console.log('Unredacted data:', {
-      sent: transcript.sent,
-      received: transcript.recv,
-    });
+    addConsoleLog('Ready - proof completed successfully');
+    addConsoleLog('Unredacted data revealed to verifier');
 
     setResult(
       "Unredacted data successfully revealed to Verifier. Check the Verifier's console output to see what exactly was shared and revealed.",
     );
 
     setProcessing(false);
-  }, [setResult, setProcessing]);
+  }, [setResult, setProcessing, addConsoleLog]);
 
   return (
-    <div className="flex flex-col items-center justify-center w-full min-h-screen bg-gray-50 p-4">
-      <h1 className="text-4xl font-bold text-slate-500 mb-2">TLSNotary</h1>
-      <span className="text-lg text-gray-600 mb-4">
-        Interactive Prover Demo
-      </span>
-
-      <div className="text-center text-gray-700 mb-6">
-        <p>
-          Before clicking the <span className="font-semibold">Start</span>{' '}
-          button, make sure the <i>interactive verifier</i> and the{' '}
-          <i>web socket proxy</i> are running.
-        </p>
-        <p>
-          Check the{' '}
-          <a href="README.md" className="text-blue-600 hover:underline">
-            README
-          </a>{' '}
-          for the details.
-        </p>
-        <table className="text-left table-auto w-full mt-4">
-          <thead>
-            <tr>
-              <th className="px-4 py-2 text-left">Demo Settings</th>
-              <th className="px-4 py-2 text-left">URL</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="border px-4 py-2">Server</td>
-              <td className="border px-4 py-2">{serverUrl}</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-2">Verifier</td>
-              <td className="border px-4 py-2">{verifierProxyUrl}</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-2">WebSocket Proxy</td>
-              <td className="border px-4 py-2">{websocketProxyUrl}</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-2">Prover</td>
-              <td className="border px-4 py-2">This browser</td>
-            </tr>
-          </tbody>
-        </table>
+    <div className="w-screen h-screen flex flex-col bg-slate-100 overflow-hidden">
+      <div className="w-full p-4 bg-slate-800 text-white flex-shrink-0 shadow-md">
+        <h1 className="text-xl font-bold">TLSNotary Interactive Prover Demo</h1>
+        <span className="text-sm mt-1">
+          Interactive Prover Demo
+        </span>
       </div>
-
-      <button
-        onClick={!processing ? onClick : undefined}
-        disabled={processing}
-        className={`px-6 py-2 rounded-lg font-medium text-white
-          ${processing ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}
-        `}
-      >
-        Start Prover
-      </button>
-
-      <div className="mt-6 w-full max-w-3xl text-center">
-        <b className="text-lg font-medium text-gray-800">Proof: </b>
-        {!processing && !result ? (
-          <i className="text-gray-500">Not started yet</i>
-        ) : !result ? (
-          <div className="flex flex-col items-center justify-center">
-            <p className="text-gray-700 mb-2">Proving data from GitHub...</p>
-            <Watch
-              visible={true}
-              height="40"
-              width="40"
-              radius="48"
-              color="#4A5568"
-              ariaLabel="watch-loading"
-              wrapperStyle={{}}
-              wrapperClass=""
-            />
-            <p className="text-sm text-gray-500 mt-2">
-              Open <i>Developer Tools</i> to follow progress
+      
+      <div className="grid grid-cols-2 gap-4 p-4 flex-grow">
+        <div className="flex flex-col bg-white rounded-lg shadow-md border border-gray-200 p-4">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Demo Controls</h2>
+          
+          <div className="text-center text-gray-700 mb-6">
+            <p>
+              Before clicking the <span className="font-semibold">Start</span>{' '}
+              button, make sure the <i>interactive verifier</i> and the{' '}
+              <i>web socket proxy</i> are running.
             </p>
+            <p>
+              Check the{' '}
+              <a href="README.md" className="text-blue-600 hover:underline">
+                README
+              </a>{' '}
+              for the details.
+            </p>
+            <table className="text-left table-auto w-full mt-4">
+              <thead>
+                <tr>
+                  <th className="px-4 py-2 text-left">Demo Settings</th>
+                  <th className="px-4 py-2 text-left">URL</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border px-4 py-2">Server</td>
+                  <td className="border px-4 py-2">{serverUrl}</td>
+                </tr>
+                <tr>
+                  <td className="border px-4 py-2">Verifier</td>
+                  <td className="border px-4 py-2">{verifierProxyUrl}</td>
+                </tr>
+                <tr>
+                  <td className="border px-4 py-2">WebSocket Proxy</td>
+                  <td className="border px-4 py-2">{websocketProxyUrl}</td>
+                </tr>
+                <tr>
+                  <td className="border px-4 py-2">Prover</td>
+                  <td className="border px-4 py-2">This browser</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <div className="bg-gray-100 border border-gray-300 p-4 rounded-lg mt-4">
-            <pre data-testid="proof-data" className="text-left text-sm text-gray-800 whitespace-pre-wrap overflow-auto">
-              {JSON.stringify(result, null, 2)}
-            </pre>
+
+          <button
+            onClick={!processing ? onClick : undefined}
+            disabled={processing}
+            className={`px-6 py-2 rounded-lg font-medium text-white mb-4
+              ${processing ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}
+            `}
+          >
+            Start Prover
+          </button>
+
+          <div className="w-full text-center">
+            <b className="text-lg font-medium text-gray-800">Proof: </b>
+            {!processing && !result ? (
+              <i className="text-gray-500">Not started yet</i>
+            ) : !result ? (
+              <div className="flex flex-col items-center justify-center">
+                <p className="text-gray-700 mb-2">Proving data from GitHub...</p>
+                <Watch
+                  visible={true}
+                  height="40"
+                  width="40"
+                  radius="48"
+                  color="#4A5568"
+                  ariaLabel="watch-loading"
+                  wrapperStyle={{}}
+                  wrapperClass=""
+                />
+              </div>
+            ) : (
+              <div className="bg-gray-100 border border-gray-300 p-4 rounded-lg mt-4">
+                <pre data-testid="proof-data" className="text-left text-sm text-gray-800 whitespace-pre-wrap overflow-auto">
+                  {JSON.stringify(result, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
-        )}
+        </div>
+
+        <div className="flex flex-col bg-white rounded-lg shadow-md border border-gray-200 p-4">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Console Log</h2>
+          <div className="flex flex-col text-sm bg-slate-50 border border-slate-200 w-full flex-grow py-2 overflow-y-auto rounded">
+            {consoleMessages.map((m, index) => (
+              <span
+                key={index}
+                data-testid="console-log"
+                className="px-3 py-1 text-slate-600 break-all"
+              >
+                {m}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
