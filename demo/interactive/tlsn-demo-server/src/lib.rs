@@ -22,7 +22,6 @@ mod axum_websocket;
 pub mod config;
 pub mod prover;
 pub mod verifier;
-pub mod websocket_utils;
 use prover::prover;
 use verifier::verifier;
 
@@ -32,25 +31,25 @@ struct ServerGlobals {
     pub server_uri: Uri,
 }
 
-pub async fn run_server(config: &config::Config) -> Result<(), eyre::ErrReport> {
-    let prover_address = SocketAddr::new(
-        IpAddr::V4(config.host.parse().map_err(|err| {
-            eyre!("Failed to parse prover host address from server config: {err}")
+pub async fn run_ws_server(config: &config::Config) -> Result<(), eyre::ErrReport> {
+    let ws_server_address = SocketAddr::new(
+        IpAddr::V4(config.ws_host.parse().map_err(|err| {
+            eyre!("Failed to parse websocket host address from server config: {err}")
         })?),
-        config.port,
+        config.ws_port,
     );
-    let listener = TcpListener::bind(prover_address)
+    let listener = TcpListener::bind(ws_server_address)
         .await
         .map_err(|err| eyre!("Failed to bind server address to tcp listener: {err}"))?;
 
-    info!("Listening for TCP traffic at {}", prover_address);
+    info!("Listening for TCP traffic at {}", ws_server_address);
 
     let protocol = Arc::new(http1::Builder::new());
     let router = Router::new()
         .route("/prove", get(ws_handler_prover))
         .route("/verify", get(ws_handler_verifier))
         .with_state(ServerGlobals {
-            server_uri: config.server_url.clone(),
+            server_uri: config.server_uri.clone(),
         });
 
     loop {

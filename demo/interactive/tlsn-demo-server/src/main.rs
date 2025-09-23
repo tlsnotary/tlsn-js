@@ -1,4 +1,4 @@
-use tlsn_demo_server::{config::Config, run_server};
+use tlsn_demo_server::{config::Config, run_ws_server};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 const TRACING_FILTER: &str = "INFO";
@@ -11,7 +11,7 @@ async fn main() -> Result<(), eyre::ErrReport> {
         .init();
 
     let config: Config = Config::default();
-    run_server(&config).await?;
+    run_ws_server(&config).await?;
 
     Ok(())
 }
