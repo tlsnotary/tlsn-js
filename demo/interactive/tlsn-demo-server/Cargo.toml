@@ -19,14 +19,7 @@ hyper-util = { version = "0.1", features = ["full"] }
 regex = "1.10.3"
 serde = { version = "1.0.147", features = ["derive"] }
 sha1 = "0.10"
-tokio = { version = "1", features = [
-  "rt",
-  "rt-multi-thread",
-  "macros",
-  "net",
-  "io-std",
-  "fs",
-] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "net", "io-std", "fs", "process"] }
 tokio-util = { version = "0.7", features = ["compat"] }
 tower = { version = "0.4.12", features = ["make"] }
 tower-service = { version = "0.3" }
@@ -39,7 +32,5 @@ tlsn = { git = "https://github.com/tlsnotary/tlsn.git", branch = "dev" }
 spansy = { git = "https://github.com/tlsnotary/tlsn-utils", package = "spansy", branch = "dev" }
 rangeset = "0.2.0"
 tower-util = "0.3.1"
-
-[dev-dependencies]
-rustls = "0.23"
-webpki-roots = "0.26"
+wstcp = { git = "https://github.com/sile/wstcp.git", version = "0.2.1" }
+async-std = "1.13.2"
