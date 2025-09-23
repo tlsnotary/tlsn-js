@@ -9,31 +9,12 @@ use spansy::{
 };
 
 use crate::config::{MAX_RECV_DATA, MAX_SENT_DATA, SECRET};
-use crate::websocket_utils::create_websocket_request;
-use async_tungstenite::{tokio::connect_async_with_config, tungstenite::protocol::WebSocketConfig};
-use tlsn::{
-    config::ProtocolConfig,
-    connection::ServerName,
-    prover::{ProveConfig, ProveConfigBuilder, Prover, ProverConfig},
-};
+use tlsn::config::ProtocolConfig;
+use tlsn::connection::ServerName;
+use tlsn::prover::{ProveConfig, ProveConfigBuilder, Prover, ProverConfig};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
 use tracing::{debug, info};
-use ws_stream_tungstenite::WsStream;
-/// Make sure the following url's domain is the same as SERVER_DOMAIN on the verifier side
-
-pub async fn run_prover_test(config: &crate::config::Config) -> Result<(), eyre::ErrReport> {
-    info!("Sending websocket verify request to server...");
-    let request = create_websocket_request(&config.host, config.port, "/verify");
-    let (ws_stream, _) = connect_async_with_config(request, Some(WebSocketConfig::default()))
-        .await
-        .map_err(|e| eyre::eyre!("Failed to connect to server: {}", e))?;
-    let server_ws_socket = WsStream::new(ws_stream);
-    info!("Websocket connection established with prover!");
-    prover(server_ws_socket, &config.server_url).await?;
-    info!("Proving is successful!");
-    Ok(())
-}
 
 pub async fn prover<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     verifier_socket: T,

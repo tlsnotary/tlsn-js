@@ -1,6 +1,4 @@
-use crate::config::{Config, MAX_RECV_DATA, MAX_SENT_DATA};
-use crate::websocket_utils::create_websocket_request;
-use async_tungstenite::{tokio::connect_async_with_config, tungstenite::protocol::WebSocketConfig};
+use crate::config::{MAX_RECV_DATA, MAX_SENT_DATA};
 use eyre::eyre;
 use tlsn::{
     config::ProtocolConfigValidator,
@@ -10,21 +8,6 @@ use tlsn::{
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_util::compat::TokioAsyncReadCompatExt;
 use tracing::{debug, info};
-use ws_stream_tungstenite::WsStream;
-
-/// Connect to prover via websocket and run verification
-pub async fn run_verifier_test(config: &Config) -> Result<(), eyre::ErrReport> {
-    info!("Sending websocket request to prover...");
-    let request = create_websocket_request(&config.host, config.port, "/prove");
-    let (ws_stream, _) = connect_async_with_config(request, Some(WebSocketConfig::default()))
-        .await
-        .map_err(|e| eyre!("Failed to connect to prover: {}", e))?;
-    let prover_ws_socket = WsStream::new(ws_stream);
-    info!("Websocket connection established with prover!");
-    verifier(prover_ws_socket, &config.server_domain()).await?;
-    info!("Verification is successful!");
-    Ok(())
-}
 
 /// Core verifier logic that validates the TLS proof
 pub async fn verifier<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
