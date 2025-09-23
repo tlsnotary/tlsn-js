@@ -1,3 +1,5 @@
+use crate::config::{Config, MAX_RECV_DATA, MAX_SENT_DATA};
+use crate::websocket_utils::create_websocket_request;
 use async_tungstenite::{tokio::connect_async_with_config, tungstenite::protocol::WebSocketConfig};
 use eyre::eyre;
 use tlsn::{
@@ -8,39 +10,18 @@ use tlsn::{
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_util::compat::TokioAsyncReadCompatExt;
 use tracing::{debug, info};
-use uuid;
 use ws_stream_tungstenite::WsStream;
 
-// Maximum number of bytes that can be sent from prover to server
-const MAX_SENT_DATA: usize = 2048;
-// Maximum number of bytes that can be received by prover from server
-const MAX_RECV_DATA: usize = 4096;
-
 /// Connect to prover via websocket and run verification
-pub async fn run_verifier_test(
-    prover_host: &str,
-    prover_port: u16,
-    server_domain: &str,
-) -> Result<(), eyre::ErrReport> {
+pub async fn run_verifier_test(config: &Config) -> Result<(), eyre::ErrReport> {
     info!("Sending websocket request to prover...");
-    let request = http::Request::builder()
-        .uri(format!("ws://{prover_host}:{prover_port}/prove"))
-        .header("Host", prover_host)
-        .header("Sec-WebSocket-Key", uuid::Uuid::new_v4().to_string())
-        .header("Sec-WebSocket-Version", "13")
-        .header("Connection", "Upgrade")
-        .header("Upgrade", "Websocket")
-        .body(())
-        .unwrap();
-
-    let (prover_ws_stream, _) =
-        connect_async_with_config(request, Some(WebSocketConfig::default()))
-            .await
-            .map_err(|e| eyre!("Failed to connect to prover: {}", e))?;
-
+    let request = create_websocket_request(&config.host, config.port, "/prove");
+    let (ws_stream, _) = connect_async_with_config(request, Some(WebSocketConfig::default()))
+        .await
+        .map_err(|e| eyre!("Failed to connect to prover: {}", e))?;
+    let prover_ws_socket = WsStream::new(ws_stream);
     info!("Websocket connection established with prover!");
-    let prover_ws_socket = WsStream::new(prover_ws_stream);
-    verifier(prover_ws_socket, server_domain).await?;
+    verifier(prover_ws_socket, &config.server_domain()).await?;
     info!("Verification is successful!");
     Ok(())
 }

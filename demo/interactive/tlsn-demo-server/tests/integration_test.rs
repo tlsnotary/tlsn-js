@@ -1,13 +1,11 @@
 use std::time::Duration;
-use tlsn_demo_server::{prover::run_prover_test, run_server, verifier::run_verifier_test};
+use tlsn_demo_server::{
+    config::Config, prover::run_prover_test, run_server, verifier::run_verifier_test,
+};
 use tokio::time::timeout;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 const TRACING_FILTER: &str = "INFO";
-const PROVER_HOST: &str = "127.0.0.1";
-const PROVER_PORT: u16 = 9817; // Use different port to avoid conflicts
-const SERVER_DOMAIN: &str = "raw.githubusercontent.com";
-const SERVER_URL: &str = "https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.12/crates/server-fixture/server/src/data/1kb.json";
 
 #[tokio::test]
 async fn test_prover_verifier_integration() {
@@ -19,7 +17,8 @@ async fn test_prover_verifier_integration() {
 
     // Start prover server in background task
     let server_task = tokio::spawn(async move {
-        run_server(PROVER_HOST, PROVER_PORT, SERVER_URL, SERVER_DOMAIN)
+        let config: Config = Config::default();
+        run_server(&config)
             .await
             .expect("Server should start successfully")
     });
@@ -28,9 +27,10 @@ async fn test_prover_verifier_integration() {
     tokio::time::sleep(Duration::from_millis(500)).await;
 
     // Run verifier test with timeout
+    let config: Config = Config::default();
     let verification_result = timeout(
         Duration::from_secs(60), // Generous timeout for network operations
-        run_verifier_test(PROVER_HOST, PROVER_PORT, SERVER_DOMAIN),
+        run_verifier_test(&config),
     )
     .await;
 
@@ -61,7 +61,8 @@ async fn test_verifier_prover_integration() {
 
     // Start prover server in background task
     let server_task = tokio::spawn(async move {
-        run_server(PROVER_HOST, PROVER_PORT, SERVER_URL, SERVER_DOMAIN)
+        let config: Config = Config::default();
+        run_server(&config)
             .await
             .expect("Server should start successfully")
     });
@@ -70,9 +71,10 @@ async fn test_verifier_prover_integration() {
     tokio::time::sleep(Duration::from_millis(500)).await;
 
     // Run verifier test with timeout
+    let config: Config = Config::default();
     let prover_result = timeout(
         Duration::from_secs(60), // Generous timeout for network operations
-        run_prover_test(PROVER_HOST, PROVER_PORT, SERVER_URL),
+        run_prover_test(&config),
     )
     .await;
 
@@ -96,11 +98,12 @@ async fn test_verifier_prover_integration() {
 #[tokio::test]
 async fn test_verifier_connection_failure() {
     // Test that verifier handles connection failure gracefully
-    let result = timeout(
-        Duration::from_secs(5),
-        run_verifier_test("127.0.0.1", 9999, SERVER_DOMAIN), // Non-existent port
-    )
-    .await;
+    let config = Config {
+        port: 54321, // wrong port
+        ..Config::default()
+    };
+
+    let result = timeout(Duration::from_secs(5), run_verifier_test(&config)).await;
 
     // Should either timeout or return an error
     match result {

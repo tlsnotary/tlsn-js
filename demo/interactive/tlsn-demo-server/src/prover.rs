@@ -1,5 +1,3 @@
-use async_tungstenite::{tokio::connect_async_with_config, tungstenite::protocol::WebSocketConfig};
-use eyre::eyre;
 use http_body_util::Empty;
 use hyper::{body::Bytes, Request, StatusCode, Uri};
 use hyper_util::rt::TokioIo;
@@ -10,6 +8,9 @@ use spansy::{
     Spanned,
 };
 
+use crate::config::{MAX_RECV_DATA, MAX_SENT_DATA, SECRET};
+use crate::websocket_utils::create_websocket_request;
+use async_tungstenite::{tokio::connect_async_with_config, tungstenite::protocol::WebSocketConfig};
 use tlsn::{
     config::ProtocolConfig,
     connection::ServerName,
@@ -19,57 +20,30 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
 use tracing::{debug, info};
 use ws_stream_tungstenite::WsStream;
-
-const TRACING_FILTER: &str = "INFO";
-
-const VERIFIER_HOST: &str = "localhost";
-const VERIFIER_PORT: u16 = 9816;
-// Maximum number of bytes that can be sent from prover to server
-const MAX_SENT_DATA: usize = 2048;
-// Maximum number of bytes that can be received by prover from server
-const MAX_RECV_DATA: usize = 4096;
-
-const SECRET: &str = "TLSNotary's private key 🤡";
 /// Make sure the following url's domain is the same as SERVER_DOMAIN on the verifier side
 
-pub async fn run_prover_test(
-    server_host: &str,
-    server_port: u16,
-    server_url: &str,
-) -> Result<(), eyre::ErrReport> {
+pub async fn run_prover_test(config: &crate::config::Config) -> Result<(), eyre::ErrReport> {
     info!("Sending websocket verify request to server...");
-    let request = http::Request::builder()
-        .uri(format!("ws://{server_host}:{server_port}/verify"))
-        .header("Host", server_host)
-        .header("Sec-WebSocket-Key", uuid::Uuid::new_v4().to_string())
-        .header("Sec-WebSocket-Version", "13")
-        .header("Connection", "Upgrade")
-        .header("Upgrade", "Websocket")
-        .body(())
-        .unwrap();
-
-    let (prover_ws_stream, _) =
-        connect_async_with_config(request, Some(WebSocketConfig::default()))
-            .await
-            .map_err(|e| eyre!("Failed to connect to server: {}", e))?;
-
+    let request = create_websocket_request(&config.host, config.port, "/verify");
+    let (ws_stream, _) = connect_async_with_config(request, Some(WebSocketConfig::default()))
+        .await
+        .map_err(|e| eyre::eyre!("Failed to connect to server: {}", e))?;
+    let server_ws_socket = WsStream::new(ws_stream);
     info!("Websocket connection established with prover!");
-    let server_ws_socket = WsStream::new(prover_ws_stream);
-    prover(server_ws_socket, server_url).await?;
+    prover(server_ws_socket, &config.server_url).await?;
     info!("Proving is successful!");
     Ok(())
 }
 
 pub async fn prover<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     verifier_socket: T,
-    server_uri: &str,
+    server_uri: &Uri,
 ) -> Result<(), eyre::ErrReport> {
     debug!("Starting proving...");
 
-    let uri = server_uri.parse::<Uri>().unwrap();
-    assert_eq!(uri.scheme().unwrap().as_str(), "https");
-    let server_domain = uri.authority().unwrap().host();
-    let server_port = uri.port_u16().unwrap_or(443);
+    assert_eq!(server_uri.scheme().unwrap().as_str(), "https");
+    let server_domain = server_uri.authority().unwrap().host();
+    let server_port = server_uri.port_u16().unwrap_or(443);
 
     // Create prover and connect to verifier.
     let prover_config = ProverConfig::builder()
@@ -114,7 +88,7 @@ pub async fn prover<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
     // MPC-TLS: Send Request and wait for Response.
     info!("Send Request and wait for Response");
     let request = Request::builder()
-        .uri(uri.clone())
+        .uri(server_uri.clone())
         .header("Host", server_domain)
         .header("Connection", "close")
         .header("Secret", SECRET)

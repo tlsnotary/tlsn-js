@@ -6,6 +6,7 @@ use axum::{
 };
 use axum_websocket::{WebSocket, WebSocketUpgrade};
 use eyre::eyre;
+use http::Uri;
 use hyper::{body::Incoming, server::conn::http1};
 use hyper_util::rt::TokioIo;
 use std::{
@@ -18,36 +19,25 @@ use tracing::{debug, error, info};
 use ws_stream_tungstenite::WsStream;
 
 mod axum_websocket;
+pub mod config;
 pub mod prover;
 pub mod verifier;
+pub mod websocket_utils;
 use prover::prover;
 use verifier::verifier;
-
-// Maximum number of bytes that can be sent from prover to server
-const MAX_SENT_DATA: usize = 2048;
-// Maximum number of bytes that can be received by prover from server
-const MAX_RECV_DATA: usize = 4096;
-
-const SECRET: &str = "TLSNotary's private key 🤡";
 
 /// Global data that needs to be shared with the axum handlers
 #[derive(Clone, Debug)]
 struct ServerGlobals {
-    pub server_url: String,
-    pub server_domain: String,
+    pub server_uri: Uri,
 }
 
-pub async fn run_server(
-    prover_host: &str,
-    prover_port: u16,
-    server_url: &str,
-    server_domain: &str,
-) -> Result<(), eyre::ErrReport> {
+pub async fn run_server(config: &config::Config) -> Result<(), eyre::ErrReport> {
     let prover_address = SocketAddr::new(
-        IpAddr::V4(prover_host.parse().map_err(|err| {
+        IpAddr::V4(config.host.parse().map_err(|err| {
             eyre!("Failed to parse prover host address from server config: {err}")
         })?),
-        prover_port,
+        config.port,
     );
     let listener = TcpListener::bind(prover_address)
         .await
@@ -60,8 +50,7 @@ pub async fn run_server(
         .route("/prove", get(ws_handler_prover))
         .route("/verify", get(ws_handler_verifier))
         .with_state(ServerGlobals {
-            server_url: server_url.to_string(),
-            server_domain: server_domain.to_string(),
+            server_uri: config.server_url.clone(),
         });
 
     loop {
@@ -116,7 +105,7 @@ async fn handle_socket_prover(socket: WebSocket, prover_globals: ServerGlobals) 
     let socket = socket.into_inner();
     let socket = WsStream::new(socket);
 
-    let result = prover(socket, &prover_globals.server_url).await;
+    let result = prover(socket, &prover_globals.server_uri).await;
     match result {
         Ok(()) => {
             info!("============================================");
@@ -132,9 +121,10 @@ async fn handle_socket_prover(socket: WebSocket, prover_globals: ServerGlobals) 
 async fn handle_socket_verifier(socket: WebSocket, prover_globals: ServerGlobals) {
     let stream = WsStream::new(socket.into_inner());
 
-    match verifier(stream, &prover_globals.server_domain).await {
+    let domain = prover_globals.server_uri.authority().unwrap().host();
+    match verifier(stream, &domain).await {
         Ok((sent, received)) => {
-            info!("Successfully verified {}", &prover_globals.server_domain);
+            info!("Successfully verified {}", &domain);
             info!("Verified sent data:\n{}", sent,);
             println!("Verified received data:\n{received}",);
         }
