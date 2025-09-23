@@ -17,7 +17,9 @@ const root = createRoot(container!);
 
 root.render(<App />);
 
-let consoleLogs: string[] = [];
+// Simple console capture
+let capturedLogs: string[] = [];
+const originalLog = console.log;
 
 const serverUrl = 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.12/crates/server-fixture/server/src/data/1kb.json';
 // const websocketProxyUrl = `wss://notary.pse.dev/proxy`;
@@ -29,18 +31,26 @@ function App(): ReactElement {
   const [result, setResult] = useState<string | null>(null);
   const [consoleMessages, setConsoleMessages] = useState<string[]>([]);
 
-  const addConsoleLog = useCallback((log: string) => {
-    consoleLogs = consoleLogs.concat(
-      `${new Date().toLocaleTimeString()} - ${log}`,
-    );
-    setConsoleMessages([...consoleLogs]);
+  // Simple console capture
+  React.useEffect(() => {
+    console.log = (...args) => {
+      const timestamp = new Date().toLocaleTimeString();
+      const message = `[${timestamp}] ${args.join(' ')}`;
+      capturedLogs.push(message);
+      setConsoleMessages([...capturedLogs]);
+      originalLog.apply(console, args);
+    };
+
+    return () => {
+      console.log = originalLog;
+    };
   }, []);
 
   const onClick = useCallback(async () => {
     setProcessing(true);
-    consoleLogs = [];
+    capturedLogs = [];
     setConsoleMessages([]);
-    addConsoleLog('Starting prover demo...');
+    console.log('Starting prover demo...');
 
     const url = serverUrl;
     const method: Method = 'GET';
@@ -56,18 +66,18 @@ function App(): ReactElement {
     try {
       console.time('setup');
       await init({ loggingLevel: 'Info' });
-      addConsoleLog(`Setting up Prover for ${hostname}`);
+      console.log(`Setting up Prover for ${hostname}`);
       prover = (await new Prover({
         serverDns: hostname,
         maxRecvData: 2000
       })) as TProver;
-      addConsoleLog('Setting up Prover: 1/2');
+      console.log('Setting up Prover: part 2/2');
       await prover.setup(verifierProxyUrl);
-      addConsoleLog('Setting up Prover: done');
+      console.log('Setting up Prover: done');
       console.timeEnd('setup');
     } catch (error) {
       const msg = `Error setting up prover: ${error}`;
-      addConsoleLog(msg);
+      console.error(msg);
       setResult(msg);
       setProcessing(false);
       return;
@@ -76,20 +86,20 @@ function App(): ReactElement {
     let transcript;
     try {
       console.time('request');
-      addConsoleLog('Sending request to proxy');
+      console.log('Sending request to proxy');
 
       const resp = await prover.sendRequest(
         `${websocketProxyUrl}?token=${hostname}`,
         { url, method, headers, body },
       );
-      addConsoleLog('Response received');
-      addConsoleLog('Wait for transcript');
+      console.log('Response received');
+      console.log('Wait for transcript');
       transcript = await prover.transcript();
-      addConsoleLog('Transcript received');
+      console.log('Transcript received');
       console.timeEnd('request');
     } catch (error) {
       const msg = `Error sending request: ${error}`;
-      addConsoleLog(msg);
+      console.error(msg);
       setResult(msg);
       setProcessing(false);
       return;
@@ -105,7 +115,7 @@ function App(): ReactElement {
 
       const body = JSON.parse(recvBody[0].toString());
 
-      addConsoleLog('Parsed response body data');
+      console.log('Parsed response body data');
 
       console.time('reveal');
       const reveal: Reveal = {
@@ -136,41 +146,41 @@ function App(): ReactElement {
         ],
         server_identity: true,
       };
-      addConsoleLog('Start reveal process');
+      console.log('Start reveal process');
       await prover.reveal(reveal);
-      addConsoleLog('Data revealed to verifier');
+      console.log('Data revealed to verifier');
       console.timeEnd('reveal');
     } catch (error) {
       const msg = `Error during data reveal: ${error}`;
-      addConsoleLog(msg);
+      console.error(msg);
       setResult(`${error}`);
       setProcessing(false);
       return;
     }
 
-    addConsoleLog('Ready - proof completed successfully');
-    addConsoleLog('Unredacted data revealed to verifier');
+    console.log('Ready - proof completed successfully');
+    console.log('Unredacted data revealed to verifier');
 
     setResult(
       "Unredacted data successfully revealed to Verifier. Check the Verifier's console output to see what exactly was shared and revealed.",
     );
 
     setProcessing(false);
-  }, [setResult, setProcessing, addConsoleLog]);
+  }, [setResult, setProcessing]);
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-slate-100 overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-slate-100">
       <div className="w-full p-4 bg-slate-800 text-white flex-shrink-0 shadow-md">
         <h1 className="text-xl font-bold">TLSNotary Interactive Prover Demo</h1>
         <span className="text-sm mt-1">
           Interactive Prover Demo
         </span>
       </div>
-      
-      <div className="grid grid-cols-2 gap-4 p-4 flex-grow">
+
+      <div className="grid grid-cols-1 gap-4 p-4 flex-grow">
         <div className="flex flex-col bg-white rounded-lg shadow-md border border-gray-200 p-4">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Demo Controls</h2>
-          
+
           <div className="text-center text-gray-700 mb-6">
             <p>
               Before clicking the <span className="font-semibold">Start</span>{' '}
@@ -222,6 +232,22 @@ function App(): ReactElement {
             Start Prover
           </button>
 
+          {/* Console Log View */}
+          <div className="mb-4">
+            <h3 className="text-md font-semibold text-gray-800 mb-2">Console Log</h3>
+            <div className="flex flex-col text-sm bg-slate-50 border border-slate-200 w-full h-48 py-2 overflow-y-auto rounded">
+              {consoleMessages.map((m, index) => (
+                <span
+                  key={index}
+                  data-testid="console-log"
+                  className="px-3 py-1 text-slate-600 break-all"
+                >
+                  {m}
+                </span>
+              ))}
+            </div>
+          </div>
+
           <div className="w-full text-center">
             <b className="text-lg font-medium text-gray-800">Proof: </b>
             {!processing && !result ? (
@@ -243,25 +269,10 @@ function App(): ReactElement {
             ) : (
               <div className="bg-gray-100 border border-gray-300 p-4 rounded-lg mt-4">
                 <pre data-testid="proof-data" className="text-left text-sm text-gray-800 whitespace-pre-wrap overflow-auto">
-                  {JSON.stringify(result, null, 2)}
+                  {result}
                 </pre>
               </div>
             )}
-          </div>
-        </div>
-
-        <div className="flex flex-col bg-white rounded-lg shadow-md border border-gray-200 p-4">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Console Log</h2>
-          <div className="flex flex-col text-sm bg-slate-50 border border-slate-200 w-full flex-grow py-2 overflow-y-auto rounded">
-            {consoleMessages.map((m, index) => (
-              <span
-                key={index}
-                data-testid="console-log"
-                className="px-3 py-1 text-slate-600 break-all"
-              >
-                {m}
-              </span>
-            ))}
           </div>
         </div>
       </div>

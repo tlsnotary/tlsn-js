@@ -15,7 +15,9 @@ const root = createRoot(container!);
 
 root.render(<App />);
 
-let consoleLogs: string[] = [];
+// Simple console capture
+let capturedLogs: string[] = [];
+const originalLog = console.log;
 
 const serverUrl = 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.12/crates/server-fixture/server/src/data/1kb.json';
 // const websocketProxyUrl = `wss://notary.pse.dev/proxy`;
@@ -27,11 +29,19 @@ function App(): ReactElement {
   const [result, setResult] = useState<string | null>(null);
   const [consoleMessages, setConsoleMessages] = useState<string[]>([]);
 
-  const addConsoleLog = useCallback((log: string) => {
-    consoleLogs = consoleLogs.concat(
-      `${new Date().toLocaleTimeString()} - ${log}`,
-    );
-    setConsoleMessages([...consoleLogs]);
+  // Simple console capture
+  React.useEffect(() => {
+    console.log = (...args) => {
+      const timestamp = new Date().toLocaleTimeString();
+      const message = `[${timestamp}] ${args.join(' ')}`;
+      capturedLogs.push(message);
+      setConsoleMessages([...capturedLogs]);
+      originalLog.apply(console, args);
+    };
+
+    return () => {
+      console.log = originalLog;
+    };
   }, []);
 
   // Initialize TLSNotary
@@ -39,79 +49,85 @@ function App(): ReactElement {
     (async () => {
       await init({ loggingLevel: 'Info' });
       setReady(true);
-      addConsoleLog('TLSNotary initialized and ready');
+      console.log('TLSNotary initialized and ready');
     })();
-  }, [addConsoleLog]);
+  }, []);
 
   const onClick = useCallback(async () => {
     setProcessing(true);
-    consoleLogs = [];
+    capturedLogs = [];
     setConsoleMessages([]);
-    addConsoleLog('Starting verifier demo...');
+    console.log('Starting verifier demo...');
 
     let verifier: TVerifier;
     try {
-      addConsoleLog('Setting up Verifier');
+      console.log('Setting up Verifier');
       verifier = await new Verifier({
         maxSentData: 2048,
         maxRecvData: 4096
       });
-      addConsoleLog('Verifier class instantiated');
+      console.log('Verifier class instantiated');
       await verifier.connect(proverProxyUrl);
-      addConsoleLog('Connecting verifier to p2p proxy: done');
+      console.log('Connecting verifier to p2p proxy: done');
     } catch (e: any) {
-      addConsoleLog('Error setting up verifier: ' + e.message);
-      addConsoleLog('Error connecting verifier to p2p proxy: ' + e.message);
+      console.error('Error setting up verifier: ' + e.message);
+      console.error('Error connecting verifier to p2p proxy: ' + e.message);
       setProcessing(false);
       return;
     }
 
     await new Promise((r) => setTimeout(r, 2000));
 
-    addConsoleLog('Start verifier');
+    console.log('Start verifier');
     // This needs to be called before we send the request
     // This starts the verifier and makes it wait for the prover to send the request
     const verified = verifier.verify();
     const result = await verified;
-    addConsoleLog('Verification completed');
+    console.log('Verification completed');
 
     const sent_b = result.transcript?.sent || [];
     const recv_b = result.transcript?.recv || [];
 
-    let recv = bytesToUtf8(substituteRedactions(recv_b, '*'));
-    let sent = bytesToUtf8(substituteRedactions(sent_b, '*'));
+    const server_name = result.server_name
 
-    addConsoleLog('Verified data received');
-    addConsoleLog(`Transcript sent: ${sent.substring(0, 100)}${sent.length > 100 ? '...' : ''}`);
-    addConsoleLog(`Transcript received: ${recv.substring(0, 100)}${recv.length > 100 ? '...' : ''}`);
+    console.log(`Verified server name: ${server_name}`);
 
-    addConsoleLog('Ready - verification completed successfully');
+    let recv = bytesToUtf8(recv_b);
+    let sent = bytesToUtf8(sent_b);
 
-    setResult(
+    console.log('Verified data received');
+    console.log(`Transcript sent: ${sent.substring(0, 100)}${sent.length > 100 ? '...' : ''}`);
+    console.log(`Transcript received: ${recv.substring(0, 100)}${recv.length > 100 ? '...' : ''}`);
+
+    console.log('Ready - verification completed successfully');
+
+    setResult(`Sent to ${server_name}:\n` +
+      sent +
+      "\n" +
+      `Received from ${server_name}:\n` +
       recv,
     );
 
     setProcessing(false);
-  }, [setResult, setProcessing, addConsoleLog]);
+  }, [setResult, setProcessing]);
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-slate-100 overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-slate-100">
       <div className="w-full p-4 bg-slate-800 text-white flex-shrink-0 shadow-md">
         <h1 className="text-xl font-bold">TLSNotary Interactive Verifier Demo</h1>
         <span className="text-sm mt-1">
           Interactive Verifier Demo
         </span>
       </div>
-      
-      <div className="grid grid-cols-2 gap-4 p-4 flex-grow">
+
+      <div className="grid grid-cols-1 gap-4 p-4 flex-grow">
         <div className="flex flex-col bg-white rounded-lg shadow-md border border-gray-200 p-4">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Demo Controls</h2>
-          
+
           <div className="text-center text-gray-700 mb-6">
             <p>
               Before clicking the <span className="font-semibold">Verify</span>{' '}
-              button, make sure the <i>interactive Prover</i> is running.<br />
-              (This demo does not require a proxy server.)
+              button, make sure the <i>interactive Prover Server</i> is running.
             </p>
             <p>
               Check the{' '}
@@ -175,25 +191,26 @@ function App(): ReactElement {
             ) : (
               <div className="bg-gray-100 border border-gray-300 p-4 rounded-lg mt-4">
                 <pre data-testid="proof-data" className="text-left text-sm text-gray-800 whitespace-pre-wrap overflow-auto">
-                  {JSON.stringify(result, null, 2)}
+                  {result}
                 </pre>
               </div>
             )}
           </div>
-        </div>
 
-        <div className="flex flex-col bg-white rounded-lg shadow-md border border-gray-200 p-4">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Console Log</h2>
-          <div className="flex flex-col text-sm bg-slate-50 border border-slate-200 w-full flex-grow py-2 overflow-y-auto rounded">
-            {consoleMessages.map((m, index) => (
-              <span
-                key={index}
-                data-testid="console-log"
-                className="px-3 py-1 text-slate-600 break-all"
-              >
-                {m}
-              </span>
-            ))}
+          {/* Console Log View */}
+          <div className="mb-4">
+            <h3 className="text-md font-semibold text-gray-800 mb-2">Console Log</h3>
+            <div className="flex flex-col text-sm bg-slate-50 border border-slate-200 w-full h-48 py-2 overflow-y-auto rounded">
+              {consoleMessages.map((m, index) => (
+                <span
+                  key={index}
+                  data-testid="console-log"
+                  className="px-3 py-1 text-slate-600 break-all"
+                >
+                  {m}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -233,14 +250,6 @@ function parseHttpMessage(buffer: Buffer, type: 'request' | 'response') {
   };
 }
 
-function substituteRedactions(
-  array: number[],
-  redactedSymbol: string = "*",
-): number[] {
-  const replaceCharByte = redactedSymbol.charCodeAt(0);
-  return array.map((byte) => (byte === 0 ? replaceCharByte : byte));
-}
-
 function bytesToUtf8(array: number[]): string {
-  return Buffer.from(array).toString("utf8");
+  return Buffer.from(array).toString("utf8").replaceAll('\u0000', '🙈');
 }
