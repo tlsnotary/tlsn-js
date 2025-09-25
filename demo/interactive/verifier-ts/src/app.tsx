@@ -63,8 +63,8 @@ function App(): ReactElement {
     try {
       console.log('Setting up Verifier');
       verifier = await new Verifier({
-        maxSentData: 2048,
-        maxRecvData: 4096
+        max_sent_data: 2048,
+        max_recv_data: 4096
       });
       console.log('Verifier class instantiated');
       await verifier.connect(proverProxyUrl);
