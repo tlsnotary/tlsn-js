@@ -24,7 +24,7 @@ impl Default for Config {
             ws_host: "0.0.0.0".into(),
             ws_port: 9816,
             server_uri:
-                "https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.12/crates/server-fixture/server/src/data/1kb.json".parse::<Uri>().unwrap(),
+                "https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.13/crates/server-fixture/server/src/data/1kb.json".parse::<Uri>().unwrap(),
             wstcp_proxy_port: 55688,
         }
     }

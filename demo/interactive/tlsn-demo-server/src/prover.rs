@@ -83,7 +83,11 @@ pub async fn prover<T: AsyncWrite + AsyncRead + Send + Unpin + 'static>(
 
     // Create proof for the Verifier.
     let mut prover = prover_task.await.unwrap().unwrap();
-
+    
+        info!(
+        "server signature: {:?}",
+        prover.tls_transcript().server_signature().unwrap().scheme,
+    );
     let mut builder: ProveConfigBuilder<'_> = ProveConfig::builder(prover.transcript());
 
     // Reveal the DNS name.

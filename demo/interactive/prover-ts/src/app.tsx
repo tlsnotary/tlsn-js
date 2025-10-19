@@ -21,7 +21,7 @@ root.render(<App />);
 let capturedLogs: string[] = [];
 const originalLog = console.log;
 
-const serverUrl = 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.12/crates/server-fixture/server/src/data/1kb.json';
+const serverUrl = 'https://raw.githubusercontent.com/tlsnotary/tlsn/refs/tags/v0.1.0-alpha.13/crates/server-fixture/server/src/data/1kb.json';
 // const websocketProxyUrl = `wss://notary.pse.dev/proxy`;
 const websocketProxyUrl = 'ws://localhost:55688';
 const verifierProxyUrl = 'ws://localhost:9816/verify';

@@ -10,12 +10,7 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
     env:
-      RELEASE_MODE: 'dry-run' # dry-run by default, will be set to 'publish' for release builds
-    services:
-      notary-server:
-        image: ghcr.io/tlsnotary/tlsn/notary-server:v0.1.0-alpha.12
-        ports:
-          - 7047:7047
+      RELEASE_MODE: "dry-run" # dry-run by default, will be set to 'publish' for release builds
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,14 +25,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install stable nightly toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-            targets: wasm32-unknown-unknown
-            components: rust-src
-            toolchain: nightly
+          targets: wasm32-unknown-unknown
+          components: rust-src
+          toolchain: nightly
 
       - name: Use caching
         uses: Swatinem/rust-cache@v2.7.7
@@ -50,7 +45,7 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-          
+
       - name: Build
         run: npm run build
 
