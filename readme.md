@@ -1,7 +1,15 @@
-![MIT licensed][mit-badge]  
+> **⚠️ This repository is deprecated**
+>
+> We are no longer maintaining `tlsn-js` or publishing updates to npm.
+>
+> **For browser-based TLSNotary usage, please check the [tlsn-extension](https://github.com/tlsnotary/tlsn-extension) mono-repo instead.**
+
+---
+
+![MIT licensed][mit-badge]
 ![Apache licensed][apache-badge]
 
-[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg  
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [apache-badge]: https://img.shields.io/github/license/saltstack/salt
 
 # tlsn-js

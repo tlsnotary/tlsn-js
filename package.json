@@ -1,7 +1,7 @@
 {
   "name": "tlsn-js",
   "version": "0.1.0-alpha.12.0",
-  "description": "",
+  "description": "[DEPRECATED]",
   "repository": "https://github.com/tlsnotary/tlsn-js",
   "main": "build/lib.js",
   "types": "build/lib.d.ts",
